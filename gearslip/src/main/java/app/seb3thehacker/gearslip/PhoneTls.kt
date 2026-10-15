@@ -38,9 +38,11 @@ class PhoneTls(keyStore: KeyStore, password: CharArray) {
 
         engine = context.createSSLEngine().apply {
             useClientMode = false
-            // Android Auto's phone endpoint requires the head unit to present a certificate.
-            needClientAuth = true
-            enabledProtocols = arrayOf("TLSv1.2")
+            // want, not need: we ask the head unit for its certificate so the run also tells
+            // us what real units present, but we never make the session depend on getting one.
+            // Homemade head units may have none.
+            wantClientAuth = true
+            enabledProtocols = arrayOf("TLSv1.2") // aasdk pins TLS 1.2
         }
         engine.beginHandshake()
     }
@@ -172,7 +174,7 @@ class PhoneTls(keyStore: KeyStore, password: CharArray) {
                 }
             }
         } catch (_: SSLPeerUnverifiedException) {
-            log.i("head unit peer certificate is unavailable")
+            log.i("head unit presented NO certificate (we asked but did not require one)")
         }
     }
 

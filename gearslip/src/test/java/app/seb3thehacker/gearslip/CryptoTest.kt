@@ -44,11 +44,11 @@ class CryptoTest {
     }
 
     @Test
-    fun `TLS rejects a head unit that does not present a client certificate`() {
+    fun `TLS still connects a head unit that presents no certificate, as homemade ones may`() {
         val generated = SelfSignedCert.generate()
         val identity = CertProvider.Identity(generated.keyStore, generated.certificate,
             SelfSignedCert.PASSWORD, "test")
-        assertFalse(TlsSelfTest.run(identity, withClientCertificate = false))
+        assertTrue(TlsSelfTest.run(identity, withClientCertificate = false))
     }
 
     @Test

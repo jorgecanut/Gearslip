@@ -888,9 +888,8 @@ class GearslipRunner(
         for (key in Wire.allBytes(Wire.fields(keyEvent), 1)) {
             val fields = Wire.fields(key)
             val keycode = Wire.varint(fields, 1)?.toInt() ?: continue
-            val down = (Wire.varint(fields, 2) ?: continue) != 0L
-            if (Wire.varint(fields, 3) == null) continue
-            val longPress = (Wire.varint(fields, 4) ?: 0L) != 0L
+            val down = Wire.varint(fields, 2) == 1L
+            val longPress = Wire.varint(fields, 4) == 1L
             log.i("<- key event: keycode=$keycode ${if (down) "down" else "up"}${if (longPress) " long" else ""}")
             if (!CarKeys.onKey(keycode, down, longPress) && down) log.i("unhandled keycode=$keycode")
         }
@@ -906,7 +905,6 @@ class GearslipRunner(
             val keycode = Wire.varint(fields, 1)?.toInt() ?: continue
             // int32, so a turn the other way arrives as a 64-bit two's complement varint.
             val delta = Wire.varint(fields, 2)?.toInt() ?: continue
-            if (keycode != 65536 || delta == 0) continue
             log.i("<- relative event: keycode=$keycode delta=$delta")
             CarKeys.onRotate(delta)
         }
