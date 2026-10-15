@@ -10,8 +10,13 @@ class ProtocolVersionTest {
         assertArrayEquals(byteArrayOf(0, 1, 0, 7, 0, 0), ProtocolVersion.respond(1, 9).bytes)
     }
 
-    @Test fun `unsupported major is never reported as a successful downgrade`() {
-        val response = ProtocolVersion.respond(4, 3)
+    @Test fun `newer head units get the 1x answer they accept`() {
+        assertArrayEquals(byteArrayOf(0, 1, 0, 7, 0, 0), ProtocolVersion.respond(4, 2).bytes)
+        assertArrayEquals(byteArrayOf(0, 1, 0, 7, 0, 0), ProtocolVersion.respond(6, 1).bytes)
+    }
+
+    @Test fun `major version 0 is refused`() {
+        val response = ProtocolVersion.respond(0, 9)
         assertFalse(response.supported)
         assertArrayEquals(byteArrayOf(0, 1, 0, 7, -1, -1), response.bytes)
     }

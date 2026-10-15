@@ -104,7 +104,7 @@ class ConnectionLifecycleTest {
     }
 
     @Test fun `unsupported version sends rejection and ends without waiting for peer EOF`() {
-        val input = CountingInput(message(1, byteArrayOf(0, 2, 0, 0)))
+        val input = CountingInput(message(1, byteArrayOf(0, 0, 0, 9)))
         val output = ByteArrayOutputStream()
         val runner = GearslipRunner(input, output, ::identity)
         runner.run()
@@ -112,7 +112,7 @@ class ConnectionLifecycleTest {
         val parser = Frames.Parser()
         parser.append(output.toByteArray(), output.size())
         val response = requireNotNull(parser.next())
-        assertArrayEquals(byteArrayOf(0, 2) + ProtocolVersion.respond(2, 0).bytes, response.payload)
+        assertArrayEquals(byteArrayOf(0, 2) + ProtocolVersion.respond(0, 9).bytes, response.payload)
         assertEquals("Unsupported protocol", SessionStatus.state.value.headline)
     }
 
