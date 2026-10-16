@@ -94,12 +94,8 @@ fun CarHome() {
     }
     val splitScreen = phase == CarMedia.Phase.READY && now.isActive && panel != SidePanel.NONE
 
-    // No outer padding on any side, split screen or not - only the gap between the two panes
-    // when the player is sharing the screen with the map.
-    Row(
-        Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    // No padding anywhere, split screen or not: the player sits flush against the map.
+    Row(Modifier.fillMaxSize()) {
         Box(
             Modifier
                 .weight(if (splitScreen) 2.1f else 1f)
