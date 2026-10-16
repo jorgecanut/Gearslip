@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -59,13 +61,17 @@ fun CarAppStage(
 ) {
     val template by connection.template.collectAsStateWithLifecycle()
 
+    val cover = remember { ChromeCover() }
+
     Box(Modifier.fillMaxSize()) {
         // The app's own drawing goes underneath; everything else is the host's rendering of
         // the template it described, laid over the top.
-        if (status.surfaceRequested) {
-            AppSurface(connection, frame, template, Modifier.fillMaxSize())
+        androidx.compose.runtime.CompositionLocalProvider(LocalChromeCover provides cover) {
+            if (status.surfaceRequested) {
+                AppSurface(connection, frame, template, Modifier.fillMaxSize())
+            }
+            TemplateChrome(template, Modifier.fillMaxSize().padding(top = if (embedded) 0.dp else CHROME_BAR))
         }
-        TemplateChrome(template, Modifier.fillMaxSize().padding(top = if (embedded) 0.dp else CHROME_BAR))
         if (!embedded) ChromeBar(status, onDisconnect, Modifier.align(Alignment.TopCenter))
     }
 }
@@ -84,13 +90,16 @@ private fun AppSurface(
     modifier: Modifier = Modifier,
 ) {
     var size by remember { mutableStateOf(0 to 0) }
+    var bounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val cover = LocalChromeCover.current
 
-    // The app lays its map out around whatever the host covers, so a template change moves the
-    // visible area even though the surface itself hasn't changed.
-    LaunchedEffect(template, size) {
-        val (width, height) = size
+    // The app lays its map out around whatever the host covers, so a template change or a card
+    // changing size moves the visible area even though the surface itself hasn't changed.
+    val (width, height) = size
+    val measured = bounds?.takeIf { width > 0 && height > 0 }?.let { cover?.visibleWithin(it, width, height) }
+    LaunchedEffect(template, size, measured) {
         if (width > 0 && height > 0) {
-            val visible = visibleAreaFor(template, width, height)
+            val visible = visibleAreaFor(template, width, height, measured)
             connection.reportAreas(visible = visible, stable = visible)
         }
     }
@@ -101,7 +110,9 @@ private fun AppSurface(
     // new one on it before releasing the old: the old display's disconnect then takes the new one's
     // connection with it and the map freezes for good. The nav bar hiding for the search keyboard
     // and the lyrics pane opening both resize this area.
-    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        modifier.onGloballyPositioned { bounds = it.boundsInWindow() },
+    ) {
         val epoch by connection.surfaceEpoch.collectAsState()
         androidx.compose.runtime.key(constraints.maxWidth, constraints.maxHeight, epoch) {
             SurfaceHost(connection, frame, onSize = { size = it }, Modifier.fillMaxSize())

@@ -222,6 +222,8 @@ internal fun RightEdgeControls(
     actionStrip: ActionStrip?,
     mapActionStrip: ActionStrip?,
     modifier: Modifier = Modifier,
+    /** For the stack of map buttons alone, without the row of the app's own above it. */
+    mapActionsModifier: Modifier = Modifier,
 ) {
     val actions = actionStrip?.actions.orEmpty().filter { it.isDrawable() }
     val mapActions = mapActionStrip?.actions.orEmpty().filter { it.isDrawable() }
@@ -263,7 +265,15 @@ internal fun RightEdgeControls(
                 actions.forEach { ActionButton(it) }
             }
         }
-        mapActions.forEach { ActionButton(it) }
+        if (mapActions.isNotEmpty()) {
+            Column(
+                mapActionsModifier,
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                mapActions.forEach { ActionButton(it) }
+            }
+        }
     }
 }
 

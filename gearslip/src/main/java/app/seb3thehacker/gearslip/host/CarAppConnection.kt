@@ -91,6 +91,9 @@ class CarAppConnection(private val context: Context) {
     private var navigationManager: INavigationManager? = null
     /** Main thread only, both of these - the handoff is a race between them either way round. */
     private var surfaceCallback: ISurfaceCallback? = null
+
+    /** Last visible and stable areas the UI reported, kept for the next surface. */
+    private var areas: Pair<Rect, Rect>? = null
     private var lent: Lent? = null
 
     private var binding: ServiceConnection? = null
@@ -552,9 +555,11 @@ class CarAppConnection(private val context: Context) {
         // The app draws for the whole surface; the visible area is what isn't covered by host
         // chrome, and the stable area is the part that never gets covered. Both depend on the
         // template (see visibleAreaFor) and are reported by the UI via [reportAreas] once it
-        // has measured. Until then the whole surface is fair game.
+        // has measured. A fresh surface the same size keeps the last ones, since the UI only
+        // reports again when they change; until then the whole surface is fair game.
         val whole = Rect(0, 0, surface.width, surface.height)
-        reportAreas(whole, whole)
+        val last = areas?.takeIf { (visible, stable) -> whole.contains(visible) && whole.contains(stable) }
+        reportAreas(last?.first ?: whole, last?.second ?: whole)
 
         GearslipLog.i(
             "host: lent the app a ${surface.width}x${surface.height} @${surface.dpi}dpi surface"
@@ -575,6 +580,7 @@ class CarAppConnection(private val context: Context) {
 
     /** Tells the app which part of its surface the driver can actually see. */
     fun reportAreas(visible: Rect, stable: Rect) {
+        areas = visible to stable
         val callback = surfaceCallback ?: return
         runCatching { callback.onStableAreaChanged(stable, noop("onStableAreaChanged")) }
         runCatching { callback.onVisibleAreaChanged(visible, noop("onVisibleAreaChanged")) }
