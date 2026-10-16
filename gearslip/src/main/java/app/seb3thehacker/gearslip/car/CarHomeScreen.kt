@@ -104,7 +104,7 @@ fun CarHome() {
             MapPane(navStatus, frame)
         }
         if (splitScreen) {
-            val side = Modifier.weight(1f).fillMaxHeight()
+            val side = Modifier.weight(1f).fillMaxHeight().padding(bottom = LocalNavBarInset.current)
             if (panel == SidePanel.LYRICS) SideLyrics(now, side) else DockedPlayer(now, side)
         }
     }

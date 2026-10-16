@@ -51,6 +51,7 @@ fun CarSettingsScreen() {
     val open by CarSettings.openOnConnect.collectAsState()
     val night by CarSettings.nightMode.collectAsState()
     val units by CarSettings.units.collectAsState()
+    val navBar by CarSettings.navBarMode.collectAsState()
     val whatsNew by CarSettings.whatsNewAfterUpdates.collectAsState()
     val pipeAudio by CarSettings.pipeAudio.collectAsState()
     val speakDirections by CarSettings.speakDirections.collectAsState()
@@ -114,6 +115,16 @@ fun CarSettingsScreen() {
             listOf(Units.AUTO to "Auto", Units.IMPERIAL to "Imperial (mi, ft, °F)", Units.METRIC to "Metric (km, m, °C)"),
             units,
         ) { CarSettings.setUnits(it) }
+
+        ChoiceRow(
+            "Nav bar",
+            listOf(
+                NavBarMode.SHOW to "Always show",
+                NavBarMode.HIDE_NAVIGATING to "Hide while navigating",
+                NavBarMode.HIDE to "Hide until tapped",
+            ),
+            navBar,
+        ) { CarSettings.setNavBarMode(it) }
 
         ChoiceRow(
             "Player in the nav bar",

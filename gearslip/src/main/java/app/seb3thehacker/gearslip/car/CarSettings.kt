@@ -18,6 +18,9 @@ enum class Units { AUTO, IMPERIAL, METRIC }
 /** The car UI's own colours. Separate from [NightMode], which is about the light outside (the map). */
 enum class AppTheme { PHONE, LIGHT, DARK }
 
+/** When the nav bar gets out of the way: never, during a route, or whenever the map is up. */
+enum class NavBarMode { SHOW, HIDE_NAVIGATING, HIDE }
+
 /**
  * Settings changed from the car screen itself. Held as flows so the car UI reacts the moment a
  * button is tapped, and persisted through [AppSettings] so they survive the next connection.
@@ -45,6 +48,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_CAR_SENSORS = "car_sensors_enabled"
     private const val KEY_SEEN_SAFETY_WARNING = "car_seen_safety_warning"
     private const val KEY_UNITS = "car_units"
+    private const val KEY_NAV_BAR = "car_nav_bar"
     private const val KEY_WHATS_NEW = "car_whats_new_after_updates"
     private const val KEY_WHATS_NEW_SEEN = "car_whats_new_seen_code"
 
@@ -83,6 +87,14 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val unitsFlow = MutableStateFlow(Units.AUTO)
 
     val units: StateFlow<Units> = unitsFlow
+
+    private val navBarFlow = MutableStateFlow(NavBarMode.SHOW)
+    val navBarMode: StateFlow<NavBarMode> = navBarFlow
+
+    fun setNavBarMode(mode: NavBarMode) {
+        navBarFlow.value = mode
+        AppSettings.putString(app, KEY_NAV_BAR, mode.name)
+    }
 
 
     private val whatsNewFlow = MutableStateFlow(true)
@@ -243,6 +255,9 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         unitsFlow.value = runCatching {
             Units.valueOf(AppSettings.getString(app, KEY_UNITS, Units.AUTO.name))
         }.getOrDefault(Units.AUTO)
+        navBarFlow.value = runCatching {
+            NavBarMode.valueOf(AppSettings.getString(app, KEY_NAV_BAR, NavBarMode.SHOW.name))
+        }.getOrDefault(NavBarMode.SHOW)
         whatsNewFlow.value = AppSettings.getString(app, KEY_WHATS_NEW, "true") == "true"
         whatsNewSeenFlow.value = AppSettings.getString(app, KEY_WHATS_NEW_SEEN, "0").toIntOrNull() ?: 0
     }

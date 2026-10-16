@@ -211,6 +211,22 @@ fun CarUi() {
                 }
                 val screen = navigator.current
                 val safetyWarningSeen by CarSettings.hasSeenSafetyWarning.collectAsState()
+                val keyboardVisible by CarKeyboardVisibility.state
+                // Off "Always show", the bar floats over the map rather than taking a row of its
+                // own: hiding it then leaves the map's surface the size it was. Resizing it would
+                // hand the map app a new surface each time, and some go black on that.
+                val navBarMode by CarSettings.navBarMode.collectAsState()
+                val appTemplate by CarServices.nav.template.collectAsState()
+                val floatingBar = navBarMode != NavBarMode.SHOW
+                val barMayHide = screen == CarScreen.Home && when (navBarMode) {
+                    NavBarMode.SHOW -> false
+                    NavBarMode.HIDE_NAVIGATING -> appTemplate is androidx.car.app.navigation.model.NavigationTemplate
+                    NavBarMode.HIDE -> true
+                }
+                // A full wait from when hiding becomes possible, not from whenever the last touch was.
+                LaunchedEffect(barMayHide) { if (barMayHide) controlsWake.touch() }
+                val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake)
+                val homeInset = if (floatingBar && barShown) NAV_BAR_HEIGHT else 0.dp
                 Box(Modifier.fillMaxSize().padding(pad)) {
                 Column(Modifier.fillMaxSize()) {
                     if (!safetyWarningSeen) {
@@ -223,12 +239,14 @@ fun CarUi() {
                         // Home never leaves the composition; other screens cover it. Dropping it
                         // would tear down the map's surface, and coming back would then show black
                         // while the nav app redrew on a new one.
-                        CarHome()
+                        CompositionLocalProvider(LocalNavBarInset provides homeInset) { CarHome() }
                         if (screen != CarScreen.Home) {
                             Box(
                                 Modifier
                                     .fillMaxSize()
                                     .background(MaterialTheme.colorScheme.background)
+                                    // The floating bar never hides here, so keep the screen clear of it.
+                                    .padding(bottom = if (floatingBar && !keyboardVisible) NAV_BAR_HEIGHT else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
@@ -247,7 +265,7 @@ fun CarUi() {
                                 }
                             }
                         }
-                        CarToastOverlay(Modifier.align(Alignment.BottomCenter))
+                        CarToastOverlay(Modifier.align(Alignment.BottomCenter).padding(bottom = homeInset))
                         CallPromptOverlay()
                         BluetoothPairOverlay()
                         PopupTimer()
@@ -259,20 +277,27 @@ fun CarUi() {
                         // Above the popup: a call is more urgent than any notification.
                         VoiceHelpOverlay(Modifier.align(Alignment.Center))
                         CallOverlay(Modifier.align(Alignment.TopCenter))
-                        AssistantOverlay(Modifier.align(Alignment.BottomCenter))
+                        AssistantOverlay(Modifier.align(Alignment.BottomCenter).padding(bottom = homeInset))
                         if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) {
                             // Bottom corner, not top: a screen's own header almost always puts
                             // something in the top-right (settings, search, a Liked Songs
                             // shortcut) and this badge used to sit right on top of it, hiding
                             // whatever the screen drew there.
-                            DebugBuildBadge(Modifier.align(Alignment.BottomEnd))
+                            DebugBuildBadge(Modifier.align(Alignment.BottomEnd).padding(bottom = homeInset))
+                        }
+                        if (floatingBar) {
+                            androidx.compose.animation.AnimatedVisibility(
+                                barShown,
+                                Modifier.align(Alignment.BottomCenter),
+                                enter = androidx.compose.animation.slideInVertically { it },
+                                exit = androidx.compose.animation.slideOutVertically { it },
+                            ) { CarNavBar(navigator) }
                         }
                     }
                     // The keyboard takes the nav bar's row instead of squeezing in above it -
                     // nothing on the nav bar is useful mid-type, and the screen is too small to
                     // show both.
-                    val keyboardVisible by CarKeyboardVisibility.state
-                    if (!keyboardVisible) CarNavBar(navigator)
+                    if (!floatingBar && !keyboardVisible) CarNavBar(navigator)
                 }
                 // Over everything, nav bar included: a long press on an app, anywhere.
                 AppMenu(navigator, rememberRunningApps())
@@ -283,6 +308,14 @@ fun CarUi() {
         }
     }
 }
+
+private val NAV_BAR_HEIGHT = 56.dp
+
+/**
+ * How much of the bottom of Home the floating nav bar covers right now: its height while it shows,
+ * zero while it's hidden or when it has a row of its own.
+ */
+internal val LocalNavBarInset = androidx.compose.runtime.compositionLocalOf { 0.dp }
 
 /**
  * A single blocking screen, shown once per install before anything else the car screen can show -
@@ -462,7 +495,7 @@ private fun CarNavBar(navigator: CarNavigator) {
     val running = rememberRunningApps()
 
     Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-        BoxWithConstraints(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 10.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().height(NAV_BAR_HEIGHT).padding(horizontal = 10.dp)) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 // Home and Apps are two different places now, not a toggle on one button - the
                 // breadcrumb trail is how you retrace your steps, but reaching for either of

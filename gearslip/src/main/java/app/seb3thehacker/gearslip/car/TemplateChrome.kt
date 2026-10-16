@@ -103,7 +103,7 @@ fun visibleAreaFor(template: Template?, width: Int, height: Int, measured: Rect?
     is NavigationTemplate -> measured ?: Rect(0, 0, width, height)
     is MapWithContentTemplate, is MapTemplate, is PlaceListNavigationTemplate,
     is RoutePreviewNavigationTemplate, is PlaceListMapTemplate,
-    -> Rect((width * CONTENT_PANE_FRACTION).toInt(), 0, width, height)
+    -> Rect((width * CONTENT_PANE_FRACTION).toInt(), 0, width, measured?.bottom ?: height)
     null -> Rect(0, 0, width, height)
     else -> Rect(0, 0, 0, 0)
 }
@@ -150,9 +150,18 @@ internal class ChromeCover {
 
 internal val LocalChromeCover = compositionLocalOf<ChromeCover?> { null }
 
+/**
+ * The floating nav bar, as far as the app's map is concerned. Its full [height] at once rather
+ * than following the slide, so the app is told once instead of every frame.
+ */
+@Composable
+internal fun BottomCover(height: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(height).covers("nav-bar", CoverEdge.BOTTOM))
+}
+
 /** Records where this lands, padding included, until it leaves the screen. */
 @Composable
-private fun Modifier.covers(key: String, edge: CoverEdge): Modifier {
+internal fun Modifier.covers(key: String, edge: CoverEdge): Modifier {
     val cover = LocalChromeCover.current ?: return this
     DisposableEffect(cover, key) { onDispose { cover.remove(key) } }
     return onGloballyPositioned { cover.put(key, edge, it.boundsInWindow()) }
@@ -171,7 +180,9 @@ private fun NavigationChrome(template: NavigationTemplate, modifier: Modifier) {
 
 /**
  * The turn in one short bar across the top, the arrival time in another along the bottom, so the
- * map keeps its full width. Neither grows past [NAV_BAR_MAX_WIDTH]. The map buttons sit between them on the right.
+ * map keeps its full width. Neither grows past [NAV_BAR_MAX_WIDTH]. The bottom one is short and
+ * left out of the visible area on purpose, so a speedometer in the app's bottom corner sits level
+ * with it rather than stacked above it. The map buttons sit between them on the right.
  */
 @Composable
 private fun NavigationBars(
@@ -194,7 +205,7 @@ private fun NavigationBars(
                 estimate?.let {
                     TravelEstimateBar(
                         it,
-                        Modifier.align(Alignment.BottomStart).covers("nav-bottom", CoverEdge.BOTTOM).padding(12.dp)
+                        Modifier.align(Alignment.BottomStart).padding(12.dp)
                             .widthIn(max = NAV_BAR_MAX_WIDTH),
                     )
                 }

@@ -11,11 +11,15 @@ import android.os.SystemClock
  *
  * They fade out after [IDLE_MS] with no touch anywhere on the car screen, to leave the map clear,
  * and any touch brings them back. [touch] is called for every pointer event and is cheap: it only
- * writes state when the buttons were actually hidden.
+ * writes state when the buttons were actually hidden. The nav bar, when set to hide, goes the
+ * same way but waits longer ([NAV_BAR_IDLE_MS]).
  */
 class MapControlsWake {
 
     var awake by mutableStateOf(true)
+        private set
+
+    var navBarAwake by mutableStateOf(true)
         private set
 
     private var lastTouch = SystemClock.uptimeMillis()
@@ -23,15 +27,19 @@ class MapControlsWake {
     fun touch() {
         lastTouch = SystemClock.uptimeMillis()
         if (!awake) awake = true
+        if (!navBarAwake) navBarAwake = true
     }
 
     /** Called on a timer; hides the buttons once nothing has touched the screen for [IDLE_MS]. */
     fun tick() {
-        if (awake && SystemClock.uptimeMillis() - lastTouch >= IDLE_MS) awake = false
+        val idle = SystemClock.uptimeMillis() - lastTouch
+        if (awake && idle >= IDLE_MS) awake = false
+        if (navBarAwake && idle >= NAV_BAR_IDLE_MS) navBarAwake = false
     }
 
     companion object {
         const val IDLE_MS = 4_000L
+        const val NAV_BAR_IDLE_MS = 8_000L
     }
 }
 
