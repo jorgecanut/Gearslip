@@ -2,7 +2,14 @@ package app.seb3thehacker.gearslip.car
 
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.widget.FrameLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.LaunchedEffect
+import app.seb3thehacker.gearslip.car.theme.GsIconButton
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -43,11 +50,30 @@ fun WebApp(content: String) {
     val ring = String.format("#%06X", MaterialTheme.colorScheme.primary.toArgb() and 0xFFFFFF)
     var web by remember { mutableStateOf<WebView?>(null) }
     var fieldText by remember { mutableStateOf<String?>(null) }
+    // A page's own full screen, such as a video's: the view to show, and how to hand it back.
+    var pageFullscreen by remember { mutableStateOf<Pair<View, WebChromeClient.CustomViewCallback>?>(null) }
+    // Whether the video asked for full screen, rather than the driver from the header: ending
+    // the video's then leaves full screen too, instead of stranding them in it.
+    var videoMadeFullscreen by remember { mutableStateOf(false) }
+    val fullscreen = CarFullscreen.active
+
+    // Leaving the browser ends full screen, whoever started it.
+    DisposableEffect(Unit) { onDispose { CarFullscreen.exit() } }
+    // The way out of full screen also ends the page's.
+    LaunchedEffect(fullscreen) {
+        if (!fullscreen) pageFullscreen?.let { (_, callback) ->
+            pageFullscreen = null
+            callback.onCustomViewHidden()
+        }
+    }
 
     DisposableEffect(web) {
         navigator.backInterceptor = {
             val view = web
-            if (view != null && view.canGoBack()) {
+            if (CarFullscreen.active) {
+                CarFullscreen.exit()
+                true
+            } else if (view != null && view.canGoBack()) {
                 view.goBack()
                 true
             } else {
@@ -59,9 +85,14 @@ fun WebApp(content: String) {
 
     Column(Modifier.fillMaxSize()) {
         // Back steps through the page's history first (the interceptor above), then leaves.
-        ScreenHeader("Browser", Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        if (!fullscreen) {
+            ScreenHeader("Browser", Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                GsIconButton(MediaIcons.Fullscreen, "Full screen", CarFullscreen::enter)
+            }
+        }
+        Box(Modifier.weight(1f).fillMaxSize()) {
         AndroidView(
-            modifier = Modifier.weight(1f).fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 WebView(context).apply {
                     settings.javaScriptEnabled = true
@@ -69,6 +100,19 @@ fun WebApp(content: String) {
                     settings.loadWithOverviewMode = true
                     settings.useWideViewPort = true
                     webViewClient = LoggingClient(ring)
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+                            videoMadeFullscreen = !CarFullscreen.active
+                            pageFullscreen = view to callback
+                            CarFullscreen.enter()
+                        }
+
+                        override fun onHideCustomView() {
+                            if (pageFullscreen == null) return
+                            pageFullscreen = null
+                            if (videoMadeFullscreen) CarFullscreen.exit()
+                        }
+                    }
                     addJavascriptInterface(
                         FieldFocusBridge(onFocus = { fieldText = it }, onBlur = { fieldText = null }),
                         "GearslipField",
@@ -85,6 +129,22 @@ fun WebApp(content: String) {
             update = { it.settings.isAlgorithmicDarkeningAllowed = darkOutside },
             onRelease = { it.destroy() },
         )
+        pageFullscreen?.let { (view, _) ->
+            androidx.compose.runtime.key(view) {
+                AndroidView(
+                    factory = { context ->
+                        FrameLayout(context).apply {
+                            setBackgroundColor(android.graphics.Color.BLACK)
+                            (view.parent as? ViewGroup)?.removeView(view)
+                            addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    onRelease = { it.removeAllViews() },
+                )
+            }
+        }
+        }
         fieldText?.let { text ->
             CarKeyboard(
                 text = text,

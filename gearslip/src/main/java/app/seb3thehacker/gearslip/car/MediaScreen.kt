@@ -688,6 +688,8 @@ internal object MediaIcons {
     val RepeatOne = icon("RepeatOne", "M7,7h10v3l4,-4 -4,-4v3L5,5v6h2L7,7zM17,17L7,17v-3l-4,4 4,4v-3h12v-6h-2v4zM13,15L13,9h-1l-2,1v1h1.5v4L13,15z")
     /** A screen with a filled right-hand panel: "put the player beside the map". */
     val DockRight = icon("DockRight", "M2,4h20v16H2zM4,6h10v12H4z", PathFillType.EvenOdd)
+    val Fullscreen = icon("Fullscreen", "M7,14L5,14v5h5v-2L7,17v-3zM5,10h2L7,7h3L10,5L5,5v5zM17,17h-3v2h5v-5h-2v3zM14,5v2h3v3h2L19,5h-5z")
+    val FullscreenExit = icon("FullscreenExit", "M5,16h3v3h2v-5L5,14v2zM8,8L5,8v2h5L10,5L8,5v3zM14,19h2v-3h3v-2h-5v5zM16,8L16,5h-2v5h5L19,8h-3z")
 
     private fun icon(name: String, path: String, fillType: PathFillType = PathFillType.NonZero) = ImageVector.Builder(
         name, 24.dp, 24.dp, 24f, 24f,

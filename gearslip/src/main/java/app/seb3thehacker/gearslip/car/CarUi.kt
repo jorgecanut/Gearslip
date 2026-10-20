@@ -123,6 +123,7 @@ fun CarUi() {
         while (true) {
             delay(250)
             controlsWake.tick()
+            CarFullscreen.tick()
         }
     }
     // The knob counts as a touch: the map's buttons can't be found while they're faded out.
@@ -193,10 +194,25 @@ fun CarUi() {
                     .fillMaxSize()
                     // Watches every touch without taking any: first in line, consumes nothing.
                     .pointerInput(controlsWake) {
+                        // In full screen, a swipe that starts at the top or bottom edge brings the
+                        // nav bar back. Only from the very edge, so scrolling a page still scrolls.
+                        val edge = 32.dp.toPx()
+                        val slop = 24.dp.toPx()
+                        var startY = -1f
                         awaitPointerEventScope {
                             while (true) {
-                                awaitPointerEvent(PointerEventPass.Initial)
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
                                 controlsWake.touch()
+                                CarFullscreen.touch()
+                                val change = event.changes.firstOrNull() ?: continue
+                                if (!CarFullscreen.active) continue
+                                if (change.pressed && !change.previousPressed) {
+                                    val y = change.position.y
+                                    startY = if (y < edge || y > size.height - edge) y else -1f
+                                } else if (startY >= 0f && change.pressed && kotlin.math.abs(change.position.y - startY) > slop) {
+                                    CarFullscreen.reveal()
+                                    startY = -1f
+                                }
                             }
                         }
                     },
@@ -227,6 +243,8 @@ fun CarUi() {
                 LaunchedEffect(barMayHide) { if (barMayHide) controlsWake.touch() }
                 val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake)
                 val homeInset = if (floatingBar && barShown) NAV_BAR_HEIGHT else 0.dp
+                // Only the screen that asked: going Home or anywhere else ends it.
+                val fullscreen = CarFullscreen.active && screen != CarScreen.Home
                 Box(Modifier.fillMaxSize().padding(pad)) {
                 Column(Modifier.fillMaxSize()) {
                     if (!safetyWarningSeen) {
@@ -240,13 +258,28 @@ fun CarUi() {
                         // would tear down the map's surface, and coming back would then show black
                         // while the nav app redrew on a new one.
                         CompositionLocalProvider(LocalNavBarInset provides homeInset) { CarHome() }
+                    }
+                    // The keyboard takes the nav bar's row instead of squeezing in above it -
+                    // nothing on the nav bar is useful mid-type, and the screen is too small to
+                    // show both.
+                    if (!floatingBar && !keyboardVisible) CarNavBar(navigator)
+                }
+                // Every other screen, and everything that pops up, in a layer over Home rather
+                // than inside its area: full screen grows this layer over the nav bar's row while
+                // Home, and the map's surface in it, keeps its size.
+                if (safetyWarningSeen) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(bottom = if (!floatingBar && !keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp),
+                    ) {
                         if (screen != CarScreen.Home) {
                             Box(
                                 Modifier
                                     .fillMaxSize()
                                     .background(MaterialTheme.colorScheme.background)
                                     // The floating bar never hides here, so keep the screen clear of it.
-                                    .padding(bottom = if (floatingBar && !keyboardVisible) NAV_BAR_HEIGHT else 0.dp)
+                                    .padding(bottom = if (floatingBar && !keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
@@ -285,19 +318,29 @@ fun CarUi() {
                             // whatever the screen drew there.
                             DebugBuildBadge(Modifier.align(Alignment.BottomEnd).padding(bottom = homeInset))
                         }
-                        if (floatingBar) {
+                        if (floatingBar || fullscreen) {
                             androidx.compose.animation.AnimatedVisibility(
-                                barShown,
+                                if (fullscreen) CarFullscreen.revealed else barShown,
                                 Modifier.align(Alignment.BottomCenter),
                                 enter = androidx.compose.animation.slideInVertically { it },
                                 exit = androidx.compose.animation.slideOutVertically { it },
                             ) { CarNavBar(navigator) }
                         }
+                        if (fullscreen) {
+                            androidx.compose.animation.AnimatedVisibility(
+                                CarFullscreen.revealed,
+                                Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
+                                enter = androidx.compose.animation.slideInVertically { -it },
+                                exit = androidx.compose.animation.slideOutVertically { -it },
+                            ) {
+                                GsButton(onClick = CarFullscreen::exit, modifier = Modifier.height(48.dp)) {
+                                    Icon(MediaIcons.FullscreenExit, contentDescription = null, modifier = Modifier.size(22.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Exit full screen", style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                        }
                     }
-                    // The keyboard takes the nav bar's row instead of squeezing in above it -
-                    // nothing on the nav bar is useful mid-type, and the screen is too small to
-                    // show both.
-                    if (!floatingBar && !keyboardVisible) CarNavBar(navigator)
                 }
                 // Over everything, nav bar included: a long press on an app, anywhere.
                 AppMenu(navigator, rememberRunningApps())
