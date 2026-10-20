@@ -51,7 +51,7 @@ class ScreenProjector(private val context: Context) {
      * preview passes "gearslip-preview".
      */
     fun start(
-        surface: Surface,
+        surface: Surface?,
         width: Int,
         height: Int,
         densityDpi: Int,
@@ -217,6 +217,14 @@ class ScreenProjector(private val context: Context) {
             android.view.KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0, android.view.InputDevice.SOURCE_DPAD,
         )
         target.dispatchKeyEvent(event)
+    }
+
+    /**
+     * Points the display at another surface, or none, without restarting what it shows. The
+     * preview's SurfaceView comes and goes as the phone turns; the car UI on it carries on.
+     */
+    fun setSurface(surface: Surface?) {
+        virtualDisplay?.surface = surface
     }
 
     fun stop() {

@@ -4,15 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.PixelFormat
-import android.hardware.HardwareBuffer
-import android.media.ImageReader
-import android.os.Handler
-import android.os.Looper
 import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -39,9 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInteropFilter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -59,7 +50,7 @@ import app.seb3thehacker.gearslip.car.CarUi
  * Runs the real car UI on the bench and shows it on the phone.
  *
  * This is the same pipeline the car gets - a VirtualDisplay hosting a Presentation, driven by
- * the same [ScreenProjector] and fed the same touches - with an ImageReader standing in for the
+ * the same [ScreenProjector] and fed the same touches - with a SurfaceView standing in for the
  * H.264 encoder. That matters for anything composited rather than drawn by Compose, such as the
  * SurfaceView a templated app draws its map into: if it appears here, it will reach the car.
  *
@@ -69,7 +60,6 @@ import app.seb3thehacker.gearslip.car.CarUi
 fun CarPreviewScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val frame by CarEnvironment.frame.collectAsStateWithLifecycle()
-    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var viewSize by remember { mutableStateOf(0 to 0) }
     // Tied to how the phone itself is held, not a button: turn it sideways and the preview goes
     // fullscreen, turn it back and the phone's own chrome (the Back/title above the frame) returns.
@@ -83,35 +73,11 @@ fun CarPreviewScreen(onBack: () -> Unit) {
 
     DisposableEffect(width, height, density) {
         CarEnvironment.start(context)
-
-        // COMPOSER_OVERLAY is what makes SurfaceFlinger willing to composite into this reader;
-        // CPU_READ_OFTEN is what makes the resulting buffer lockable, which is how the frame
-        // gets copied into a Bitmap. Without both, frames arrive but every copy fails.
-        val reader = ImageReader.newInstance(
-            width, height, PixelFormat.RGBA_8888, 3,
-            HardwareBuffer.USAGE_COMPOSER_OVERLAY or
-                HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or
-                HardwareBuffer.USAGE_CPU_READ_OFTEN,
-        )
-        val handler = Handler(Looper.getMainLooper())
-        reader.setOnImageAvailableListener({ source ->
-            val image = runCatching { source.acquireLatestImage() }.getOrNull() ?: return@setOnImageAvailableListener
-            try {
-                bitmap = image.toBitmap(width, height)
-            } catch (t: Throwable) {
-                GearslipLog.e("preview: could not copy a frame", t)
-            } finally {
-                image.close()
-            }
-        }, handler)
-
-        projector.start(reader.surface, width, height, density, name = "gearslip-preview") { CarUi() }
-
-        onDispose {
-            projector.stop()
-            reader.close()
-            bitmap = null
-        }
+        // No surface yet: the SurfaceView below hands its own over once it exists, and the
+        // display draws straight into it. Copying each frame into a Bitmap instead cost two
+        // full-size allocations per frame on the main thread, and taps lagged with the size.
+        projector.start(null, width, height, density, name = "gearslip-preview") { CarUi() }
+        onDispose { projector.stop() }
     }
 
     // The frame is drawn the same way in both layouts; only what surrounds it differs.
@@ -140,14 +106,27 @@ fun CarPreviewScreen(onBack: () -> Unit) {
                 },
             contentAlignment = Alignment.Center,
         ) {
-            bitmap?.let {
-                Image(
-                    it.asImageBitmap(),
-                    contentDescription = "Car screen",
+            androidx.compose.runtime.key(width, height) {
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = { viewContext ->
+                        android.view.SurfaceView(viewContext).apply {
+                            // The car's own size; the compositor scales it to the view.
+                            holder.setFixedSize(width, height)
+                            holder.addCallback(object : android.view.SurfaceHolder.Callback {
+                                override fun surfaceCreated(holder: android.view.SurfaceHolder) =
+                                    projector.setSurface(holder.surface)
+
+                                override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, w: Int, h: Int) =
+                                    projector.setSurface(holder.surface)
+
+                                override fun surfaceDestroyed(holder: android.view.SurfaceHolder) =
+                                    projector.setSurface(null)
+                            })
+                        }
+                    },
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
                 )
-            } ?: Text("Waiting for a frame…", color = Color.White)
+            }
         }
     }
 
@@ -250,18 +229,6 @@ private fun Int.toCarAction(): Int = when (this) {
  * Copies one frame out of the reader. The reader's rows are padded to a hardware-friendly
  * stride, so the copy is made at the padded width and then cropped back.
  */
-private fun android.media.Image.toBitmap(width: Int, height: Int): Bitmap {
-    val plane = planes[0]
-    val pixelStride = plane.pixelStride
-    val rowPadding = plane.rowStride - pixelStride * width
-    val padded = Bitmap.createBitmap(
-        width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888,
-    )
-    padded.copyPixelsFromBuffer(plane.buffer)
-    return if (padded.width == width) padded
-    else Bitmap.createBitmap(padded, 0, 0, width, height).also { padded.recycle() }
-}
-
 /**
  * The size the preview draws at. The last car's frame by default; this device's whole screen,
  * for a head unit running Gearslip on its own (issue #12); or a size typed into Settings. The
