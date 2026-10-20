@@ -18,6 +18,30 @@ enum class Units { AUTO, IMPERIAL, METRIC }
 /** The car UI's own colours. Separate from [NightMode], which is about the light outside (the map). */
 enum class AppTheme { PHONE, LIGHT, DARK }
 
+/** A screen's width and height in pixels, as someone typed it: "1280x480". */
+data class ScreenSize(val width: Int, val height: Int) {
+    override fun toString() = "${width}x$height"
+
+    companion object {
+        fun parse(text: String?): ScreenSize? {
+            val parts = text?.lowercase()?.split('x', '×', ' ')?.filter { it.isNotBlank() } ?: return null
+            if (parts.size != 2) return null
+            val w = parts[0].trim().toIntOrNull() ?: return null
+            val h = parts[1].trim().toIntOrNull() ?: return null
+            return if (w in 100..8000 && h in 100..8000) ScreenSize(w, h) else null
+        }
+    }
+}
+
+/**
+ * How a head unit puts our frame on a screen of another shape. [CROP] cuts the edges off, as
+ * a car's own margins do; [SQUASH] shrinks the whole frame to fit, stretching everything.
+ */
+enum class ScreenFit { CROP, SQUASH }
+
+/** What size the phone's car preview draws: the last car's, this device's whole screen, or one typed in. */
+enum class PreviewSize { LAST_CAR, FILL, CUSTOM }
+
 /** When the nav bar gets out of the way: never, during a route, or whenever the map is up. */
 enum class NavBarMode { SHOW, HIDE_NAVIGATING, HIDE }
 
@@ -49,6 +73,10 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_SEEN_SAFETY_WARNING = "car_seen_safety_warning"
     private const val KEY_UNITS = "car_units"
     private const val KEY_NAV_BAR = "car_nav_bar"
+    private const val KEY_SCREEN_SIZE = "car_screen_size"
+    private const val KEY_SCREEN_FIT = "car_screen_fit"
+    private const val KEY_PREVIEW_SIZE = "preview_size"
+    private const val KEY_PREVIEW_CUSTOM = "preview_custom_size"
     private const val KEY_WHATS_NEW = "car_whats_new_after_updates"
     private const val KEY_WHATS_NEW_SEEN = "car_whats_new_seen_code"
 
@@ -87,6 +115,35 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val unitsFlow = MutableStateFlow(Units.AUTO)
 
     val units: StateFlow<Units> = unitsFlow
+
+    private val screenSizeFlow = MutableStateFlow<ScreenSize?>(null)
+    private val screenFitFlow = MutableStateFlow(ScreenFit.CROP)
+    private val previewSizeFlow = MutableStateFlow(PreviewSize.LAST_CAR)
+    private val previewCustomFlow = MutableStateFlow<ScreenSize?>(null)
+
+    /** The car screen's real size, when the head unit gets it wrong; null trusts the head unit. */
+    val screenSize: StateFlow<ScreenSize?> = screenSizeFlow
+    val screenFit: StateFlow<ScreenFit> = screenFitFlow
+    val previewSize: StateFlow<PreviewSize> = previewSizeFlow
+    val previewCustom: StateFlow<ScreenSize?> = previewCustomFlow
+
+    /** Takes effect the next time the car connects: the video size is agreed at the start. */
+    fun setScreenSize(size: ScreenSize?) {
+        screenSizeFlow.value = size
+        AppSettings.putString(app, KEY_SCREEN_SIZE, size?.toString().orEmpty())
+    }
+
+    fun setScreenFit(fit: ScreenFit) {
+        screenFitFlow.value = fit
+        AppSettings.putString(app, KEY_SCREEN_FIT, fit.name)
+    }
+
+    fun setPreviewSize(size: PreviewSize, custom: ScreenSize? = previewCustomFlow.value) {
+        previewSizeFlow.value = size
+        previewCustomFlow.value = custom
+        AppSettings.putString(app, KEY_PREVIEW_SIZE, size.name)
+        AppSettings.putString(app, KEY_PREVIEW_CUSTOM, custom?.toString().orEmpty())
+    }
 
     private val navBarFlow = MutableStateFlow(NavBarMode.SHOW)
     val navBarMode: StateFlow<NavBarMode> = navBarFlow
@@ -255,6 +312,14 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         unitsFlow.value = runCatching {
             Units.valueOf(AppSettings.getString(app, KEY_UNITS, Units.AUTO.name))
         }.getOrDefault(Units.AUTO)
+        screenSizeFlow.value = ScreenSize.parse(AppSettings.getString(app, KEY_SCREEN_SIZE, ""))
+        screenFitFlow.value = runCatching {
+            ScreenFit.valueOf(AppSettings.getString(app, KEY_SCREEN_FIT, ScreenFit.CROP.name))
+        }.getOrDefault(ScreenFit.CROP)
+        previewSizeFlow.value = runCatching {
+            PreviewSize.valueOf(AppSettings.getString(app, KEY_PREVIEW_SIZE, PreviewSize.LAST_CAR.name))
+        }.getOrDefault(PreviewSize.LAST_CAR)
+        previewCustomFlow.value = ScreenSize.parse(AppSettings.getString(app, KEY_PREVIEW_CUSTOM, ""))
         navBarFlow.value = runCatching {
             NavBarMode.valueOf(AppSettings.getString(app, KEY_NAV_BAR, NavBarMode.SHOW.name))
         }.getOrDefault(NavBarMode.SHOW)

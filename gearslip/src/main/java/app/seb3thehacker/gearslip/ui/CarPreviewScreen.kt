@@ -75,9 +75,9 @@ fun CarPreviewScreen(onBack: () -> Unit) {
     // fullscreen, turn it back and the phone's own chrome (the Back/title above the frame) returns.
     val fullscreen = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val width = frame.width
-    val height = frame.height
-    val density = frame.densityDpi
+    val previewSize by app.seb3thehacker.gearslip.car.CarSettings.previewSize.collectAsStateWithLifecycle()
+    val custom by app.seb3thehacker.gearslip.car.CarSettings.previewCustom.collectAsStateWithLifecycle()
+    val (width, height, density) = previewFrame(context, frame, previewSize, custom)
 
     val projector = remember { ScreenProjector(context) }
 
@@ -260,4 +260,28 @@ private fun android.media.Image.toBitmap(width: Int, height: Int): Bitmap {
     padded.copyPixelsFromBuffer(plane.buffer)
     return if (padded.width == width) padded
     else Bitmap.createBitmap(padded, 0, 0, width, height).also { padded.recycle() }
+}
+
+/**
+ * The size the preview draws at. The last car's frame by default; this device's whole screen,
+ * for a head unit running Gearslip on its own (issue #12); or a size typed into Settings. The
+ * two new ones get a car-like density: 160dpi for every 480 pixels of height.
+ */
+private fun previewFrame(
+    context: android.content.Context,
+    lastCar: CarEnvironment.Frame,
+    size: app.seb3thehacker.gearslip.car.PreviewSize,
+    custom: app.seb3thehacker.gearslip.car.ScreenSize?,
+): Triple<Int, Int, Int> {
+    fun carLike(w: Int, h: Int) = Triple(w, h, (160 * h / 480).coerceIn(120, 640))
+    return when (size) {
+        app.seb3thehacker.gearslip.car.PreviewSize.LAST_CAR -> Triple(lastCar.width, lastCar.height, lastCar.densityDpi)
+        app.seb3thehacker.gearslip.car.PreviewSize.CUSTOM ->
+            custom?.let { carLike(it.width, it.height) } ?: Triple(lastCar.width, lastCar.height, lastCar.densityDpi)
+        app.seb3thehacker.gearslip.car.PreviewSize.FILL -> {
+            val bounds = context.getSystemService(android.view.WindowManager::class.java).maximumWindowMetrics.bounds
+            // Landscape, whichever way the device is held right now.
+            carLike(maxOf(bounds.width(), bounds.height()) / 2 * 2, minOf(bounds.width(), bounds.height()) / 2 * 2)
+        }
+    }
 }

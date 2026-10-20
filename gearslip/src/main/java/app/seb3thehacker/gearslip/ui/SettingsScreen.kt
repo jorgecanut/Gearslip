@@ -126,6 +126,7 @@ fun SettingsScreen(
             ConnectionSection()
             HelpSection(onOpenHelp, onOpenCarPreview, onOpenLogs)
             CarAudioSection()
+            CarScreenSection()
             VoiceModelSection()
             if (SHOW_RECOMMENDED_APPS) AppsSection(onOpenRecommendedApps)
             SettingsSection(

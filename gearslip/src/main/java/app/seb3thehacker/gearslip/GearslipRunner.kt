@@ -13,6 +13,7 @@ import app.seb3thehacker.gearslip.car.DirectionsVoice
 import app.seb3thehacker.gearslip.car.CarAssistant
 import app.seb3thehacker.gearslip.car.CarEnvironment
 import app.seb3thehacker.gearslip.car.CarKeys
+import app.seb3thehacker.gearslip.car.ScreenFit
 import app.seb3thehacker.gearslip.car.CarSensors
 import app.seb3thehacker.gearslip.car.CarServices
 import app.seb3thehacker.gearslip.car.CarSettings
@@ -72,6 +73,12 @@ class GearslipRunner(
     private var vehicleProfile: VehicleProfile? = null
     @Volatile private var videoStarted = false
     private var videoSource: VideoSource? = null
+
+    /** Between the car UI and the encoder when the car squashes the frame (see [screenShape]). */
+    private var stretcher: FrameStretcher? = null
+
+    /** What the car UI draws at when [stretcher] is on; touches are scaled into it. */
+    @Volatile private var drawSize: Pair<Int, Int>? = null
     @Volatile private var inFlight = 0
     /** Guards [inFlight]: the encoder thread waits on it for the head unit's acks. */
     private val ackLock = Object()
@@ -161,6 +168,8 @@ class GearslipRunner(
         synchronized(ackLock) { ackLock.notifyAll() } // free an encoder waiting on an ack
         videoSource?.stop()
         videoSource = null
+        stretcher?.release()
+        stretcher = null
         CarAudio.openSink = null
         audioLink?.close()
         audioLink = null
@@ -800,13 +809,23 @@ class GearslipRunner(
                 // y=6, which is inside the cropped band, and the Uconnect's never passed 351 on a
                 // 480-high frame with a 130 margin. Without this every tap landed 120 px too high
                 // and the VW couldn't press past its first screen.
-                val shift = config?.marginInsets() ?: Insets.NONE
+                val shift = config?.let(::marginsFor) ?: Insets.NONE
+                // A stretched frame: the car's tap is on the frame, the UI is drawn smaller.
+                val drawn = drawSize
                 val points = pointers.mapIndexedNotNull { index, pointer ->
                     val fields = Wire.fields(pointer)
                     val rawX = Wire.varint(fields, 1)?.toInt() ?: return@mapIndexedNotNull null
                     val rawY = Wire.varint(fields, 2)?.toInt() ?: return@mapIndexedNotNull null
                     val id = Wire.varint(fields, 3)?.toInt() ?: index
-                    TouchPoint(id, clamp(rawX + shift.left, size?.first), clamp(rawY + shift.top, size?.second))
+                    if (drawn != null && size != null) {
+                        TouchPoint(
+                            id,
+                            clamp(rawX * drawn.first / size.first, drawn.first),
+                            clamp(rawY * drawn.second / size.second, drawn.second),
+                        )
+                    } else {
+                        TouchPoint(id, clamp(rawX + shift.left, size?.first), clamp(rawY + shift.top, size?.second))
+                    }
                 }
                 if (points.isEmpty()) return
                 val actionIndex = (Wire.varint(touchFields, 2)?.toInt() ?: 0).coerceIn(0, points.size - 1)
@@ -979,6 +998,37 @@ class GearslipRunner(
         return wide.minByOrNull(::pixels) ?: known.maxByOrNull(::pixels)
     }
 
+    /**
+     * The part of a [frameWidth] x [frameHeight] frame shaped like the screen size set in
+     * Settings, centred and in even pixels; null when none is set or it is the frame's own shape.
+     * Some head units report the wrong size, then crop or squash the frame onto their real screen.
+     */
+    private fun screenShape(frameWidth: Int, frameHeight: Int): Pair<Int, Int>? {
+        val screen = CarSettings.screenSize.value ?: return null
+        val wider = screen.width.toLong() * frameHeight >= screen.height.toLong() * frameWidth
+        val shape = if (wider) {
+            frameWidth to (frameWidth.toLong() * screen.height / screen.width).toInt()
+        } else {
+            (frameHeight.toLong() * screen.width / screen.height).toInt() to frameHeight
+        }
+        val even = (shape.first / 2 * 2).coerceAtLeast(2) to (shape.second / 2 * 2).coerceAtLeast(2)
+        return even.takeIf { it != (frameWidth to frameHeight) }
+    }
+
+    /**
+     * The strips of the frame the car doesn't show: the head unit's own margins, or, when a screen
+     * size is set to crop, whatever lies outside [screenShape]. The UI keeps out of them and taps
+     * are measured from inside them.
+     */
+    private fun marginsFor(config: ServiceDiscovery.VideoConfig): Insets {
+        val (width, height) = config.pixelSize() ?: return config.marginInsets()
+        if (CarSettings.screenFit.value != ScreenFit.CROP) return config.marginInsets()
+        val (w, h) = screenShape(width, height) ?: return config.marginInsets()
+        val sideX = width - w
+        val sideY = height - h
+        return Insets(top = sideY / 2, bottom = sideY - sideY / 2, left = sideX / 2, right = sideX - sideX / 2)
+    }
+
     private fun startVideoSource() {
         lastKeyframeSentAt = System.currentTimeMillis() // frame #1 is always a keyframe
         val index = selectedConfigIndex ?: 0
@@ -999,8 +1049,21 @@ class GearslipRunner(
         log.i("-> Start(session_id=$SESSION_ID, configuration_index=$index -> $config)")
         // The car crops its margins off the frame, so keep the UI out of them unless a vehicle
         // profile has its own tuned insets.
-        if (vehicleProfile?.insets.let { it == null || it == Insets.NONE }) {
-            val insets = config.marginInsets()
+        stretcher?.release()
+        stretcher = null
+        drawSize = null
+        val shape = screenShape(width, height)
+        val squash = shape != null && CarSettings.screenFit.value == ScreenFit.SQUASH
+        if (shape != null) {
+            log.i(
+                "screen size set to ${CarSettings.screenSize.value} in Settings: " +
+                    "${if (squash) "drawing" else "cropping to"} ${shape.first}x${shape.second} of the ${width}x$height frame",
+            )
+        }
+        if (squash) {
+            CarEnvironment.setInsets(Insets.NONE)
+        } else if (vehicleProfile?.insets.let { it == null || it == Insets.NONE }) {
+            val insets = marginsFor(config)
             CarEnvironment.setInsets(insets)
             if (insets != Insets.NONE) log.i("keeping the UI clear of the car's margins: $insets")
         }
@@ -1027,7 +1090,16 @@ class GearslipRunner(
                 source.start()
                 val surface = source.inputSurface
                 if (projection != null && surface != null) {
-                    projection.onSurfaceReady(surface, width, height, config.density)
+                    val stretch = shape?.takeIf { squash }?.let { (w, h) ->
+                        FrameStretcher(surface, w, h, width, height).takeIf { it.start() }
+                    }
+                    stretcher = stretch
+                    if (stretch != null) {
+                        drawSize = stretch.width to stretch.height
+                        projection.onSurfaceReady(stretch.input, stretch.width, stretch.height, config.density)
+                    } else {
+                        projection.onSurfaceReady(surface, width, height, config.density)
+                    }
                     SessionStatus.projecting()
                     BluetoothAudioCheck.onProjecting()
                     LocationCheck.onProjecting()
