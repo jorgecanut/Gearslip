@@ -251,6 +251,17 @@ object UsageStats {
         if (c.phone) put("phone", "${Build.MANUFACTURER} ${Build.MODEL}")
     }
 
+    private var signerCache: String? = null
+
+    /** The first 16 hex digits of the SHA-256 of this APK's signing certificate. */
+    private fun signer(context: Context): String = signerCache ?: runCatching {
+        val cert = context.packageManager
+            .getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES)
+            .signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray() ?: return@runCatching ""
+        java.security.MessageDigest.getInstance("SHA-256").digest(cert)
+            .take(8).joinToString("") { "%02x".format(it) }
+    }.getOrDefault("").also { signerCache = it }
+
     /**
      * What a note carries. With [everything], every field the driver shares, as Settings shows it;
      * otherwise exactly what the next note would send, which leaves out unchanged phone details.
@@ -263,6 +274,9 @@ object UsageStats {
             .put("version", BuildConfig.VERSION_NAME)
             .put("code", BuildConfig.VERSION_CODE)
             .put("build", if (BuildConfig.DEBUG) "debug" else "release")
+            // Who signed this copy, so a fork's builds can be told from Gearslip's own. Every copy
+            // from the same publisher sends the same value, so it says nothing about the phone.
+            .put("signer", signer(context))
             // Which boxes are ticked, so the server knows what this phone shares and can drop
             // anything it kept from a box since unticked.
             .put("shares", JSONArray().apply {
