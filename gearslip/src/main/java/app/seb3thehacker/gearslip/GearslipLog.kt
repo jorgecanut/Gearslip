@@ -52,6 +52,46 @@ object GearslipLog {
         file = File(dir, "gearslip-$name.log")
         i("log file: ${file?.absolutePath}")
         SessionReport.init(context)
+        // One file per launch adds up; the newest are the ones anyone asks for.
+        io.execute { logFiles(dir).drop(KEEP_FILES).forEach { it.delete() } }
+    }
+
+    private const val KEEP_FILES = 30
+
+    private fun logFiles(dir: File): List<File> =
+        dir.listFiles { f -> f.isFile && f.name.startsWith("gearslip-") && f.name.endsWith(".log") }
+            ?.sortedByDescending { it.name }.orEmpty()
+
+    /** A log from an earlier launch: when it started, and what a glance at it tells. */
+    class PastLog(val file: File, val started: Date?, val crashed: Boolean, val car: String?)
+
+    /**
+     * Earlier launches' logs, newest first. Each launch starts a fresh file, so after a crash the
+     * one that saw it is here rather than on the live screen.
+     */
+    fun pastLogs(context: Context): List<PastLog> {
+        val dir = context.getExternalFilesDir(null) ?: return emptyList()
+        val parse = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
+        return logFiles(dir).filter { it != file }.map { f ->
+            val text = runCatching { f.readText() }.getOrDefault("")
+            PastLog(
+                file = f,
+                started = runCatching { parse.parse(f.name.removePrefix("gearslip-").removeSuffix(".log")) }.getOrNull(),
+                crashed = "FATAL uncaught" in text,
+                car = Regex("""car="([^"]+)"""").findAll(text).lastOrNull()?.groupValues?.get(1),
+            )
+        }
+    }
+
+    /** An earlier launch's log, copied to the cache dir for sharing like [shareableFile]. */
+    fun shareableFile(context: Context, past: File): android.net.Uri {
+        val dir = File(context.cacheDir, "shared").apply { mkdirs() }
+        dir.listFiles()?.forEach { it.delete() }
+        val out = File(dir, "gearslip-log-${past.name.removePrefix("gearslip-").removeSuffix(".log")}.txt")
+        past.copyTo(out, overwrite = true)
+        return androidx.core.content.FileProvider.getUriForFile(
+            context, "${context.packageName}.logshare", out,
+        )
     }
 
     fun snapshot(): List<String> = synchronized(live) { live.toList() }
