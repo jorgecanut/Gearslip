@@ -131,7 +131,7 @@ fun CarPreviewScreen(onBack: () -> Unit) {
     }
 
     if (fullscreen) {
-        Fullscreen(onBack) {
+        Fullscreen(width.toFloat() / height, onBack) {
             // No fillMax here: left to the bounds alone, aspectRatio takes the whole width or the
             // whole height, whichever the car's shape allows, and the rest stays black.
             frameContent(Modifier)
@@ -171,6 +171,7 @@ fun CarPreviewScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun Fullscreen(
+    aspect: Float,
     onBack: () -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -192,19 +193,31 @@ private fun Fullscreen(
     // is on and turning it sideways/back isn't an option.
     BackHandler(onBack = onBack)
 
-    Box(
+    androidx.compose.foundation.layout.BoxWithConstraints(
         Modifier.fillMaxSize().background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
         content()
 
         // The frame swallows every touch inside it, so leaving needs either the back gesture or
-        // a button of its own. This one sits in the corner the car UI leaves emptiest.
-        FilledTonalIconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
-        ) {
-            Icon(Icons.Filled.Close, contentDescription = "Leave the car preview")
+        // a button of its own. The button goes in the black beside the frame, never on it: over
+        // the frame it covered the car's own buttons. A frame the screen's own shape leaves no
+        // room, and then the back gesture is the way out.
+        val frameWidth = minOf(maxWidth, maxHeight * aspect)
+        val frameHeight = minOf(maxHeight, maxWidth / aspect)
+        val room = 56.dp
+        val corner = when {
+            maxWidth - frameWidth >= room * 2 -> Alignment.BottomStart
+            maxHeight - frameHeight >= room * 2 -> Alignment.TopStart
+            else -> null
+        }
+        if (corner != null) {
+            FilledTonalIconButton(
+                onClick = onBack,
+                modifier = Modifier.align(corner).padding(8.dp),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Leave the car preview")
+            }
         }
     }
 }
