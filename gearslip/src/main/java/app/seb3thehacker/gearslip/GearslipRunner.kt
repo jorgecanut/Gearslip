@@ -274,7 +274,12 @@ class GearslipRunner(
             MSG_PING_REQUEST -> onPingRequest(body)
             MSG_BYEBYE_REQUEST -> onByeByeRequest(body)
             MSG_UNEXPECTED_MESSAGE, MSG_FRAMING_ERROR -> onProtocolError(messageId)
-            AudioLink.MSG_FOCUS_RESPONSE -> audioLink?.onFocus(Protobuf.readInt32Field(body, 1) ?: 0)
+            AudioLink.MSG_FOCUS_RESPONSE -> {
+                // One answer for both sinks: it is the directions' while they wait on one.
+                val state = Protobuf.readInt32Field(body, 1) ?: 0
+                val guidance = guidanceLink
+                if (guidance != null && guidance.expectsFocusAnswer()) guidance.onFocus(state) else audioLink?.onFocus(state)
+            }
             else -> log.i("unhandled control message id=$messageId (${body.size} bytes) - continuing")
         }
     }
@@ -587,7 +592,7 @@ class GearslipRunner(
             tag = "guidance",
             sessionId = GUIDANCE_SESSION_ID,
             asksFocus = false,
-            onReady = { DirectionsVoice.attach(it) },
+            onReady = { DirectionsVoice.attach(it) { audioLink?.streaming == true } },
             onClose = { DirectionsVoice.detach(it) },
         )
         openChannel(guidance.serviceId)

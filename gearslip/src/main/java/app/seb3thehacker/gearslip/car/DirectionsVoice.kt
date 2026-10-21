@@ -27,7 +27,8 @@ import kotlin.math.roundToInt
  * same turn the instrument cluster gets ([NavTurn]) and says it itself: once when the turn comes
  * up, again a kilometre or so out on a long stretch, and once more just before it. The words are
  * rendered with the phone's text-to-speech to a file, never played on the phone, and streamed to
- * the car, which ducks the music under them the way it does for real Android Auto.
+ * the car, which ducks the music under them the way it does for real Android Auto. When the music
+ * isn't Gearslip's, each announcement first asks the car for its speakers, as Android Auto does.
  *
  * Nothing spoken is logged: road names are where the driver is going.
  */
@@ -42,7 +43,10 @@ object DirectionsVoice {
 
     @Volatile private var link: AudioLink? = null
     @Volatile private var running = false
-    private val speaker = Executors.newSingleThreadExecutor { Thread(it, "gearslip-directions").apply { isDaemon = true } }
+    @Volatile private var musicIsOurs: () -> Boolean = { false }
+    private val speaker = Executors.newSingleThreadScheduledExecutor { Thread(it, "gearslip-directions").apply { isDaemon = true } }
+    /** Counts announcements, so a hand-back scheduled after one is dropped if another has begun. */
+    private var spoken = 0
     @Volatile private var latest = 0
 
     private var turnKey: String? = null
@@ -62,8 +66,9 @@ object DirectionsVoice {
     }
 
     /** The car opened its directions sink: start following the map app's turns. */
-    fun attach(link: AudioLink) {
+    fun attach(link: AudioLink, musicIsOurs: () -> Boolean) {
         this.link = link
+        this.musicIsOurs = musicIsOurs
         GearslipLog.i("guidance: the car offered a directions sink at ${link.sampleRate}Hz x${link.channels}")
         if (running) return
         running = true
@@ -223,7 +228,16 @@ object DirectionsVoice {
             GearslipLog.w("guidance: text-to-speech gave audio Gearslip can't read")
             return
         }
-        stream(sink, pcm)
+        // Logged before speaking too, so a car that dies mid-announcement shows what it was doing.
+        GearslipLog.i("guidance: speaking a turn")
+        // Held through back-to-back prompts rather than asked for and given back each time.
+        if (!musicIsOurs()) sink.askForSpeakers()
+        val turn = ++spoken
+        try {
+            stream(sink, pcm)
+        } finally {
+            speaker.schedule({ if (turn == spoken) sink.handBackSpeakers() }, HOLD_MS, TimeUnit.MILLISECONDS)
+        }
         GearslipLog.i("guidance: spoke a turn (${pcm.size / (2 * sink.channels) * 1000 / sink.sampleRate} ms)")
     }
 
@@ -321,6 +335,7 @@ object DirectionsVoice {
     private const val PREPARE_FROM_METERS = 2_500
     private const val PREPARE_AT_METERS = 1_000
     private const val LEAD_MS = 100L
+    private const val HOLD_MS = 2_000L
     private const val SYNTH_TIMEOUT_S = 10L
     private val ORDINALS = listOf("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth")
 }

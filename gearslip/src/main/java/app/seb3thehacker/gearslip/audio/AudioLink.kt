@@ -4,6 +4,8 @@ import app.seb3thehacker.gearslip.GearslipLog
 import app.seb3thehacker.gearslip.Protobuf
 import app.seb3thehacker.gearslip.ServiceDiscovery
 import app.seb3thehacker.gearslip.Wire
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * The phone end of the head unit's media audio sink, the audio twin of the video channel:
@@ -25,7 +27,10 @@ class AudioLink(
     /** Log name: "audio" for the media sink, "guidance" for the directions sink. */
     private val tag: String = "audio",
     private val sessionId: Int = SESSION_ID,
-    /** Media asks the car for focus; directions just start, and the car ducks music under them. */
+    /**
+     * Media asks the car for focus when it starts. Directions ask only around each announcement,
+     * through [askForSpeakers], and only when the music isn't already ours.
+     */
     private val asksFocus: Boolean = true,
     private val onReady: (AudioLink) -> Unit = { CarAudio.attach(it) },
     private val onClose: (AudioLink) -> Unit = { CarAudio.detach(it) },
@@ -57,6 +62,47 @@ class AudioLink(
     override val channels get() = config?.channels ?: 2
 
     val channelId get() = service.serviceId
+
+    /** Sending audio now, which for media means the car has handed us the speakers. */
+    val streaming get() = started
+
+    @Volatile private var holdsSpeakers = false
+    @Volatile private var focusAnswer: CountDownLatch? = null
+    @Volatile private var answerDueBy = 0L
+
+    /** True just after [askForSpeakers] or [handBackSpeakers], when the car's next focus answer is ours. */
+    fun expectsFocusAnswer() = System.currentTimeMillis() < answerDueBy
+
+    /**
+     * For directions when nothing of ours is playing, so the car's speakers belong to the radio
+     * or a Bluetooth phone. Android Auto asks for them before each announcement, letting the
+     * other source duck, and hands them back afterwards. Speaking without asking left a 2025
+     * Nissan's Bosch head unit rebooting mid-drive (issue #35).
+     *
+     * Waits briefly for the car's answer and speaks anyway without one, as some cars never answer.
+     */
+    fun askForSpeakers() {
+        if (holdsSpeakers) return
+        val answer = CountDownLatch(1)
+        focusAnswer = answer
+        answerDueBy = System.currentTimeMillis() + FOCUS_WAIT_MS
+        holdsSpeakers = true
+        sendControl(MSG_FOCUS_REQUEST, Protobuf.varintField(1, FOCUS_GAIN_TRANSIENT_MAY_DUCK.toLong()))
+        GearslipLog.i("$tag: -> AudioFocusRequest(GAIN_TRANSIENT_MAY_DUCK)")
+        if (!answer.await(FOCUS_WAIT_MS, TimeUnit.MILLISECONDS)) {
+            GearslipLog.i("$tag: no focus answer after ${FOCUS_WAIT_MS}ms - speaking anyway")
+        }
+        focusAnswer = null
+    }
+
+    /** Gives back what [askForSpeakers] took, so the other source comes back to full volume. */
+    fun handBackSpeakers() {
+        if (!holdsSpeakers) return
+        holdsSpeakers = false
+        answerDueBy = System.currentTimeMillis() + FOCUS_WAIT_MS
+        runCatching { sendControl(MSG_FOCUS_REQUEST, Protobuf.varintField(1, FOCUS_RELEASE.toLong())) }
+        GearslipLog.i("$tag: -> AudioFocusRequest(RELEASE)")
+    }
 
     fun opened(status: Int) {
         GearslipLog.i("$tag: <- ChannelOpenResponse: status=$status")
@@ -161,6 +207,12 @@ class AudioLink(
     fun onFocus(state: Int) {
         val name = FOCUS_STATES[state] ?: "unknown($state)"
         GearslipLog.i("$tag: <- AudioFocusResponse state=$name")
+        if (!asksFocus) {
+            // Directions speak whatever the answer: a lost turn is worse than a loud one.
+            answerDueBy = 0L
+            focusAnswer?.countDown()
+            return
+        }
         val had = focusGranted
         focusGranted = state == FOCUS_STATE_GAIN || state == FOCUS_STATE_GAIN_TRANSIENT ||
             state == FOCUS_STATE_GAIN_MEDIA_ONLY
@@ -286,6 +338,7 @@ class AudioLink(
         configTimer?.interrupt()
         configTimer = null
         stop()
+        handBackSpeakers()
         ready = false
         onClose(this)
     }
@@ -303,7 +356,9 @@ class AudioLink(
         private const val MSG_SETUP_ANSWER = 255
         private const val STATUS_READY = 2
         private const val FOCUS_GAIN = 1
+        private const val FOCUS_GAIN_TRANSIENT_MAY_DUCK = 3
         private const val FOCUS_RELEASE = 4
+        private const val FOCUS_WAIT_MS = 500L
         private const val FOCUS_STATE_GAIN = 1
         private const val FOCUS_STATE_GAIN_TRANSIENT = 2
         private const val FOCUS_STATE_GAIN_MEDIA_ONLY = 6
