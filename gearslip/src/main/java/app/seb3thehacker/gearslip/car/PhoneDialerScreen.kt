@@ -94,7 +94,10 @@ internal fun placeCall(context: Context, number: String) {
     }
     val telecom = context.getSystemService(android.telecom.TelecomManager::class.java)
     runCatching { telecom!!.placeCall(Uri.fromParts("tel", number, null), null) }
-        .onSuccess { GearslipLog.i("calls: placing a call") }
+        .onSuccess {
+            GearslipLog.i("calls: placing a call")
+            app.seb3thehacker.gearslip.call.CarCalls.outgoingCall(context, number)
+        }
         .onFailure { GearslipLog.w("calls: placing a call failed: ${it.message}") }
 }
 

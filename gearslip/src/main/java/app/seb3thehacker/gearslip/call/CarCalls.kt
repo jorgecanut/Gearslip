@@ -23,19 +23,19 @@ data class Caller(val number: String, val name: String?) {
 sealed interface CallUiState {
     data object None : CallUiState
     data class Ringing(val caller: Caller, val canDecline: Boolean) : CallUiState
-    data class Active(val caller: Caller?) : CallUiState
+    /** [since] is the uptime the call went off-hook, for the timer. */
+    data class Active(val caller: Caller?, val since: Long) : CallUiState
 }
 
 /**
- * Tracks the phone's call state for the car screen, and answers or declines through the two
+ * Tracks the phone's call state for the car screen, and answers or declines through the
  * doors a sideloaded app can use: [android.telecom.TelecomManager.acceptRingingCall] to answer,
- * and [GearslipCallScreening]'s response to decline one that is still ringing.
+ * [GearslipCallScreening]'s response to decline one that is still ringing, and
+ * [android.telecom.TelecomManager.endCall] to hang up, which needs only ANSWER_PHONE_CALLS for an
+ * ordinary carrier call. Mute is the phone's microphone mute, put back when the call ends.
  *
- * Ending a call already answered needs MODIFY_PHONE_STATE, a privileged permission Gearslip
- * cannot hold, so a call taken here is finished the way it would be without Gearslip at all -
- * from the phone itself, a paired headset, or the car's own Bluetooth if it has any. Call audio
- * stays on the phone's normal voice path too; nothing here sends it over the USB link, which
- * only ever carries media playback.
+ * Call audio stays on the phone's normal voice path; nothing here sends it over the USB link,
+ * which only ever carries media playback.
  */
 object CarCalls {
 
@@ -47,9 +47,14 @@ object CarCalls {
     private var pendingRespond: ((allow: Boolean) -> Unit)? = null
     private var ringingCaller: Caller? = null
 
+    private val _muted = MutableStateFlow(false)
+    val muted: StateFlow<Boolean> = _muted.asStateFlow()
+    private var audio: android.media.AudioManager? = null
+
     fun start(context: Context) {
         if (watcher != null) return
         if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) return
+        audio = context.getSystemService(android.media.AudioManager::class.java)
         val manager = context.getSystemService(TelephonyManager::class.java) ?: return
         val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
             override fun onCallStateChanged(state: Int) = onPhoneState(state)
@@ -66,6 +71,7 @@ object CarCalls {
         watcher = null
         pendingRespond = null
         ringingCaller = null
+        unmute()
         _state.value = CallUiState.None
     }
 
@@ -74,11 +80,15 @@ object CarCalls {
             TelephonyManager.CALL_STATE_IDLE -> {
                 pendingRespond = null
                 ringingCaller = null
+                // A mute left on would silence the microphone for everything after the call.
+                unmute()
                 _state.value = CallUiState.None
             }
             TelephonyManager.CALL_STATE_OFFHOOK -> {
                 pendingRespond = null
-                _state.value = CallUiState.Active(ringingCaller)
+                if (_state.value !is CallUiState.Active) {
+                    _state.value = CallUiState.Active(ringingCaller, android.os.SystemClock.uptimeMillis())
+                }
             }
             TelephonyManager.CALL_STATE_RINGING -> {
                 // The number itself only ever arrives through the screening service; if this
@@ -107,6 +117,39 @@ object CarCalls {
         val respond = pendingRespond ?: return
         pendingRespond = null
         runCatching { respond(false) }.onFailure { GearslipLog.w("calls: decline failed: ${it.message}") }
+    }
+
+    /** A call Gearslip itself is placing, so the call pill can say who it's to. */
+    fun outgoingCall(context: Context, number: String) {
+        ringingCaller = Caller(number, lookUpName(context, number))
+    }
+
+    fun end(context: Context) {
+        if (context.checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) != PackageManager.PERMISSION_GRANTED) {
+            GearslipLog.w("calls: ending a call needs ANSWER_PHONE_CALLS, which was never granted")
+            return
+        }
+        val telecom = context.getSystemService(TelecomManager::class.java) ?: return
+        @Suppress("DEPRECATION")
+        runCatching { telecom.endCall() }
+            .onSuccess { if (!it) GearslipLog.w("calls: the phone wouldn't end the call") }
+            .onFailure { GearslipLog.w("calls: end failed: ${it.message}") }
+    }
+
+    fun toggleMute() {
+        val manager = audio ?: return
+        val want = !_muted.value
+        runCatching { manager.isMicrophoneMute = want }
+            .onFailure { GearslipLog.w("calls: mute failed: ${it.message}") }
+        // Read back rather than trusted: some phones let the call app overrule it.
+        _muted.value = manager.isMicrophoneMute
+        if (_muted.value != want) GearslipLog.w("calls: the phone didn't take the mute change")
+    }
+
+    private fun unmute() {
+        if (!_muted.value) return
+        runCatching { audio?.isMicrophoneMute = false }
+        _muted.value = false
     }
 
     fun answer(context: Context) {

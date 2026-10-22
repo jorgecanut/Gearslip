@@ -33,21 +33,17 @@ import app.seb3thehacker.gearslip.call.CallUiState
 import app.seb3thehacker.gearslip.call.CarCalls
 
 /**
- * Sits above whatever the car is showing while a call is ringing or under way. Ringing takes the
- * whole screen, because nothing else matters more right now; an active call is a thin band along
- * the top, since from here the driver can only see who it is, not end it - see [CarCalls].
+ * Takes the whole car screen while a call is ringing, because nothing else matters more right
+ * now. A call under way moves into the nav bar instead (see NavCallPill), so it covers nothing.
  */
 @Composable
-fun CallOverlay(modifier: Modifier = Modifier) {
+fun CallOverlay() {
     val state by CarCalls.state.collectAsState()
     val context = LocalContext.current.applicationContext
 
     when (val s = state) {
-        // Covers the box regardless of where the caller aligned it, so the alignment below is
-        // only ever felt by the active-call banner, which is the one that isn't full-screen.
         is CallUiState.Ringing -> IncomingCall(s, onAnswer = { CarCalls.answer(context) }, onDecline = CarCalls::decline)
-        is CallUiState.Active -> ActiveCallBanner(s, modifier)
-        CallUiState.None -> {}
+        else -> {}
     }
 }
 
@@ -108,27 +104,5 @@ private fun CallButton(icon: ImageVector, label: String, color: Color, enabled: 
         )
         Spacer(Modifier.height(8.dp))
         Text(label, style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-@Composable
-private fun ActiveCallBanner(s: CallUiState.Active, modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(0.dp))
-            Text(
-                "  On a call" + (s.caller?.let { " with ${it.label}" } ?: ""),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
     }
 }

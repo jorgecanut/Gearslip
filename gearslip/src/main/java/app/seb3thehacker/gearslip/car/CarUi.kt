@@ -1,5 +1,8 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.material.icons.filled.Call
+import app.seb3thehacker.gearslip.call.CarCalls
+import app.seb3thehacker.gearslip.call.CallUiState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.LocalIndication
@@ -241,7 +244,9 @@ fun CarUi() {
                 }
                 // A full wait from when hiding becomes possible, not from whenever the last touch was.
                 LaunchedEffect(barMayHide) { if (barMayHide) controlsWake.touch() }
-                val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake)
+                // A call keeps the bar up whatever the setting: End and Mute live on it.
+                val onCall = CarCalls.state.collectAsState().value is CallUiState.Active
+                val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake || onCall)
                 val homeInset = if (floatingBar && barShown) NAV_BAR_HEIGHT else 0.dp
                 // Only the screen that asked: going Home or anywhere else ends it.
                 val fullscreen = CarFullscreen.active && screen != CarScreen.Home
@@ -309,7 +314,7 @@ fun CarUi() {
                         )
                         // Above the popup: a call is more urgent than any notification.
                         VoiceHelpOverlay(Modifier.align(Alignment.Center))
-                        CallOverlay(Modifier.align(Alignment.TopCenter))
+                        CallOverlay()
                         AssistantOverlay(Modifier.align(Alignment.BottomCenter).padding(bottom = homeInset))
                         if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) {
                             // Bottom corner, not top: a screen's own header almost always puts
@@ -320,7 +325,7 @@ fun CarUi() {
                         }
                         if (floatingBar || fullscreen) {
                             androidx.compose.animation.AnimatedVisibility(
-                                if (fullscreen) CarFullscreen.revealed else barShown,
+                                if (fullscreen) CarFullscreen.revealed || onCall else barShown,
                                 Modifier.align(Alignment.BottomCenter),
                                 enter = androidx.compose.animation.slideInVertically { it },
                                 exit = androidx.compose.animation.slideOutVertically { it },
@@ -564,12 +569,16 @@ private fun CarNavBar(navigator: CarNavigator) {
 
                 // Next turn first, off the map only; the player shares the space when it fits,
                 // and gives way to the turn when it doesn't.
+                // A call takes the player's place until it ends.
                 val turn = rememberNextTurn().takeIf { navigator.current != CarScreen.Home }
+                val call = CarCalls.state.collectAsState().value as? CallUiState.Active
                 BoxWithConstraints(Modifier.weight(1f).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                     val roomForBoth = maxWidth >= TURN_AND_PLAYER_MIN_WIDTH
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        turn?.let { NavTurnPill(it) { navigator.home() } }
-                        if (turn == null || roomForBoth) {
+                        if (call == null || roomForBoth) turn?.let { NavTurnPill(it) { navigator.home() } }
+                        if (call != null) {
+                            NavCallPill(call, Modifier.weight(1f, fill = false))
+                        } else if (turn == null || roomForBoth) {
                             NavNowPlaying(navigator, selected = navigator.current == CarScreen.Media, modifier = Modifier.weight(1f, fill = false))
                         }
                     }
@@ -832,6 +841,58 @@ private fun NavTurnPill(turn: NextTurn, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+/** The call under way: who, how long, and Mute and End right here. Ringing has its own screen. */
+@Composable
+private fun NavCallPill(call: CallUiState.Active, modifier: Modifier = Modifier) {
+    val context = LocalContext.current.applicationContext
+    val muted by CarCalls.muted.collectAsState()
+    val elapsed by produceState(0L, call.since) {
+        while (true) {
+            value = (android.os.SystemClock.uptimeMillis() - call.since) / 1000
+            delay(1000 - (android.os.SystemClock.uptimeMillis() - call.since) % 1000)
+        }
+    }
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = scheme.secondaryContainer,
+        contentColor = scheme.onSecondaryContainer,
+    ) {
+        Row(
+            Modifier.fillMaxHeight().padding(start = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(
+                call.caller?.label ?: "On a call",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Text(
+                "%d:%02d".format(elapsed / 60, elapsed % 60),
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+            )
+            Spacer(Modifier.width(2.dp))
+            GsIconButton(
+                if (muted) MediaIcons.MicOff else MediaIcons.Mic,
+                if (muted) "Unmute" else "Mute",
+                CarCalls::toggleMute,
+                tone = if (muted) GsTone.Primary else GsTone.Neutral, size = 36.dp, iconSize = 22.dp,
+            )
+            GsIconButton(
+                MediaIcons.CallEnd, "End call", { CarCalls.end(context) },
+                colors = GsColors(scheme.error, scheme.onError), size = 36.dp, iconSize = 22.dp,
+            )
         }
     }
 }
