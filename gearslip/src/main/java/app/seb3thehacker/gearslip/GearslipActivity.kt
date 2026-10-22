@@ -117,6 +117,17 @@ class GearslipActivity : ComponentActivity(), Projection {
         }
     }
 
+    /** Android's one-time "Allow" for a car to connect by itself; see [WirelessAuto]. */
+    private var approvingCar: String? = null
+    private val carApproval = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult(),
+    ) { result ->
+        val address = approvingCar ?: return@registerForActivityResult
+        approvingCar = null
+        if (result.resultCode == RESULT_OK) app.seb3thehacker.gearslip.wireless.WirelessAuto.approved(this, address)
+        else GearslipLog.w("auto-connect: declined in Android's dialog")
+    }
+
     /** Setting Gearslip as the phone's caller ID and spam app - what lets it decline a ringing call. */
     private val callScreeningRole = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode != RESULT_OK) GearslipLog.w("calls: call screening role declined")
@@ -137,6 +148,12 @@ class GearslipActivity : ComponentActivity(), Projection {
         GearslipLog.i("Gearslip ready")
         app.seb3thehacker.gearslip.wireless.WirelessLink.onConnected = { socket ->
             runOnUiThread { startWireless(socket) }
+        }
+        app.seb3thehacker.gearslip.wireless.WirelessAuto.showApproval = { chooser, address ->
+            runOnUiThread {
+                approvingCar = address
+                carApproval.launch(androidx.activity.result.IntentSenderRequest.Builder(chooser).build())
+            }
         }
         CarSettings.init(this)
         AppSettings.applyGearslipEnabled(this)
@@ -216,6 +233,7 @@ class GearslipActivity : ComponentActivity(), Projection {
     override fun onDestroy() {
         super.onDestroy()
         app.seb3thehacker.gearslip.wireless.WirelessLink.onConnected = null
+        app.seb3thehacker.gearslip.wireless.WirelessAuto.showApproval = null
         runCatching { unregisterReceiver(detachReceiver) }
         PhoneMirror.onStartRequested = null
         PhoneMirror.onTokenReady = null
@@ -304,6 +322,10 @@ class GearslipActivity : ComponentActivity(), Projection {
     }
 
     private fun handleIntent(intent: Intent?) {
+        if (intent?.action == app.seb3thehacker.gearslip.wireless.WirelessAuto.ACTION_CAR_NEARBY) {
+            connectToNearbyCar(intent.getStringExtra(app.seb3thehacker.gearslip.wireless.WirelessAuto.EXTRA_ADDRESS))
+            return
+        }
         if (intent?.action != UsbManager.ACTION_USB_ACCESSORY_ATTACHED) return
         // Switched off in Settings: the system shouldn't route the car here at all, but if it
         // does, leave the accessory alone.
@@ -319,6 +341,23 @@ class GearslipActivity : ComponentActivity(), Projection {
         }
         GearslipLog.i("accessory attached by the system - permission is implicit on this path")
         start(accessory)
+    }
+
+    /** A known car came up over Bluetooth: connect wirelessly, unless USB or another try is already on it. */
+    private fun connectToNearbyCar(address: String?) {
+        if (address == null || !AppSettings.gearslipEnabled(this)) return
+        if (descriptor != null) {
+            GearslipLog.i("auto-connect: the car is on USB already - staying on USB")
+            return
+        }
+        if (runner != null || app.seb3thehacker.gearslip.wireless.WirelessLink.busy) return
+        if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            GearslipLog.w("auto-connect: needs the Nearby devices permission")
+            return
+        }
+        val adapter = getSystemService(android.bluetooth.BluetoothManager::class.java)?.adapter ?: return
+        val device = runCatching { adapter.getRemoteDevice(address) }.getOrNull() ?: return
+        app.seb3thehacker.gearslip.wireless.WirelessLink.start(this, device)
     }
 
     private fun start(accessory: UsbAccessory) {

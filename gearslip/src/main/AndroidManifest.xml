@@ -25,6 +25,9 @@
         hands over its Wi-Fi details; Gearslip then joins that network to reach the car.
     -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Wireless auto-connect: Android tells Gearslip when a car it manages connects. -->
+    <uses-permission android:name="android.permission.REQUEST_OBSERVE_COMPANION_DEVICE_PRESENCE" />
+    <uses-feature android:name="android.software.companion_device_setup" android:required="false" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission
         android:name="android.permission.NEARBY_WIFI_DEVICES"
@@ -242,6 +245,16 @@
             android:permission="android.permission.BIND_SCREENING_SERVICE">
             <intent-filter>
                 <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+
+        <!-- Told when a car approved for wireless auto-connect comes up over Bluetooth. -->
+        <service
+            android:name=".wireless.CarPresenceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
+            <intent-filter>
+                <action android:name="android.companion.CompanionDeviceService" />
             </intent-filter>
         </service>
     </application>
