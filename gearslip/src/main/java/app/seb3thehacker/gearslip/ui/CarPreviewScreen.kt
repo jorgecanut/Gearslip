@@ -76,7 +76,9 @@ fun CarPreviewScreen(onBack: () -> Unit) {
         // No surface yet: the SurfaceView below hands its own over once it exists, and the
         // display draws straight into it. Copying each frame into a Bitmap instead cost two
         // full-size allocations per frame on the main thread, and taps lagged with the size.
-        projector.start(null, width, height, density, name = "gearslip-preview") { CarUi() }
+        projector.start(null, width, height, density, name = "gearslip-preview") {
+            androidx.compose.runtime.CompositionLocalProvider(app.seb3thehacker.gearslip.car.LocalCarPreview provides true) { CarUi() }
+        }
         onDispose { projector.stop() }
     }
 

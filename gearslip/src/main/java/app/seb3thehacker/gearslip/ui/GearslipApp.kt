@@ -148,8 +148,9 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                 )
             }
         }
-        // A car keyboard is open: offer the phone's own, for a passenger.
-        if (screen != Screen.CAR_PREVIEW) PhoneTypingBar()
+        // A car keyboard is open: offer the phone's own, for a passenger. In the car preview it is
+        // the only keyboard, since the preview draws none of its own.
+        PhoneTypingBar()
     }
 }
 

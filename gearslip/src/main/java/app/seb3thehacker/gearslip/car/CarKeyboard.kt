@@ -45,6 +45,12 @@ object CarKeyboardVisibility {
 }
 
 /**
+ * True for the car UI the phone's own car preview draws. The phone is in hand there, so a
+ * [CarKeyboard] draws nothing and the phone's keyboard does the typing instead (see [PhoneTyping]).
+ */
+val LocalCarPreview = compositionLocalOf { false }
+
+/**
  * A keyboard the host draws itself.
  *
  * Text entry in a car can't use the phone's IME: the car UI lives in a Presentation on a
@@ -73,10 +79,11 @@ fun CarKeyboard(
 ) {
     var symbols by remember { mutableStateOf(false) }
     var shifted by remember { mutableStateOf(false) }
+    val preview = LocalCarPreview.current
 
-    DisposableEffect(Unit) {
-        CarKeyboardVisibility.state.value = true
-        onDispose { CarKeyboardVisibility.state.value = false }
+    DisposableEffect(preview) {
+        if (!preview) CarKeyboardVisibility.state.value = true
+        onDispose { if (!preview) CarKeyboardVisibility.state.value = false }
     }
 
     // The same field on the phone, for typing on its own keyboard: see [PhoneTyping].
@@ -88,6 +95,7 @@ fun CarKeyboard(
     }
     DisposableEffect(phoneField) { onDispose { PhoneTyping.close(phoneField) } }
     LaunchedEffect(text) { PhoneTyping.carText(phoneField, text) }
+    if (preview) return
 
     val rows = if (symbols) SYMBOL_ROWS else LETTER_ROWS
     val keyHeight = keyHeight(LocalConfiguration.current.screenHeightDp)
