@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import android.provider.Settings
+import app.seb3thehacker.gearslip.GearslipLog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -80,14 +81,21 @@ internal fun loadContacts(context: Context): List<Contact> {
     return out.distinctBy { it.number }
 }
 
+/**
+ * Places the call through Telecom directly. Starting ACTION_CALL from here launched the system's
+ * call activity onto the car's display, which Android refuses for another app's activity, and
+ * from the background, which it blocks too - so the call never went out.
+ */
 internal fun placeCall(context: Context, number: String) {
     if (number.isBlank()) return
-    if (context.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) return
-    runCatching {
-        context.startActivity(
-            Intent(Intent.ACTION_CALL, Uri.parse("tel:${Uri.encode(number)}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+    if (context.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        GearslipLog.w("calls: can't place a call without CALL_PHONE")
+        return
     }
+    val telecom = context.getSystemService(android.telecom.TelecomManager::class.java)
+    runCatching { telecom!!.placeCall(Uri.fromParts("tel", number, null), null) }
+        .onSuccess { GearslipLog.i("calls: placing a call") }
+        .onFailure { GearslipLog.w("calls: placing a call failed: ${it.message}") }
 }
 
 /** A call another car screen wants to place - a number on a place page - waiting on the driver. */
