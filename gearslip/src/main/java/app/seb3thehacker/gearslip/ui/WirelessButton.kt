@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import app.seb3thehacker.gearslip.wireless.AutoConnect
 import app.seb3thehacker.gearslip.wireless.WirelessLink
 
 /** What the wireless start-up needs: Bluetooth to reach the car, nearby Wi-Fi to join its network, local network to talk to it. */
@@ -108,6 +109,7 @@ internal fun WirelessButton() {
                                 .fillMaxWidth()
                                 .clickable {
                                     devices = null
+                                    AutoConnect.remember(context, device)
                                     WirelessLink.start(context, device)
                                 }
                                 .padding(vertical = 14.dp),

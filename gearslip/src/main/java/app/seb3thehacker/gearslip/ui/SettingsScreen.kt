@@ -2,6 +2,7 @@ package app.seb3thehacker.gearslip.ui
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -66,6 +67,7 @@ import app.seb3thehacker.gearslip.BuildConfig
 import app.seb3thehacker.gearslip.CertProvider
 import app.seb3thehacker.gearslip.SessionStatus
 import app.seb3thehacker.gearslip.notify.TestMessage
+import app.seb3thehacker.gearslip.wireless.AutoConnect
 import app.seb3thehacker.gearslip.car.CarSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -195,6 +197,58 @@ private fun ConnectionSection() {
             subtitle = if (enabled) "Gearslip answers when you plug into a car" else "Off: Android Auto can take the connection instead",
             icon = Icons.Filled.Settings,
             trailing = { Switch(checked = enabled, onCheckedChange = null) },
+        )
+        SettingsDivider()
+        AutoConnectRows()
+    }
+}
+
+/**
+ * Connect wirelessly without a tap, to the car last picked under Connect wirelessly. Turning it
+ * on links that car as Gearslip's companion device, which is what lets the app open itself.
+ */
+@Composable
+private fun AutoConnectRows() {
+    val context = LocalContext.current
+    val car = remember { AutoConnect.car(context) }
+    val name = remember { AutoConnect.carName(context) }
+    var on by remember { mutableStateOf(AutoConnect.enabled(context)) }
+    var linked by remember { mutableStateOf(car != null && AutoConnect.linked(context, car)) }
+    val linkDialog = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        linked = car != null && AutoConnect.linked(context, car)
+    }
+    fun link() {
+        val address = car ?: return
+        AutoConnect.link(
+            context,
+            address,
+            onDialog = { linkDialog.launch(IntentSenderRequest.Builder(it).build()) },
+            onDone = { linked = it },
+        )
+    }
+    SettingsRow(
+        "Connect automatically",
+        Modifier.toggleable(on, enabled = car != null, role = Role.Switch) {
+            on = it
+            AutoConnect.setEnabled(context, it)
+            if (it && !linked) link()
+        },
+        subtitle = when {
+            car == null -> "Connect wirelessly once first, so Gearslip knows your car"
+            on && linked -> "Gearslip opens and connects when the phone reaches $name over Bluetooth"
+            else -> "Open and connect when the phone reaches $name over Bluetooth"
+        },
+        icon = Icons.Filled.PlayArrow,
+        trailing = { Switch(checked = on, onCheckedChange = null, enabled = car != null) },
+    )
+    if (on && car != null && !linked) {
+        SettingsDivider()
+        SettingsRow(
+            "Link $name",
+            Modifier.clickable { link() },
+            subtitle = "Android asks once. Without it, Gearslip can't open itself when the car connects.",
+            icon = Icons.Filled.Warning,
+            trailing = { Arrow() },
         )
     }
 }

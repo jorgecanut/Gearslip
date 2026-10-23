@@ -85,6 +85,8 @@
     <uses-permission android:name="android.car.permission.TEMPLATE_RENDERER" />
 
     <uses-feature android:name="android.hardware.usb.accessory" android:required="true" />
+    <!-- Linking the car for auto-connect; phones without it still connect by hand. -->
+    <uses-feature android:name="android.software.companion_device_setup" android:required="false" />
 
     <queries>
     <!-- Named directly: current builds have no launcher-category entry point for the MAIN/
@@ -172,6 +174,15 @@
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/accessory_filter" />
         </activity-alias>
+
+        <!-- Auto-connect: the phone reaching the car over Bluetooth opens Gearslip (wireless/AutoConnect). -->
+        <receiver
+            android:name=".wireless.CarBluetoothReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Dev builds' test message: its Reply and Mark as read actions land here. -->
         <receiver

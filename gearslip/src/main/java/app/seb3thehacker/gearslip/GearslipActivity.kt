@@ -304,6 +304,7 @@ class GearslipActivity : ComponentActivity(), Projection {
     }
 
     private fun handleIntent(intent: Intent?) {
+        app.seb3thehacker.gearslip.wireless.AutoConnect.handle(this, intent)
         if (intent?.action != UsbManager.ACTION_USB_ACCESSORY_ATTACHED) return
         // Switched off in Settings: the system shouldn't route the car here at all, but if it
         // does, leave the accessory alone.
