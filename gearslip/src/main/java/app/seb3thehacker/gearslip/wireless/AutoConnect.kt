@@ -1,6 +1,7 @@
 package app.seb3thehacker.gearslip.wireless
 
 import android.annotation.SuppressLint
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -119,7 +120,10 @@ object AutoConnect {
         if (!enabled(context) || !device.address.equals(car, ignoreCase = true)) return
         if (!AppSettings.gearslipEnabled(context)) return
         val phase = SessionStatus.state.value.phase
-        if (phase == SessionStatus.Phase.CONNECTING || phase == SessionStatus.Phase.PROJECTING) return
+        if (phase == SessionStatus.Phase.CONNECTING || phase == SessionStatus.Phase.PROJECTING) {
+            log.i("auto-connect: the phone reached ${carName(context)} again, a session is already ${phase.name.lowercase()}")
+            return
+        }
         log.i("auto-connect: the phone reached ${carName(context)} over Bluetooth - opening Gearslip")
         val open = Intent(context, GearslipActivity::class.java)
             .putExtra(EXTRA_CAR, car)
@@ -142,7 +146,9 @@ object AutoConnect {
         val device = runCatching {
             context.getSystemService(BluetoothManager::class.java)?.adapter?.getRemoteDevice(address)
         }.getOrNull() ?: return
-        WirelessLink.start(context, device)
+        val locked = context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true
+        log.i("auto-connect: Gearslip is open, connecting to ${carName(context)}${if (locked) " (the phone is locked)" else ""}")
+        WirelessLink.start(context, device, automatic = true)
     }
 
     private fun notify(context: Context, open: Intent) {

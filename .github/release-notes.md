@@ -6,5 +6,6 @@ Gearslip 0.3.01 with fixes for head units whose music channel only takes AAC (te
 
 ## New
 - Connect automatically: Settings → Connection → Connect automatically. Gearslip remembers the last car picked under Connect wirelessly; once the car is linked (a one-time Android dialog), Gearslip opens and connects on its own when the phone reaches the car over Bluetooth. If Android won't let it open itself, a "Connect to <car>" notification does it in one tap.
+- Connecting automatically waits for a head unit that is still starting up: Gearslip keeps calling the car for up to a minute instead of giving up on the first try.
 
 This build is signed with a different key than the official releases: uninstall the official Gearslip before installing it.
