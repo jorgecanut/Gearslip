@@ -40,7 +40,7 @@ android {
         targetSdk = 37
         versionCode = 10
         // -PgearslipVersionName=0.1.99-test makes a build that thinks it's older, to try the updater.
-        versionName = project.findProperty("gearslipVersionName")?.toString() ?: "0.3.01-alpha"
+        versionName = project.findProperty("gearslipVersionName")?.toString() ?: "0.3.01-aacfix"
         manifestPlaceholders["appLabel"] = "Gearslip"
         // Where opted-in phones send their daily usage note: the stats-worker/ Worker's address,
         // set as gearslipStatsUrl in gradle.properties. Left empty, nothing is ever sent.
