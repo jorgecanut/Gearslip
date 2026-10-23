@@ -87,16 +87,26 @@ object DirectionsVoice {
         running = false
     }
 
+    /** Why the last turn wasn't spoken, so the log says it once rather than every tick. */
+    private var silentBecause: String? = null
+
+    private fun quiet(reason: String) {
+        if (silentBecause == reason) return
+        silentBecause = reason
+        GearslipLog.i("guidance: not speaking - $reason")
+    }
+
     private fun tick() {
-        if (!CarSettings.speakDirections.value) return
         val turn = NavTurn.current()
         if (turn == null) {
             turnKey = null
             return
         }
-        if (turn.rerouting) return
+        if (!CarSettings.speakDirections.value) return quiet("Spoken directions is off in the car's Settings")
+        if (turn.rerouting) return quiet("the map app is rerouting")
         val step = turn.step
-        val instruction = instruction(step) ?: return
+        val instruction = instruction(step) ?: return quiet("the map app gave this turn no words")
+        silentBecause = null
         val meters = turn.distance?.let(NavTurn::toMeters)
         val close = (turn.seconds != null && turn.seconds <= NEAR_SECONDS) || (meters != null && meters <= NEAR_METERS)
 

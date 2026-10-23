@@ -233,7 +233,19 @@ class AudioLink(
         startStream()
     }
 
+    /**
+     * Guards starting and stopping. [start] starts the stream at once for head units that never
+     * answer the focus request, and the car's answer arrives on another thread and starts it
+     * too: without this both got through, so the car got Start twice and two AAC encoders, and a
+     * 2014 head unit dropped the connection on the first audio.
+     */
+    private val startLock = Any()
+
     private fun startStream() {
+        synchronized(startLock) { startStreamLocked() }
+    }
+
+    private fun startStreamLocked() {
         if (!ready || started) return
         sendOnChannel(
             MSG_START,
@@ -252,6 +264,10 @@ class AudioLink(
     }
 
     override fun stop() {
+        synchronized(startLock) { stopLocked() }
+    }
+
+    private fun stopLocked() {
         if (!started) return
         started = false
         synchronized(ackLock) { ackLock.notifyAll() }
