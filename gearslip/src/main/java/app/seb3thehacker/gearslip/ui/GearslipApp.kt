@@ -119,7 +119,6 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                 Screen.SETTINGS -> SettingsScreen(
                     onBack = { screen = Screen.HOME },
                     onOpenRecommendedApps = { settingsAtUsageNotes = false; screen = Screen.RECOMMENDED_APPS },
-                    onOpenWhatsNew = { settingsAtUsageNotes = false; backTo = Screen.SETTINGS; screen = Screen.WHATS_NEW },
                     onReplayTutorial = { screen = Screen.SETUP_GUIDE },
                     atUsageNotes = settingsAtUsageNotes,
                 )

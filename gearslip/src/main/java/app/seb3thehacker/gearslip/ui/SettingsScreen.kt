@@ -79,7 +79,6 @@ import kotlinx.coroutines.withContext
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenRecommendedApps: () -> Unit,
-    onOpenWhatsNew: () -> Unit,
     onReplayTutorial: () -> Unit,
     atUsageNotes: Boolean = false,
 ) {
@@ -116,10 +115,11 @@ fun SettingsScreen(
         ) {
             Spacer(Modifier.height(0.dp))
             SettingsSection {
+                val context = LocalContext.current
                 SettingsRow(
                     "What's new",
-                    Modifier.clickable(onClick = onOpenWhatsNew),
-                    subtitle = "Version ${BuildConfig.VERSION_NAME}",
+                    Modifier.clickable { GearslipLinks.open(context, GearslipLinks.RELEASE_NOTES) },
+                    subtitle = "Read the ${BuildConfig.VERSION_NAME} release notes on GitHub",
                     icon = Icons.Filled.Star,
                     trailing = { Arrow() },
                 )

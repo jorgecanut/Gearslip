@@ -45,6 +45,9 @@ internal object GearslipLinks {
     const val SOURCE = "https://github.com/twinksoftware/gearslip"
     const val CARS = "$SOURCE/blob/main/CARS.md"
 
+    /** This version's release notes on GitHub; every release is tagged v plus its version name. */
+    val RELEASE_NOTES = "$SOURCE/releases/tag/v${app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME}"
+
     fun open(context: Context, url: String) {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
