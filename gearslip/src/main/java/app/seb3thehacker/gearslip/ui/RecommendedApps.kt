@@ -57,6 +57,9 @@ private val recommended = listOf(
     "Podcasts" to listOf(
         RecommendedApp("AntennaPod", "de.danoeh.antennapod", "https://github.com/AntennaPod/AntennaPod", "Podcasts, chapters and all."),
     ),
+    "Other cool apps" to listOf(
+        RecommendedApp("RF Sentinel", "com.rfsentinel.app", "https://github.com/CIS-C0/RFSentinel", "Spots trackers and cameras nearby."),
+    ),
 )
 
 /** Opened from Settings: the same list the setup guide ends with. */

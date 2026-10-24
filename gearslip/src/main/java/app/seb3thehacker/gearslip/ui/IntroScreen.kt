@@ -81,6 +81,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.CompositionLocalProvider
 import app.seb3thehacker.gearslip.car.CarSettings
 import app.seb3thehacker.gearslip.car.theme.GsButton
@@ -108,8 +113,11 @@ object Intro {
     private const val KEY_SEEN = "seen_release"
     private const val KEY_STEP = "step"
 
-    /** "0.3" from "0.3.00-alpha": the intro belongs to a release, not to each patch. */
-    val release: String = BuildConfig.VERSION_NAME.split('.').take(2).joinToString(".")
+    /**
+     * The release this intro is about. It's named here rather than taken from the version, so a
+     * patch release can carry an intro of its own: anyone who saw an earlier one sees this once.
+     */
+    const val release: String = "0.3.12"
 
     /**
      * True once per release for people who used Gearslip before. A new install, or one with its
@@ -163,7 +171,7 @@ internal fun introColors(): IntroColors {
 }
 
 /** In the order shown: what's new, what to pick, housekeeping, then the people behind it. */
-private enum class IntroStep { WELCOME, WIRELESS, KNOBS, VOICE, THEME, APPS, GRAPHENE, CHAT, THANKS }
+private enum class IntroStep { WELCOME, LOOK, DIRECTIONS, CONNECTS, CALLS, SETTINGS, APPS, THEME }
 
 private val Pop = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)
 private val Rise = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
@@ -172,10 +180,7 @@ private val Rise = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
 fun IntroScreen(onDone: () -> Unit) {
     val context = LocalContext.current
     val c = introColors()
-    // The GrapheneOS screen is only news to people running it.
-    val steps = remember {
-        IntroStep.entries.filter { it != IntroStep.GRAPHENE || UsageStats.osName(context) == "GrapheneOS" }
-    }
+    val steps = remember { IntroStep.entries.toList() }
     // Turning exploit protection back on restarts the app, so the intro picks up where it was.
     var index by remember {
         mutableIntStateOf(steps.indexOfFirst { it.name == Intro.savedStep(context) }.coerceAtLeast(0))
@@ -201,36 +206,26 @@ fun IntroScreen(onDone: () -> Unit) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
         when (step) {
             IntroStep.WELCOME -> Welcome(c, ::cq, ::cqSp, h)
-            IntroStep.WIRELESS -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Wireless.",
-                "If your car does wireless Android Auto, pair once and leave the cable at home.", step) { WifiIcon(c.onSecondaryC) }
-            IntroStep.KNOBS -> BadgeStep(c, ::cq, ::cqSp, c.tertiaryC, "Knobs work.",
-                "Turn, push, done. No touchscreen? Gearslip doesn't need one anymore.", step) { DialIcon(c.onTertiaryC) }
-            IntroStep.VOICE -> VoiceStep(c, ::cq, ::cqSp, step)
-            IntroStep.GRAPHENE -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Protections back on.",
-                "On GrapheneOS, Gearslip no longer needs exploit protection compatibility mode. If you " +
-                    "turned it on for Gearslip, turn it off to get full protection back.", step,
-                action = "Open app settings" to {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-                        )
-                    }
-                },
-                outlined = true,
-            ) { ShieldIcon(c.onSecondaryC, c.secondaryC) }
-            IntroStep.THANKS -> BadgeStep(c, ::cq, ::cqSp, c.tertiaryC, "Thank you.",
-                "Thanks to your usage notes, Gearslip is confirmed to work in cars newer than 2020. " +
-                    "Each note shows which cars work and which still fail, so I know what to fix next.", step,
-                action = "See which cars work" to { GearslipLinks.open(context, GearslipLinks.CARS) },
-                outlined = true,
-                secondAction = "Support on Liberapay" to { GearslipLinks.open(context, GearslipLinks.LIBERAPAY) },
-            ) { HeartIcon(c.onTertiaryC) }
-            IntroStep.CHAT -> BadgeStep(c, ::cq, ::cqSp, c.primaryC, "Come say hi.",
-                "Gearslip has a chat room on Matrix. Talk with other drivers about cars, apps, and " +
-                    "where Gearslip is headed.", step,
-                action = "Join on Matrix" to { GearslipLinks.open(context, GearslipLinks.MATRIX) },
-                outlined = true,
-            ) { ChatIcon(c.onPrimaryC, c.primaryC) }
+            IntroStep.LOOK -> BadgeStep(c, ::cq, ::cqSp, c.primaryC, "A fresh look.",
+                "The car screen takes your phone's colors, and every card and button matches.", step) {
+                GlyphIcon(Icons.Filled.Star, c.onPrimaryC)
+            }
+            IntroStep.DIRECTIONS -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Directions at a glance.",
+                "A big turn card on the left shows the arrow, the distance, and your lane. The map keeps the right side.", step) {
+                GlyphIcon(Icons.Filled.KeyboardArrowUp, c.onSecondaryC)
+            }
+            IntroStep.CONNECTS -> BadgeStep(c, ::cq, ::cqSp, c.tertiaryC, "Connects by itself.",
+                "Say yes once after a wireless drive, and Gearslip connects whenever the car's Bluetooth does.", step) {
+                WifiIcon(c.onTertiaryC)
+            }
+            IntroStep.CALLS -> BadgeStep(c, ::cq, ::cqSp, c.primaryC, "Better calls.",
+                "Dial from the car, then mute or hang up from the nav bar.", step) {
+                GlyphIcon(Icons.Filled.Call, c.onPrimaryC)
+            }
+            IntroStep.SETTINGS -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Settings up front.",
+                "Change the car's settings from the phone's home screen, before you drive.", step) {
+                GlyphIcon(Icons.Filled.Settings, c.onSecondaryC)
+            }
             IntroStep.APPS -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Good company.",
                 "Free, open-source apps that work well in the car. The first in each row works best. Tap one to see it on GitHub.", step,
                 extra = { AppPicks(c, ::cq, ::cqSp, step) }) { StarIcon(c.onSecondaryC) }
@@ -299,7 +294,7 @@ private fun Welcome(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> TextUnit
                 modifier = Modifier.offset(x = -cq(1.5f)).pop(entrance(key, 250, 900)),
             )
             Text(
-                "alpha · the big one", color = c.onTertiaryC,
+                "alpha · a fresh look", color = c.onTertiaryC,
                 style = TextStyle(fontSize = cqSp(4f), fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(top = cq(4f)).up(entrance(key, 700), cq(7f))
                     .clip(RoundedCornerShape(50)).background(c.tertiaryC).padding(horizontal = cq(4.4f), vertical = cq(2.2f)),
@@ -535,6 +530,9 @@ private val APP_PICKS = listOf(
     "Podcasts" to listOf(
         "AntennaPod" to "https://github.com/AntennaPod/AntennaPod",
     ),
+    "Other cool apps" to listOf(
+        "RF Sentinel" to "https://github.com/CIS-C0/RFSentinel",
+    ),
 )
 
 /** One row per kind, with a chip per app opening its GitHub page; the rows arrive one after another. */
@@ -673,6 +671,12 @@ private inline fun DrawScope.inIconBox(block: DrawScope.() -> Unit) {
     scale(s, s, Offset.Zero) { block() }
 }
 
+/** A Material glyph filling a badge, for steps without a drawing of their own. */
+@Composable
+private fun GlyphIcon(glyph: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
+    Icon(glyph, contentDescription = null, tint = color, modifier = Modifier.fillMaxSize())
+}
+
 @Composable
 internal fun WifiIcon(color: Color) {
     val t = rememberInfiniteTransition(label = "wifi")
@@ -773,7 +777,7 @@ internal fun StarIcon(color: Color) {
 
 @Composable
 internal fun ShieldIcon(color: Color, tick: Color) {
-    val p = entrance(IntroStep.GRAPHENE, 800, 500)
+    val p = entrance("shield", 800, 500)
     Canvas(Modifier.fillMaxSize()) {
         inIconBox {
             val shield = Path().apply {

@@ -365,21 +365,19 @@ private fun pages(context: Context, onRequestCallScreening: () -> Unit): List<Gu
         )
     }
 
-    // --- Apps worth installing, once everything above is set up -----------------------
-    if (SHOW_RECOMMENDED_APPS) {
-        add(
-            GuidePage(
-                title = "Good company.",
-                explanation = RECOMMENDED_INTRO,
-                icon = { StarIcon(it) },
-                content = { RecommendedAppsList() },
-            ),
-        )
-    }
-
-    // --- The very end, every time: usage notes. On a replay, the switch shows what was
+    // --- Near the end, every time: usage notes. On a replay, the switch shows what was
     // chosen before.
     add(usageNotesPage(context))
+
+    // --- Last of all, every time: apps worth installing, now that everything is set up.
+    add(
+        GuidePage(
+            title = "Good company.",
+            explanation = RECOMMENDED_INTRO,
+            icon = { StarIcon(it) },
+            content = { RecommendedAppsList() },
+        ),
+    )
 }
 
 /**
