@@ -137,7 +137,9 @@ internal object LauncherCache {
         val messagingPackages = messagingApps.map { it.packageName }.toSet()
 
         val nav = navApps
-            .filter { it.component.packageName !in messagingPackages }
+            // Only a messaging car screen gives way: RF Sentinel posts car notifications too, but
+            // its car screen is a POI app and dropping it left RF Sentinel with no tile at all.
+            .filter { it.component.packageName !in messagingPackages || !(it.kind == "messaging" || it.kind == "app") }
             // An app whose template screen is rejected but whose player works through Gearslip
             // (Spotify) shows only its player tile - a "· Browse" tile beside it would just report
             // that the car screen isn't supported.
