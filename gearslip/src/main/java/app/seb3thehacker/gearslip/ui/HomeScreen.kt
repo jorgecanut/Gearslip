@@ -125,6 +125,9 @@ fun HomeScreen(
                     }
                     Spacer(Modifier.height(16.dp))
                     UpdateCard()
+                    Spacer(Modifier.height(24.dp))
+                    HomeCarSettings()
+                    Spacer(Modifier.height(16.dp))
                 }
 
                 // Sits at the bottom, where a thumb reaches it.
