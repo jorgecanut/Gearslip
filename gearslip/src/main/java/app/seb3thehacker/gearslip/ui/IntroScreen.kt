@@ -171,7 +171,7 @@ internal fun introColors(): IntroColors {
 }
 
 /** In the order shown: what's new, what to pick, housekeeping, then the people behind it. */
-private enum class IntroStep { WELCOME, LOOK, DIRECTIONS, CONNECTS, CALLS, SETTINGS, APPS, THEME }
+private enum class IntroStep { WELCOME, LOOK, CONNECTS, CALLS, SETTINGS }
 
 private val Pop = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)
 private val Rise = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
@@ -210,10 +210,6 @@ fun IntroScreen(onDone: () -> Unit) {
                 "The car screen takes your phone's colors, and every card and button matches.", step) {
                 GlyphIcon(Icons.Filled.Star, c.onPrimaryC)
             }
-            IntroStep.DIRECTIONS -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Directions at a glance.",
-                "A big turn card on the left shows the arrow, the distance, and your lane. The map keeps the right side.", step) {
-                GlyphIcon(Icons.Filled.KeyboardArrowUp, c.onSecondaryC)
-            }
             IntroStep.CONNECTS -> BadgeStep(c, ::cq, ::cqSp, c.tertiaryC, "Connects by itself.",
                 "Say yes once after a wireless drive, and Gearslip connects whenever the car's Bluetooth does.", step) {
                 WifiIcon(c.onTertiaryC)
@@ -226,12 +222,6 @@ fun IntroScreen(onDone: () -> Unit) {
                 "Change the car's settings from the phone's home screen, before you drive.", step) {
                 GlyphIcon(Icons.Filled.Settings, c.onSecondaryC)
             }
-            IntroStep.APPS -> BadgeStep(c, ::cq, ::cqSp, c.secondaryC, "Good company.",
-                "Free, open-source apps that work well in the car. The first in each row works best. Tap one to see it on GitHub.", step,
-                extra = { AppPicks(c, ::cq, ::cqSp, step) }) { StarIcon(c.onSecondaryC) }
-            IntroStep.THEME -> BadgeStep(c, ::cq, ::cqSp, c.tertiaryC, "Your buttons.",
-                "Pick how the car's buttons look. Change it any time in the car's settings.", step,
-                extra = { ThemePicker(c, ::cq, ::cqSp, step) }) { ButtonsIcon(c.onTertiaryC) }
         }
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = cq(8f))) {
@@ -518,69 +508,12 @@ private fun CommandDrift(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> Tex
 }
 
 /** Each kind of app with its picks, the first recommended most. */
-private val APP_PICKS = listOf(
-    "Maps" to listOf(
-        "Organic Maps" to "https://github.com/organicmaps/organicmaps",
-        "Vela" to "https://github.com/PimpinPumpkin/Vela",
-    ),
-    "Music" to listOf(
-        "ViVi Music" to "https://github.com/vivizzz007/vivi-music",
-        "Metrolist" to "https://github.com/MetrolistGroup/Metrolist",
-    ),
-    "Podcasts" to listOf(
-        "AntennaPod" to "https://github.com/AntennaPod/AntennaPod",
-    ),
-    "Other cool apps" to listOf(
-        "RF Sentinel" to "https://github.com/CIS-C0/RFSentinel",
-    ),
-)
-
-/** One row per kind, with a chip per app opening its GitHub page; the rows arrive one after another. */
-@Composable
-private fun AppPicks(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> TextUnit, key: IntroStep) {
-    val context = LocalContext.current
-    Column(Modifier.padding(top = cq(6f)), verticalArrangement = Arrangement.spacedBy(cq(2.6f))) {
-        APP_PICKS.forEachIndexed { i, (kind, apps) ->
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .up(entrance(key, 500 + i * 120, 700), cq(7f))
-                    .clip(RoundedCornerShape(cq(5f)))
-                    .background(c.secondaryC)
-                    .padding(horizontal = cq(4f), vertical = cq(3f)),
-            ) {
-                Text(kind.uppercase(), color = c.onSecondaryC.copy(alpha = 0.7f),
-                    style = TextStyle(fontSize = cqSp(3.2f), fontWeight = FontWeight.Bold, letterSpacing = cqSp(0.3f)),
-                    modifier = Modifier.padding(start = cq(1f), bottom = cq(1.6f)))
-                Row(horizontalArrangement = Arrangement.spacedBy(cq(2f))) {
-                    apps.forEach { (name, url) ->
-                        Text(
-                            "$name ↗", color = c.onSecondaryC,
-                            style = TextStyle(fontSize = cqSp(4.4f), fontWeight = FontWeight.ExtraBold),
-                            maxLines = 1,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .border(BorderStroke(1.5.dp, c.onSecondaryC.copy(alpha = 0.35f)), RoundedCornerShape(50))
-                                .clickable {
-                                    runCatching {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                                    }
-                                }
-                                .padding(horizontal = cq(3.6f), vertical = cq(2f)),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 /**
  * The car's button styles side by side, each drawn in its own style, and a row of real car
  * controls below that redraws in whichever is picked. Picking saves it, so the car shows it too.
  */
 @Composable
-private fun ThemePicker(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> TextUnit, key: IntroStep) {
+internal fun ThemePicker(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> TextUnit, key: Any) {
     val chosenId by CarSettings.uiTheme.collectAsState()
     val chosen = GsThemes.byId(chosenId)
     // Flat first: it's the default.
@@ -628,7 +561,7 @@ private fun ThemePicker(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> Text
 
 /** Three keys of a keypad, pressing one after another. */
 @Composable
-private fun ButtonsIcon(color: Color) {
+internal fun ButtonsIcon(color: Color) {
     val t by rememberInfiniteTransition(label = "keys").animateFloat(
         0f, 3f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "keys",
     )

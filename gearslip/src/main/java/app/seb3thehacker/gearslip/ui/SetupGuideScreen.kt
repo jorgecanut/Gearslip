@@ -93,6 +93,9 @@ import app.seb3thehacker.gearslip.host.AndroidAuto
 import app.seb3thehacker.gearslip.notify.GearslipNotificationListener
 import app.seb3thehacker.gearslip.stats.UsageStats
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.layout.offset
 
 /**
  * One page of the guide. [permissions] drives a system permission dialog; [command] is an adb
@@ -100,6 +103,9 @@ import androidx.compose.runtime.DisposableEffect
  * settings screen) without by itself finishing the page. Everything is skippable: none of this
  * can be verified as done, only offered.
  */
+/** The guide's colours and its one-percent-of-the-width scale, for content that sizes itself the same way. */
+internal class GuideScale(val c: IntroColors, val cq: (Float) -> Dp, val cqSp: (Float) -> TextUnit)
+
 private class GuidePage(
     val title: String,
     /** Plain text, or an [AnnotatedString] when part of it needs to stand out. */
@@ -112,8 +118,8 @@ private class GuidePage(
     val command: String? = null,
     val actionLabel: String? = null,
     val onAction: (() -> Unit)? = null,
-    /** Drawn under [explanation]. */
-    val content: (@Composable () -> Unit)? = null,
+    /** Drawn under [explanation], sized off the same screen-width scale as the page. */
+    val content: (@Composable (GuideScale) -> Unit)? = null,
     /** Only shown when the driver picked USB audio on the car audio page. */
     val usbOnly: Boolean = false,
 )
@@ -365,11 +371,8 @@ private fun pages(context: Context, onRequestCallScreening: () -> Unit): List<Gu
         )
     }
 
-    // --- Near the end, every time: usage notes. On a replay, the switch shows what was
-    // chosen before.
-    add(usageNotesPage(context))
-
-    // --- Last of all, every time: apps worth installing, now that everything is set up.
+    // --- At the end, every time: apps worth installing, how the car's buttons look, and last
+    // the usage notes. On a replay, the switch shows what was chosen before.
     add(
         GuidePage(
             title = "Good company.",
@@ -378,6 +381,15 @@ private fun pages(context: Context, onRequestCallScreening: () -> Unit): List<Gu
             content = { RecommendedAppsList() },
         ),
     )
+    add(
+        GuidePage(
+            title = "Your buttons.",
+            explanation = "Pick how the car's buttons look. Change it any time in the car's settings.",
+            icon = { ButtonsIcon(it) },
+            content = { ThemePicker(it.c, it.cq, it.cqSp, key = "guide-buttons") },
+        ),
+    )
+    add(usageNotesPage(context))
 }
 
 /**
@@ -507,10 +519,11 @@ fun SetupGuideScreen(onRequestCallScreening: () -> Unit, onDone: () -> Unit, onl
             // pushes them off the screen. Short pages sit in the middle.
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 key(index) {
+                    val scroll = rememberScrollState()
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(scroll)
                             .heightIn(min = maxHeight)
                             .padding(vertical = cq(6f)),
                         verticalArrangement = Arrangement.Center,
@@ -548,7 +561,7 @@ fun SetupGuideScreen(onRequestCallScreening: () -> Unit, onDone: () -> Unit, onl
                                 style = TextStyle(fontSize = cqSp(4.5f), lineHeight = cqSp(6.5f)),
                             )
                             page.command?.let { CopyableCommand(it) }
-                            page.content?.invoke()
+                            page.content?.invoke(GuideScale(c, ::cq, ::cqSp))
                             if (page.permissions != null && alreadyGranted) {
                                 Text(
                                     "Already allowed.", color = c.primary,
@@ -557,6 +570,9 @@ fun SetupGuideScreen(onRequestCallScreening: () -> Unit, onDone: () -> Unit, onl
                             }
                         }
                     }
+                    // A long page (the app list, the usage notes) says so: a fade over the
+                    // last lines and a nudge to keep going, until the bottom is in view.
+                    if (scroll.canScrollForward) ScrollHint(c, ::cq, ::cqSp, Modifier.align(Alignment.BottomCenter))
                 }
             }
 
@@ -580,6 +596,28 @@ fun SetupGuideScreen(onRequestCallScreening: () -> Unit, onDone: () -> Unit, onl
             }
             Spacer(Modifier.height(cq(6f)))
         }
+    }
+}
+
+/** A fade into the page's background with "Scroll for more" over it, at the bottom of a page that goes on. */
+@Composable
+private fun ScrollHint(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> TextUnit, modifier: Modifier = Modifier) {
+    val bob by rememberInfiniteTransition(label = "hint").animateFloat(
+        0f, 1f, infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "bob",
+    )
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(cq(22f))
+            .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(c.surface.copy(alpha = 0f), c.surface))),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Text(
+            "Scroll for more  ↓",
+            color = c.primary,
+            style = TextStyle(fontSize = cqSp(4f), fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = cq(2f)).offset(y = cq(1.2f) * bob),
+        )
     }
 }
 

@@ -138,11 +138,13 @@ private fun AppRow(app: RecommendedApp, onOpen: () -> Unit) {
             if (icon != null) {
                 Image(icon.toBitmap(96, 96).asImageBitmap(), contentDescription = null, Modifier.fillMaxSize())
             } else {
-                Text(app.name.take(1), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(app.name.take(1), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             }
         }
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-            Text(app.name, style = MaterialTheme.typography.titleMedium)
+            // Colours set outright: the setup guide draws this on its own background, with no
+            // Surface to hand down a content colour, and unset text came out dark on dark.
+            Text(app.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             Text(app.about, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (icon != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
