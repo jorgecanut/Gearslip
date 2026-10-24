@@ -37,7 +37,9 @@ object WirelessAuto {
 
     /**
      * Called whenever the driver connects to [device] by hand. Asks Android once per car; a car
-     * already approved only has its presence watched again, in case Android forgot.
+     * already approved only has its presence watched again, in case Android forgot. A car only
+     * counts as asked once the driver has answered the dialog: if it never showed, the next
+     * connection by hand asks again.
      */
     @SuppressLint("MissingPermission")
     fun connectedByHand(context: Context, device: BluetoothDevice) {
@@ -47,9 +49,10 @@ object WirelessAuto {
             watch(context, address)
             return
         }
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(address, false)) return
-        prefs.edit().putBoolean(address, true).apply()
+        if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(address, false)) {
+            log.i("auto-connect: already asked about this car and it was declined; connect by hand")
+            return
+        }
 
         val request = AssociationRequest.Builder()
             .addDeviceFilter(BluetoothDeviceFilter.Builder().setAddress(address).build())
@@ -72,7 +75,18 @@ object WirelessAuto {
     /** The driver allowed it in Android's dialog. */
     fun approved(context: Context, address: String) {
         log.i("auto-connect: allowed")
+        answered(context, address)
         watch(context, address)
+    }
+
+    /** The driver said no in Android's dialog: this car isn't asked about again. */
+    fun declined(context: Context, address: String) {
+        log.w("auto-connect: declined in Android's dialog")
+        answered(context, address)
+    }
+
+    private fun answered(context: Context, address: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(address, true).apply()
     }
 
     @SuppressLint("MissingPermission")

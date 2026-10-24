@@ -125,7 +125,7 @@ class GearslipActivity : ComponentActivity(), Projection {
         val address = approvingCar ?: return@registerForActivityResult
         approvingCar = null
         if (result.resultCode == RESULT_OK) app.seb3thehacker.gearslip.wireless.WirelessAuto.approved(this, address)
-        else GearslipLog.w("auto-connect: declined in Android's dialog")
+        else app.seb3thehacker.gearslip.wireless.WirelessAuto.declined(this, address)
     }
 
     /** Setting Gearslip as the phone's caller ID and spam app - what lets it decline a ringing call. */
