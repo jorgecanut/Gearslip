@@ -42,6 +42,14 @@ class VideoSource(
         private set
 
     private var codec: MediaCodec? = null
+
+    /** The bitrate the encoder started at, the most [setBitRate] ever goes back up to. */
+    var fullBitRate = 0
+        private set
+
+    /** What the encoder is asked for right now. */
+    @Volatile var bitRate = 0
+        private set
     private var worker: Thread? = null
     @Volatile private var running = false
     private var frameIndex = 0L
@@ -51,6 +59,8 @@ class VideoSource(
         val bitRate = defaultBitRate(width, height, frameRate, level).let {
             if (wireless) (it * WIRELESS_SHARE).toInt().coerceAtMost(WIRELESS_MAX_BIT_RATE) else it
         }
+        fullBitRate = bitRate
+        this.bitRate = bitRate
         fun format(tuned: Boolean) = MediaFormat.createVideoFormat(MIME, width, height).apply {
             setInteger(
                 MediaFormat.KEY_COLOR_FORMAT,
@@ -126,6 +136,19 @@ class VideoSource(
                 putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
             })
         }.onFailure { log.w("requestSyncFrame failed: ${it.message}") }
+    }
+
+    /**
+     * Changes the bitrate while streaming, without a new keyframe or a restart. Used to back off
+     * when the car (or the Wi-Fi to it) can't keep up, and to climb back once it can.
+     */
+    fun setBitRate(bps: Int) {
+        val target = bps.coerceIn(fullBitRate / 4, fullBitRate)
+        if (target == bitRate) return
+        runCatching {
+            codec?.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, target) })
+            bitRate = target
+        }.onFailure { log.w("setBitRate failed: ${it.message}") }
     }
 
     fun stop() {

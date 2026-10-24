@@ -1089,11 +1089,15 @@ class GearslipRunner(
         }
 
         val useProjection = projection != null
+        // 60fps only over a cable: over Wi-Fi it doubles the data for little the driver sees.
+        videoFrameRate = if (config.frameRate == 1 && !wireless) 60 else 30
+        smoothWindows = 0
+        lastCut = null
+        decoderBound = false
         videoSource = VideoSource(
             width = width,
             height = height,
-            // 60fps only over a cable: over Wi-Fi it doubles the data for little the driver sees.
-            frameRate = if (config.frameRate == 1 && !wireless) 60 else 30,
+            frameRate = videoFrameRate,
             mode = if (useProjection) VideoSource.Mode.SURFACE else VideoSource.Mode.TEST_CARD,
             wireless = wireless,
             onCodecConfig = { csd ->
@@ -1378,8 +1382,10 @@ class GearslipRunner(
                     SessionReport.stream("${"%.1f".format(fps)} fps, sent=$sent acked=$acksSeen")
                     log.i(
                         "video: ${"%.1f".format(fps)} fps over 5s | sent=$sent waited=${waited}ms " +
-                            "acked=$acksSeen inFlight=$inFlight split=$splitMessages",
+                            "acked=$acksSeen inFlight=$inFlight split=$splitMessages " +
+                            "kbps=${(videoSource?.bitRate ?: 0) / 1000}",
                     )
+                    adaptBitRate(fps, waited)
 
                     // Self-healing safety net: force a fresh keyframe periodically regardless
                     // of whether we think one is owed. Protects against any future case where
@@ -1394,7 +1400,63 @@ class GearslipRunner(
         }.apply { isDaemon = true }.start()
     }
 
+    /** The frame rate the stream was set up for, which adaptive bitrate measures against. */
+    @Volatile private var videoFrameRate = 30
+
+    /** Five-second windows in a row the stream kept up, towards climbing back up. */
+    private var smoothWindows = 0
+    /** The bitrate and frame rate before the last cut, to see whether cutting helped. */
+    private var lastCut: Pair<Int, Double>? = null
+    /** Set once a cut didn't help: this car's decoder, not the link, sets the pace. */
+    private var decoderBound = false
+
+    /**
+     * Adaptive bitrate. A window where the encoder spent most of its time held back by the
+     * car's acks while the frame rate sagged means the car, or the Wi-Fi to it, can't take
+     * frames this size: a quarter comes off. Two easy windows in a row put a tenth back, up to
+     * where the stream started. A still screen (few frames, no waiting) changes nothing.
+     */
+    private fun adaptBitRate(fps: Double, waitedMs: Long) {
+        val source = videoSource ?: return
+        val target = videoFrameRate.toDouble()
+        val behind = waitedMs > ADAPT_WINDOW_MS / 2 && fps < target * 0.8
+        val easy = waitedMs < ADAPT_WINDOW_MS / 10
+        when {
+            behind && !decoderBound -> {
+                smoothWindows = 0
+                val cut = lastCut
+                if (cut != null && fps < cut.second * 1.05) {
+                    // The last cut bought no frames: the car's decoder is the limit, not the
+                    // link, and smaller frames would only look worse. Undo it and stop here.
+                    decoderBound = true
+                    source.setBitRate(cut.first)
+                    log.i("video: a lower bitrate didn't help the car keep up - back to ${cut.first / 1000} kbps, adapting off")
+                    return
+                }
+                val before = source.bitRate
+                source.setBitRate((before * 0.75).toInt())
+                if (source.bitRate != before) {
+                    lastCut = before to fps
+                    log.i("video: car falling behind - bitrate ${before / 1000} -> ${source.bitRate / 1000} kbps")
+                }
+            }
+            easy && source.bitRate < source.fullBitRate -> {
+                lastCut = null
+                if (++smoothWindows >= 2) {
+                    smoothWindows = 0
+                    val before = source.bitRate
+                    source.setBitRate((before * 1.1).toInt() + 1)
+                    log.i("video: keeping up - bitrate ${before / 1000} -> ${source.bitRate / 1000} kbps")
+                }
+            }
+            else -> smoothWindows = 0
+        }
+    }
+
     private companion object {
+        /** The stats window adaptive bitrate reads, matching the watchdog's sleep. */
+        const val ADAPT_WINDOW_MS = 5_000L
+
         // protobuf/aap_protobuf/service/control/ControlMessageType.proto:7-17
         const val MSG_VERSION_REQUEST = 1
         const val MSG_VERSION_RESPONSE = 2
