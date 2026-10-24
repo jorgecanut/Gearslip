@@ -63,6 +63,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_LAST_MEDIA = "car_last_media"
     private const val KEY_AUTOPLAY = "car_autoplay"
     private const val KEY_PLAYER_TITLE = "car_player_title"
+    private const val KEY_PLAYER_LEFT = "car_player_left"
     private const val KEY_THEME = "car_app_theme"
     private const val KEY_UI_THEME = "car_ui_theme"
     private const val KEY_PINNED = "car_pinned_apps"
@@ -100,6 +101,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val lastMediaFlow = MutableStateFlow<String?>(null)
     private val autoplayFlow = MutableStateFlow(false)
     private val playerTitleFlow = MutableStateFlow(false)
+    private val playerLeftFlow = MutableStateFlow(false)
     private val themeFlow = MutableStateFlow(AppTheme.PHONE)
     val appTheme: StateFlow<AppTheme> = themeFlow
     private val uiThemeFlow = MutableStateFlow(GsThemes.default.id)
@@ -215,6 +217,9 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
      */
     val playerTitle: StateFlow<Boolean> = playerTitleFlow
 
+    /** The home screen's player sits left of the map instead of right of it. */
+    val playerLeft: StateFlow<Boolean> = playerLeftFlow
+
     val scale: StateFlow<Float> = scaleFlow
     val openOnConnect: StateFlow<String> = openFlow
     val nightMode: StateFlow<NightMode> = nightFlow
@@ -292,6 +297,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         uiThemeFlow.value = AppSettings.getString(app, KEY_UI_THEME, GsThemes.default.id)
         autoplayFlow.value = AppSettings.getString(app, KEY_AUTOPLAY, "false") == "true"
         playerTitleFlow.value = AppSettings.getString(app, KEY_PLAYER_TITLE, "false") == "true"
+        playerLeftFlow.value = AppSettings.getString(app, KEY_PLAYER_LEFT, "false") == "true"
         pipeAudioFlow.value = AppSettings.getString(app, KEY_PIPE_AUDIO, "true") == "true"
         // Until the driver sets it, on for USB audio and off for Bluetooth, where the map app's
         // own voice already reaches the car.
@@ -360,6 +366,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     fun setPlayerTitle(on: Boolean) {
         playerTitleFlow.value = on
         AppSettings.putString(app, KEY_PLAYER_TITLE, on.toString())
+    }
+
+    fun setPlayerLeft(on: Boolean) {
+        playerLeftFlow.value = on
+        AppSettings.putString(app, KEY_PLAYER_LEFT, on.toString())
     }
 
     fun setAutoplay(on: Boolean) {

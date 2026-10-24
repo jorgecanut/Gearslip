@@ -63,6 +63,7 @@ fun CarSettingsScreen() {
     val locationWarning by CarSettings.locationWarning.collectAsState()
     val autoplay by CarSettings.autoplay.collectAsState()
     val playerTitle by CarSettings.playerTitle.collectAsState()
+    val playerLeft by CarSettings.playerLeft.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
@@ -170,6 +171,14 @@ fun CarSettingsScreen() {
                 listOf(false to "Skip buttons", true to "Song title"),
                 playerTitle,
             ) { CarSettings.setPlayerTitle(it) }
+        }
+
+        item {
+            ChoiceRow(
+                "Player beside the map",
+                listOf(false to "Right", true to "Left"),
+                playerLeft,
+            ) { CarSettings.setPlayerLeft(it) }
         }
 
         item {

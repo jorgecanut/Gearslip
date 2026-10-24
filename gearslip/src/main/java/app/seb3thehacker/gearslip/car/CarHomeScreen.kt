@@ -93,9 +93,14 @@ fun CarHome() {
         if (onHome) seenHome[0] = true
     }
     val splitScreen = phase == CarMedia.Phase.READY && now.isActive && panel != SidePanel.NONE
+    val playerLeft by CarSettings.playerLeft.collectAsStateWithLifecycle()
 
     // No padding anywhere, split screen or not: the player sits flush against the map.
     Row(Modifier.fillMaxSize()) {
+        val side = Modifier.weight(1f).fillMaxHeight().padding(bottom = LocalNavBarInset.current)
+        if (splitScreen && playerLeft) {
+            if (panel == SidePanel.LYRICS) SideLyrics(now, side) else DockedPlayer(now, side)
+        }
         Box(
             Modifier
                 .weight(if (splitScreen) 2.1f else 1f)
@@ -103,8 +108,7 @@ fun CarHome() {
         ) {
             MapPane(navStatus, frame)
         }
-        if (splitScreen) {
-            val side = Modifier.weight(1f).fillMaxHeight().padding(bottom = LocalNavBarInset.current)
+        if (splitScreen && !playerLeft) {
             if (panel == SidePanel.LYRICS) SideLyrics(now, side) else DockedPlayer(now, side)
         }
     }
