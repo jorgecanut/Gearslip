@@ -60,6 +60,13 @@ object CarServices {
     private var navStopped = false
     private var autoplayPending = false
 
+    /**
+     * The app that was playing when the driver opened another one. Opening an app is only a look
+     * at its library: until something plays there, the music carries on in this one, so leaving
+     * the new app's screen goes back to it, as Android Auto does.
+     */
+    private var stillPlaying: MediaApp? = null
+
     fun init(appContext: Context) {
         context = appContext.applicationContext
         app.seb3thehacker.gearslip.notify.CarMotion.start(appContext)
@@ -130,6 +137,8 @@ object CarServices {
         val live = phase == CarMedia.Phase.READY || phase == CarMedia.Phase.CONNECTING
         if (_mediaApp.value?.component == app.component && live) return
 
+        val previous = _mediaApp.value
+        stillPlaying = previous?.takeIf { it.component != app.component && media.now.value.playing && !autoplay }
         _mediaApp.value = app
         autoplayPending = autoplay
         media.connect(app)
@@ -151,12 +160,26 @@ object CarServices {
         return true
     }
 
+    /**
+     * The media screen closed. If nothing started in the app it showed, go back to the one that
+     * kept playing meanwhile, so the player and its buttons follow the music you can hear.
+     */
+    fun mediaScreenClosed() {
+        val back = stillPlaying ?: return
+        stillPlaying = null
+        // A track loaded here, even one paused since, means the driver used this app.
+        if (media.now.value.playing || media.now.value.title.isNotEmpty()) return
+        app.seb3thehacker.gearslip.GearslipLog.i("media: nothing played in ${_mediaApp.value?.label}, back to ${back.label}")
+        openMedia(back)
+    }
+
     /** Closes the media app from the car: stops what it's playing and drops the connection. */
     fun closeMedia() {
         if (media.now.value.playing) media.togglePlay()
         media.disconnect()
         _mediaApp.value = null
         autoplayPending = false
+        stillPlaying = null
     }
 
     /** Called once the media app is connected: starts playback if that was asked for. */

@@ -93,6 +93,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
 
     // The connection outlives this screen: the home screen's player is the same one.
     LaunchedEffect(app) { CarServices.openMedia(app) }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { CarServices.mediaScreenClosed() } }
 
     val art = rememberArt(now)
 
