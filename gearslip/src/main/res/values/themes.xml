@@ -9,4 +9,12 @@
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
     </style>
+
+    <!-- For PermissionActivity: only Android's own permission dialog shows, over whatever was there. -->
+    <style name="Theme.Gearslip.Invisible" parent="Theme.Gearslip">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

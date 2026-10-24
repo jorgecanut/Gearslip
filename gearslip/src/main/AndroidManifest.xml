@@ -162,6 +162,12 @@
           activity so Settings can switch off just this (AppSettings.setGearslipEnabled) and leave
           the head unit to Android Auto, without disabling the screen the switch is on.
         -->
+        <activity
+            android:name=".PermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Gearslip.Invisible" />
+
         <activity-alias
             android:name=".GearslipUsbAccessory"
             android:targetActivity=".GearslipActivity"
