@@ -24,6 +24,7 @@ object KnownApps {
         "nl.flitsmeister", // Flitsmeister: map, routing, alerts - works well
         "com.mapquest.android.ace", // MapQuest: map, routing, navigation
         "com.mapswithme.maps.pro", // MAPS.ME: map, search, place pages, navigation
+        "app.vela", // Vela Maps: map, search, route options, turn-by-turn with lanes
     )
 
     fun works(packageName: String): Boolean = packageName in working
@@ -99,7 +100,6 @@ object KnownApps {
      * call working. Wins over [works] and [playerWorks] for the badge.
      */
     private val partial = setOf(
-        "app.vela", // Vela Maps: connects and draws, but rough enough not to call it working yet
         "com.spotify.music",        // Spotify: plays through Gearslip's player, but the app has to be opened on the phone first
         "deezer.android.app",       // Deezer: the same - it has to be opened on the phone first
     )

@@ -44,9 +44,9 @@ screen-sharing mode.
   call goes out. When a call comes in, answer or decline it on the car screen. During a
   call, the nav bar shows who you're talking to, and you mute or hang up from there.
 - **Navigation.** Gearslip hosts real Car App Library map apps on the car screen.
-  Organic Maps, OsmAnd, Flitsmeister, MAPS.ME, and MapQuest work today. Vela runs, with
-  rough edges. While you navigate, a big turn card on the left shows the arrow, the
-  distance, and your lane, and the map keeps the right side.
+  Organic Maps, Vela, OsmAnd, Flitsmeister, MAPS.ME, and MapQuest work today. While you
+  navigate, a big turn card on the left shows the arrow, the distance, and your lane, and
+  the map keeps the right side.
 - **Music.** Browse, play, and queue tracks from a car-enabled media app, with a Now
   Playing view, an Up Next queue, and lyrics. Type a search, and apps that accept one
   play the best match.
