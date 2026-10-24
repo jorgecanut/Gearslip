@@ -103,7 +103,7 @@ fun visibleAreaFor(template: Template?, width: Int, height: Int, measured: Rect?
     is NavigationTemplate -> measured ?: Rect(0, 0, width, height)
     is MapWithContentTemplate, is MapTemplate, is PlaceListNavigationTemplate,
     is RoutePreviewNavigationTemplate, is PlaceListMapTemplate,
-    -> Rect((width * CONTENT_PANE_FRACTION).toInt(), 0, width, measured?.bottom ?: height)
+    -> measured ?: Rect((width * CARD_COLUMN_FRACTION).toInt(), 0, width, height)
     null -> Rect(0, 0, width, height)
     else -> Rect(0, 0, 0, 0)
 }
@@ -173,7 +173,8 @@ internal fun Modifier.covers(key: String, edge: CoverEdge): Modifier {
 
 @Composable
 private fun NavigationChrome(template: NavigationTemplate, modifier: Modifier) {
-    val pan by CarServices.nav.panMode.collectAsState()
+    val connection = LocalCarAppConnection.current
+    val pan by connection.panMode.collectAsState()
     // Pan mode clears the map for looking around: only the buttons stay.
     val routing = (template.navigationInfo as? RoutingInfo)?.takeUnless { pan }
     val estimate = template.destinationTravelEstimate?.takeUnless { pan }
@@ -193,9 +194,10 @@ private fun NavigationBars(
     estimate: TravelEstimate?,
     modifier: Modifier,
 ) {
-    val pan by CarServices.nav.panMode.collectAsState()
+    val connection = LocalCarAppConnection.current
+    val pan by connection.panMode.collectAsState()
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
-        val column = (maxWidth * NAV_COLUMN_FRACTION).coerceIn(NAV_COLUMN_MIN, NAV_COLUMN_MAX)
+        val column = cardColumnWidth(maxWidth)
         Row(Modifier.fillMaxSize()) {
             if (routing != null || estimate != null) {
                 Column(
@@ -373,6 +375,7 @@ private fun LaneDirection?.turnDegrees(): Float = when (this?.shape) {
  */
 @Composable
 private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Modifier) {
+    val connection = LocalCarAppConnection.current
     val time = remainingTime(estimate.remainingTimeSeconds)
     val distance = estimate.remainingDistance.display()
     val arrival = estimate.arrivalTimeAtDestination.clockTime()
@@ -411,7 +414,7 @@ private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Mo
             GsIconButton(
                 Icons.Filled.Close,
                 "Stop navigating",
-                { CarServices.nav.stopNavigating() },
+                { connection.stopNavigating() },
                 colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.onSurface),
                 size = 52.dp,
                 iconSize = 26.dp,
@@ -438,16 +441,18 @@ private fun MapPaneLayout(
     fullHeight: Boolean = false,
     pane: @Composable () -> Unit,
 ) {
+    val connection = LocalCarAppConnection.current
     // Pan mode hands the whole screen to the map, leaving only its own controls.
-    val pan by CarServices.nav.panMode.collectAsState()
+    val pan by connection.panMode.collectAsState()
     val edgeActions = (actionStrip?.actions.orEmpty() + mapActionStrip?.actions.orEmpty()).map { it.identity() }.toSet()
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
         if (!pan) {
             ChromeSurface(
                 Modifier
                     .align(Alignment.TopStart)
+                    .covers("map-pane", CoverEdge.START)
                     .padding(12.dp)
-                    .width(maxOf(maxWidth * CONTENT_PANE_FRACTION - 12.dp, 232.dp))
+                    .width(cardColumnWidth(maxWidth) - 24.dp)
                     .let { if (fullHeight) it.height(maxHeight - 24.dp) else it.heightIn(max = maxHeight - 24.dp) },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
                 shadowElevation = 8.dp,
@@ -568,14 +573,16 @@ private fun ListPane(
     }
 }
 
-/** Fraction of the surface the content pane covers beside a map. */
-private const val CONTENT_PANE_FRACTION = 0.42f
 
 
-/** Past this the bars only spread the same words further apart, across a map left with no music beside it. */
-private val NAV_COLUMN_MIN = 280.dp
-private val NAV_COLUMN_MAX = 420.dp
-private const val NAV_COLUMN_FRACTION = 0.38f
+/**
+ * The width of the cards beside the map, the same for a place card and for navigation so the
+ * map doesn't jump sideways when a route starts.
+ */
+internal fun cardColumnWidth(maxWidth: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp =
+    (maxWidth * CARD_COLUMN_FRACTION).coerceIn(280.dp, 440.dp).coerceAtMost(maxWidth)
+
+private const val CARD_COLUMN_FRACTION = 0.4f
 
 /** Search, sign-in and the like are laid out for a whole column, so they keep one. */
 private fun Template?.needsFullHeight() =

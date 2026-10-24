@@ -218,6 +218,9 @@ internal fun headerTitle(header: Header?, fallback: String): String =
  * actions in a row along the top, its map controls stacked under them. Keeping them in one
  * column is what stops them colliding on a screen only 480px tall.
  */
+/** How visible the map buttons stay once they fade: enough to know they're there. */
+private const val RESTING_ALPHA = 0.35f
+
 @Composable
 internal fun RightEdgeControls(
     actionStrip: ActionStrip?,
@@ -226,22 +229,23 @@ internal fun RightEdgeControls(
     /** For the stack of map buttons alone, without the row of the app's own above it. */
     mapActionsModifier: Modifier = Modifier,
 ) {
+    val connection = LocalCarAppConnection.current
     val actions = actionStrip?.actions.orEmpty().filter { it.isDrawable() }
     val mapActions = mapActionStrip?.actions.orEmpty().filter { it.isDrawable() }
     if (actions.isEmpty() && mapActions.isEmpty()) return
     // A template that stops offering Pan must not leave the screen stuck in pan mode.
     val hasPan = (actions + mapActions).any { it.type == Action.TYPE_PAN }
-    androidx.compose.runtime.LaunchedEffect(hasPan) { if (!hasPan) CarServices.nav.setPanMode(false) }
+    androidx.compose.runtime.LaunchedEffect(hasPan) { if (!hasPan) connection.setPanMode(false) }
 
     // Faded out when the screen has been left alone; then they are only a memory of buttons, so
     // the first touch on one wakes them rather than pressing it.
     val awake = LocalMapControlsWake.current.awake
-    val pan by CarServices.nav.panMode.collectAsState()
+    val pan by connection.panMode.collectAsState()
     // Kept up while the knob is on one of them, or the ring would fade out along with the button.
     var holdsFocus by remember { mutableStateOf(false) }
     val visible = awake || pan || holdsFocus
     val alpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
+        targetValue = if (visible) 1f else RESTING_ALPHA,
         animationSpec = androidx.compose.animation.core.tween(if (visible) 150 else 500),
         label = "mapControls",
     )
@@ -299,13 +303,14 @@ private fun CarRow.isBlank(): Boolean =
  */
 @Composable
 internal fun ActionButton(action: Action, large: Boolean = false, modifier: Modifier = Modifier) {
+    val connection = LocalCarAppConnection.current
     if (action.type == Action.TYPE_APP_ICON) {
         AppIconBadge()
         return
     }
     val dark = MaterialTheme.colorScheme.surface.luminanceIsDark()
     val title = action.title.text()
-    val panOn by CarServices.nav.panMode.collectAsState()
+    val panOn by connection.panMode.collectAsState()
     val active = action.type == Action.TYPE_PAN && panOn
     val scheme = MaterialTheme.colorScheme
     val custom = action.backgroundColor?.type?.let { it != androidx.car.app.model.CarColor.TYPE_DEFAULT } == true
@@ -320,8 +325,8 @@ internal fun ActionButton(action: Action, large: Boolean = false, modifier: Modi
 
     GsIconBox(
         onClick = {
-            if (action.type == Action.TYPE_BACK) CarServices.nav.backPressed()
-            else if (action.type == Action.TYPE_PAN) CarServices.nav.setPanMode(!panOn)
+            if (action.type == Action.TYPE_BACK) connection.backPressed()
+            else if (action.type == Action.TYPE_PAN) connection.setPanMode(!panOn)
             else action.onClickDelegate?.click("action")
         },
         modifier = modifier,
@@ -432,8 +437,9 @@ private const val AUTO_START_MS = 5_000L
 /** The connected app's own launcher icon, which is what the app-icon action stands for. */
 @Composable
 private fun AppIconBadge() {
+    val connection = LocalCarAppConnection.current
     val context = LocalContext.current
-    val pkg = CarServices.nav.appPackage
+    val pkg = connection.appPackage
     val icon = remember(pkg) {
         pkg?.let {
             runCatching {

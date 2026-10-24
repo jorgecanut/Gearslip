@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.viewinterop.AndroidView
 import app.seb3thehacker.gearslip.GearslipLog
 import app.seb3thehacker.gearslip.host.CarAppConnection
@@ -67,7 +69,7 @@ fun CarAppStage(
     Box(Modifier.fillMaxSize()) {
         // The app's own drawing goes underneath; everything else is the host's rendering of
         // the template it described, laid over the top.
-        androidx.compose.runtime.CompositionLocalProvider(LocalChromeCover provides cover) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalChromeCover provides cover, LocalCarAppConnection provides connection) {
             if (status.surfaceRequested) {
                 AppSurface(connection, frame, template, Modifier.fillMaxSize())
             }
@@ -108,7 +110,7 @@ private fun AppSurface(
     LaunchedEffect(template, size, measured, measuredStable) {
         if (width > 0 && height > 0) {
             val visible = visibleAreaFor(template, width, height, measured)
-            val stable = if (template is androidx.car.app.navigation.model.NavigationTemplate) {
+            val stable = if (!isContentTemplate(template)) {
                 visibleAreaFor(template, width, height, measuredStable)
             } else {
                 visible
@@ -213,28 +215,31 @@ private fun ChromeBar(
     onDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The app's name and a way out, nothing else: which template is showing, or whether the
+    // app has drawn yet, is for the log, not the driver.
     Surface(
-        color = Color.Black.copy(alpha = 0.55f),
-        contentColor = Color.White,
-        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.fillMaxWidth().height(CHROME_BAR),
     ) {
         Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            Modifier.padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    status.app ?: "Car app",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                val detail = buildList {
-                    status.template?.let { add(it) }
-                    add(if (status.surfaceAttached) "drawing" else "waiting for the app")
-                }.joinToString(" - ")
-                Text(detail, style = MaterialTheme.typography.bodySmall)
-            }
-            GsButton(onClick = onDisconnect, tone = GsTone.Tonal) { Text("Stop") }
+            Text(
+                status.app ?: "Car app",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            GsIconButton(
+                androidx.compose.material.icons.Icons.Filled.Close,
+                "Close ${status.app ?: "the app"}",
+                onDisconnect,
+                size = 36.dp,
+                iconSize = 20.dp,
+                shape = androidx.compose.foundation.shape.CircleShape,
+            )
         }
     }
 }
@@ -244,3 +249,6 @@ private val CHROME_BAR = 44.dp
 
 /** Slower than this when the finger lifts and it was a drag that stopped, not a fling. */
 private const val FLING_MIN_PX_S = 400f
+
+/** The app connection a template on screen belongs to: the map app's, or the one opened from the launcher. */
+internal val LocalCarAppConnection = androidx.compose.runtime.staticCompositionLocalOf { CarServices.nav }
