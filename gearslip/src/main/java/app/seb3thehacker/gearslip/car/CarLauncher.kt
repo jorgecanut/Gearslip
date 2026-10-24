@@ -119,43 +119,61 @@ internal object LauncherCache {
             context.packageManager.getApplicationIcon(pkg).toBitmap(128, 128).asImageBitmap()
         }.getOrNull()
 
-        val navApps = CarAppCatalog.installed(context)
-        val mediaApps = MediaCatalog.installed(context)
-        // Some apps (Spotify among them) ship both a Car App Library template and a legacy
-        // MediaBrowserService, which otherwise land as two identically-labeled tiles with no
-        // way to tell them apart. They're genuinely different screens - browsing versus Now
-        // Playing - so only the label needs disambiguating, not the tile itself.
-        // An app whose car screen is something else (RF Sentinel is a POI app) only uses its media
-        // service for sound: its car screen gets the tile, under its own name, and no player tile.
-        val otherScreens = navApps.filter { !it.isMediaScreen }.map { it.component.packageName }.toSet()
-        val allMedia = mediaApps.map { it.component.packageName }.toSet()
-        val mediaPackages = allMedia - otherScreens
+        val carApps = CarAppCatalog.installed(context).associateBy { it.component.packageName }
+        val mediaApps = MediaCatalog.installed(context).associateBy { it.component.packageName }
+        val messagingApps = MessagingCatalog.installed(context).associateBy { it.packageName }
 
-        val messagingApps = MessagingCatalog.installed(context)
-        // Google Messages ships its own car app, which won't start under Gearslip. Gearslip's
-        // own Messages screen does the same job, so a messenger gets only that tile.
-        val messagingPackages = messagingApps.map { it.packageName }.toSet()
-
-        val nav = navApps
-            // Only a messaging car screen gives way: RF Sentinel posts car notifications too, but
-            // its car screen is a POI app and dropping it left RF Sentinel with no tile at all.
-            .filter { it.component.packageName !in messagingPackages || !(it.kind == "messaging" || it.kind == "app") }
-            // An app whose template screen is rejected but whose player works through Gearslip
-            // (Spotify) shows only its player tile - a "· Browse" tile beside it would just report
-            // that the car screen isn't supported.
-            .filter { !(KnownApps.screenBroken(it.component.packageName) && KnownApps.playerWorks(it.component.packageName)) }
-            .map {
-                val label = if (it.component.packageName in mediaPackages) "${it.label} · Browse" else it.label
-                Entry(label, iconOf(it.component.packageName), template = it)
+        // One decision per app over everything it offers a car - a car screen, a player, car
+        // notifications - rather than a filter per kind that has to know about the others.
+        val tiles = (carApps.keys + mediaApps.keys + messagingApps.keys).flatMap { pkg ->
+            val icon by lazy { iconOf(pkg) }
+            tilesFor(carApps[pkg], mediaApps[pkg], messagingApps[pkg]).map { tile ->
+                when (tile) {
+                    is AppTile.Screen -> Entry(tile.label, icon, template = tile.app)
+                    is AppTile.Player -> Entry(tile.app.label, icon, media = tile.app)
+                    is AppTile.Messages -> Entry(tile.app.label, icon, messaging = tile.app)
+                }
             }
-        val media = mediaApps
-            .filter { it.component.packageName !in otherScreens }
-            .map { Entry(it.label, iconOf(it.component.packageName), media = it) }
-        // A messenger that is also a car media app keeps only its player tile.
-        val messaging = messagingApps
-            .filter { it.packageName !in allMedia }
-            .map { Entry(it.label, iconOf(it.packageName), messaging = it) }
-        return (nav + media + messaging).sortedBy { it.label.lowercase() }.also { flow.value = it }
+        }
+        return tiles.sortedBy { it.label.lowercase() }.also { flow.value = it }
+    }
+}
+
+/** What one app gets on the launcher. */
+private sealed interface AppTile {
+    class Screen(val app: TemplateApp, val label: String) : AppTile
+    class Player(val app: app.seb3thehacker.gearslip.media.MediaApp) : AppTile
+    class Messages(val app: app.seb3thehacker.gearslip.notify.MessagingApp) : AppTile
+}
+
+/**
+ * The tiles for one app, from what it offers.
+ *
+ * - A car screen that is something other than media or messaging (RF Sentinel's POI screen) is
+ *   the app: its media service only makes sound, and its notifications are alerts, so it gets the
+ *   one tile under its own name.
+ * - A media app with both a car screen and a player (Spotify) gets both, the screen labelled
+ *   "· Browse", since they really are different screens - unless the screen is known to refuse
+ *   Gearslip while the player works, when the Browse tile would only report that.
+ * - A messenger's own car screen (Google Messages) won't start under Gearslip, and Gearslip's
+ *   Messages screen does the job, so it gets only that - and a messenger that is also a media
+ *   app keeps only its player.
+ */
+private fun tilesFor(
+    car: TemplateApp?,
+    media: app.seb3thehacker.gearslip.media.MediaApp?,
+    messaging: app.seb3thehacker.gearslip.notify.MessagingApp?,
+): List<AppTile> {
+    if (car != null && !car.isMediaScreen && car.kind != "messaging") return listOf(AppTile.Screen(car, car.label))
+    val pkg = car?.component?.packageName ?: media?.component?.packageName ?: messaging?.packageName ?: return emptyList()
+    return buildList {
+        val screenRefused = KnownApps.screenBroken(pkg) && KnownApps.playerWorks(pkg)
+        val messengerScreen = messaging != null && (car?.kind == "messaging" || car?.kind == "app")
+        if (car != null && !messengerScreen && !(media != null && screenRefused)) {
+            add(AppTile.Screen(car, if (media != null) "${car.label} · Browse" else car.label))
+        }
+        if (media != null) add(AppTile.Player(media))
+        else if (messaging != null) add(AppTile.Messages(messaging))
     }
 }
 
