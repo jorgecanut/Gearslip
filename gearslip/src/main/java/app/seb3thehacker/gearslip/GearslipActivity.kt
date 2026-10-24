@@ -14,7 +14,6 @@ import android.os.ParcelFileDescriptor
 import android.provider.Settings
 import android.view.MotionEvent
 import android.view.Surface
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
@@ -141,7 +140,6 @@ class GearslipActivity : ComponentActivity(), Projection {
         // is both a bad first impression and unreliable: Android does not consistently show more
         // than one system permission dialog fired back-to-back, which was silently dropping some.
         enableEdgeToEdge()
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         GearslipLog.init(this)
         GearslipLog.installCrashHandler()
