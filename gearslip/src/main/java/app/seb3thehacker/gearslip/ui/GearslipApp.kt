@@ -108,26 +108,23 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                 Screen.INTRO -> IntroScreen(onDone = { screen = introReturn })
                 Screen.HOME -> HomeScreen(
                     onOpenSettings = { settingsAtUsageNotes = false; screen = Screen.SETTINGS },
-                    onOpenWhatsNew = { backTo = Screen.HOME; screen = Screen.WHATS_NEW },
                     onOpenHelp = { backTo = Screen.HOME; screen = Screen.HELP },
                     onOpenUsageNotes = { settingsAtUsageNotes = true; screen = Screen.SETTINGS },
+                    onOpenCarPreview = { backTo = Screen.HOME; screen = Screen.CAR_PREVIEW },
+                    onOpenLogs = { backTo = Screen.HOME; screen = Screen.LOGS },
                     onDisconnect = onDisconnect,
                 )
                 Screen.WHATS_NEW -> WhatsNewScreen(onBack = { screen = backTo })
-                Screen.LOGS -> LogsScreen(onBack = { screen = Screen.SETTINGS })
+                Screen.LOGS -> LogsScreen(onBack = { screen = backTo })
                 Screen.SETTINGS -> SettingsScreen(
                     onBack = { screen = Screen.HOME },
                     onOpenRecommendedApps = { settingsAtUsageNotes = false; screen = Screen.RECOMMENDED_APPS },
                     onOpenWhatsNew = { settingsAtUsageNotes = false; backTo = Screen.SETTINGS; screen = Screen.WHATS_NEW },
-                    onOpenHelp = { settingsAtUsageNotes = false; backTo = Screen.SETTINGS; screen = Screen.HELP },
-                    onOpenCarPreview = { settingsAtUsageNotes = false; screen = Screen.CAR_PREVIEW },
-                    onOpenLogs = { settingsAtUsageNotes = false; screen = Screen.LOGS },
                     onReplayTutorial = { screen = Screen.SETUP_GUIDE },
-                    onReplayIntro = { Intro.replay(context); introReturn = Screen.SETTINGS; screen = Screen.INTRO },
                     atUsageNotes = settingsAtUsageNotes,
                 )
                 Screen.RECOMMENDED_APPS -> RecommendedAppsScreen(onBack = { screen = Screen.SETTINGS })
-                Screen.CAR_PREVIEW -> CarPreviewScreen(onBack = { screen = Screen.SETTINGS })
+                Screen.CAR_PREVIEW -> CarPreviewScreen(onBack = { screen = backTo })
                 Screen.HELP -> HelpScreen(
                     onBack = { screen = backTo },
                     onRequestCallScreening = onRequestCallScreening,

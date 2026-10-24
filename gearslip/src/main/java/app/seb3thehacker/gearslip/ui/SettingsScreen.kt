@@ -80,11 +80,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenRecommendedApps: () -> Unit,
     onOpenWhatsNew: () -> Unit,
-    onOpenHelp: () -> Unit,
-    onOpenCarPreview: () -> Unit,
-    onOpenLogs: () -> Unit,
     onReplayTutorial: () -> Unit,
-    onReplayIntro: () -> Unit,
     atUsageNotes: Boolean = false,
 ) {
     val scroll = rememberScrollState()
@@ -119,12 +115,20 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Spacer(Modifier.height(0.dp))
+            SettingsSection {
+                SettingsRow(
+                    "What's new",
+                    Modifier.clickable(onClick = onOpenWhatsNew),
+                    subtitle = "Version ${BuildConfig.VERSION_NAME}",
+                    icon = Icons.Filled.Star,
+                    trailing = { Arrow() },
+                )
+            }
             SettingsSection(
                 "Support Gearslip",
                 footer = "Gearslip is free, with no ads and no tracking. Your support keeps it going.",
             ) { DonateRows() }
             ConnectionSection()
-            HelpSection(onOpenHelp, onOpenCarPreview, onOpenLogs)
             CarAudioSection()
             CarScreenSection()
             VoiceModelSection()
@@ -136,7 +140,8 @@ fun SettingsScreen(
             ) { UsageStatsRows() }
             SettingsSection("Updates") { UpdateRow() }
             CertificateSection()
-            AboutSection(onOpenWhatsNew, onReplayTutorial, onReplayIntro)
+            AboutSection(onReplayTutorial)
+            if (BuildConfig.DEBUG) DebugSection()
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -149,26 +154,10 @@ private fun Arrow() = Icon(
     tint = MaterialTheme.colorScheme.onSurfaceVariant,
 )
 
-/** What's new, the replays, and where Gearslip lives outside the app. */
+/** The setup guide replay, and where Gearslip lives outside the app. */
 @Composable
-private fun AboutSection(onOpenWhatsNew: () -> Unit, onReplayTutorial: () -> Unit, onReplayIntro: () -> Unit) {
+private fun AboutSection(onReplayTutorial: () -> Unit) {
     SettingsSection("About") {
-        SettingsRow(
-            "What's new",
-            Modifier.clickable(onClick = onOpenWhatsNew),
-            subtitle = "Version ${BuildConfig.VERSION_NAME}",
-            icon = Icons.Filled.Star,
-            trailing = { Arrow() },
-        )
-        SettingsDivider()
-        SettingsRow(
-            "Replay the ${Intro.release} intro",
-            Modifier.clickable(onClick = onReplayIntro),
-            subtitle = "What's in this release, in a few taps",
-            icon = Icons.Filled.Star,
-            trailing = { Arrow() },
-        )
-        SettingsDivider()
         SettingsRow(
             "Replay the setup guide",
             Modifier.clickable(onClick = onReplayTutorial),
@@ -200,48 +189,17 @@ private fun ConnectionSection() {
     }
 }
 
-/** Connection help, and the tools for checking what Gearslip does. */
+/** Tools for testing a debug build; release builds never show this section. */
 @Composable
-private fun HelpSection(onOpenHelp: () -> Unit, onOpenCarPreview: () -> Unit, onOpenLogs: () -> Unit) {
+private fun DebugSection() {
     val context = LocalContext.current
-    val status by SessionStatus.state.collectAsState()
-    val live = status.phase == SessionStatus.Phase.CONNECTING || status.phase == SessionStatus.Phase.PROJECTING
-    SettingsSection("Help and tools") {
+    SettingsSection("Debug build") {
         SettingsRow(
-            "Connection help",
-            Modifier.clickable(onClick = onOpenHelp),
-            subtitle = "Which cars work, and what to set up first",
-            icon = Icons.Filled.Info,
-            trailing = { Arrow() },
+            "Send a test message",
+            Modifier.clickable { TestMessage.post(context) },
+            subtitle = "Posts a message notification to read on the car",
+            icon = Icons.AutoMirrored.Filled.Send,
         )
-        // The preview draws the car screen on the phone, so it waits until no car is using it.
-        if (!live) {
-            SettingsDivider()
-            SettingsRow(
-                "Car preview",
-                Modifier.clickable(onClick = onOpenCarPreview),
-                subtitle = "See the car screen on your phone",
-                icon = Icons.Filled.PlayArrow,
-                trailing = { Arrow() },
-            )
-        }
-        SettingsDivider()
-        SettingsRow(
-            "Live logs",
-            Modifier.clickable(onClick = onOpenLogs),
-            subtitle = "What Gearslip and the car are saying to each other",
-            icon = Icons.AutoMirrored.Filled.List,
-            trailing = { Arrow() },
-        )
-        if (BuildConfig.DEBUG) {
-            SettingsDivider()
-            SettingsRow(
-                "Send a test message",
-                Modifier.clickable { TestMessage.post(context) },
-                subtitle = "Debug builds only. Posts a message notification to read on the car",
-                icon = Icons.AutoMirrored.Filled.Send,
-            )
-        }
     }
 }
 

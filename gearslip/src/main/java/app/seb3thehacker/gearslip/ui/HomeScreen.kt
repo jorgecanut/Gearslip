@@ -5,6 +5,7 @@ import app.seb3thehacker.gearslip.speech.SpeechModels
 import androidx.compose.material3.LinearProgressIndicator
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.List
@@ -60,9 +63,10 @@ import app.seb3thehacker.gearslip.stats.WorkedPrompt
 @Composable
 fun HomeScreen(
     onOpenSettings: () -> Unit,
-    onOpenWhatsNew: () -> Unit,
     onOpenHelp: () -> Unit,
     onOpenUsageNotes: () -> Unit,
+    onOpenCarPreview: () -> Unit,
+    onOpenLogs: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
     val status by SessionStatus.state.collectAsStateWithLifecycle()
@@ -125,21 +129,11 @@ fun HomeScreen(
 
                 // Sits at the bottom, where a thumb reaches it.
                 Column(Modifier.padding(vertical = 16.dp)) {
-                    SettingsCard {
-                        SettingsRow(
-                            "What's new in ${Intro.release}",
-                            Modifier.clickable(onClick = onOpenWhatsNew),
-                            icon = Icons.Filled.Star,
-                            trailing = { Arrow() },
-                        )
-                        SettingsDivider()
-                        SettingsRow(
-                            "Which cars work",
-                            Modifier.clickable(onClick = onOpenHelp),
-                            subtitle = "Most do. See which ones, and what to set up first",
-                            icon = Icons.Filled.Info,
-                            trailing = { Arrow() },
-                        )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HomeShortcut(Icons.Filled.Info, "Help", onOpenHelp, Modifier.weight(1f))
+                        // The preview draws the car screen on the phone, so it waits until no car is using it.
+                        if (!live) HomeShortcut(Icons.Filled.PlayArrow, "Preview", onOpenCarPreview, Modifier.weight(1f))
+                        HomeShortcut(Icons.AutoMirrored.Filled.List, "Logs", onOpenLogs, Modifier.weight(1f))
                     }
                     if (live) {
                         Spacer(Modifier.height(16.dp))
@@ -154,6 +148,27 @@ fun HomeScreen(
         if (celebrate) ConfettiFall(onDone = WorkedPrompt::celebrated)
         // The usage notes ask comes first; the donation ask waits until that's answered.
         if (workedCar == null) DonateDialog(live)
+    }
+}
+
+/** One of Home's shortcuts at the bottom: an icon over a one-word label, small enough that all fit in a row. */
+@Composable
+private fun HomeShortcut(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 64.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Column(
+            Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        }
     }
 }
 
