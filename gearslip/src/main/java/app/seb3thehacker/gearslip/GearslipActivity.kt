@@ -345,18 +345,34 @@ class GearslipActivity : ComponentActivity(), Projection {
 
     /** A known car came up over Bluetooth: connect wirelessly, unless USB or another try is already on it. */
     private fun connectToNearbyCar(address: String?) {
-        if (address == null || !AppSettings.gearslipEnabled(this)) return
+        if (address == null) return
+        if (!AppSettings.gearslipEnabled(this)) {
+            GearslipLog.i("auto-connect: Gearslip is switched off - not connecting")
+            return
+        }
         if (descriptor != null) {
             GearslipLog.i("auto-connect: the car is on USB already - staying on USB")
             return
         }
-        if (runner != null || app.seb3thehacker.gearslip.wireless.WirelessLink.busy) return
+        // Only a session that's still running counts. One the car ended (a ByeBye, a dropped
+        // network) leaves its runner behind, since only Gearslip ending a session clears it, and
+        // that used to make every later auto-connect quietly do nothing.
+        if (worker?.isAlive == true || app.seb3thehacker.gearslip.wireless.WirelessLink.busy) {
+            GearslipLog.i("auto-connect: a session is already running")
+            return
+        }
+        if (runner != null) closeAccessory(stopWireless = false)
         if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             GearslipLog.w("auto-connect: needs the Nearby devices permission")
             return
         }
-        val adapter = getSystemService(android.bluetooth.BluetoothManager::class.java)?.adapter ?: return
-        val device = runCatching { adapter.getRemoteDevice(address) }.getOrNull() ?: return
+        val adapter = getSystemService(android.bluetooth.BluetoothManager::class.java)?.adapter
+        val device = adapter?.let { runCatching { it.getRemoteDevice(address) }.getOrNull() }
+        if (device == null) {
+            GearslipLog.w("auto-connect: Bluetooth couldn't hand over the car")
+            return
+        }
+        GearslipLog.i("auto-connect: connecting")
         app.seb3thehacker.gearslip.wireless.WirelessLink.start(this, device)
     }
 
