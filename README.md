@@ -41,15 +41,17 @@ screen-sharing mode.
 ## Features
 
 - **Phone calls.** Dial from a keypad, or search your contacts, then confirm before the
-  call goes out. When a call comes in, answer or decline it on the car screen.
+  call goes out. When a call comes in, answer or decline it on the car screen. During a
+  call, the nav bar shows who you're talking to, and you mute or hang up from there.
 - **Navigation.** Gearslip hosts real Car App Library map apps on the car screen.
-  Organic Maps, OsmAnd, and Flitsmeister work today. Vela runs, with rough
-  edges.
+  Organic Maps, OsmAnd, Flitsmeister, MAPS.ME, and MapQuest work today. Vela runs, with
+  rough edges. While you navigate, a big turn card on the left shows the arrow, the
+  distance, and your lane, and the map keeps the right side.
 - **Music.** Browse, play, and queue tracks from a car-enabled media app, with a Now
   Playing view, an Up Next queue, and lyrics. Type a search, and apps that accept one
   play the best match.
-- **The web.** A browser template with its own on-screen keyboard, for anything that
-  doesn't ship a car interface of its own.
+- **The web.** A browser with an address bar, back and forward, and its own on-screen
+  keyboard, for anything that doesn't ship a car interface of its own.
 - **Weather and the day ahead.** A dashboard screen shows the week's calendar next to
   the current and coming weather.
 - **Voice.** Tap the mic, or press the talk button on the wheel, and say "navigate to the
@@ -63,30 +65,35 @@ screen-sharing mode.
 - **Your apps, your order.** The launcher groups apps by kind: phone, maps, music,
   messaging, and the rest. Press and hold an app to move it.
 - **Car controls.** Steering wheel buttons, control knobs, and D-pads all work.
+- **Your phone's colors.** The car screen and the phone app take their colors from your
+  phone's Material You palette, and every card and button matches.
 - **Themes.** Choose flat buttons or skeuomorphic ones that look like real keys.
+- **Settings on the phone.** The car's settings sit on the phone's home screen too, so you
+  can set things up before you drive. A change on either screen shows on both.
 
 ## Status
 
 - **Wired or wireless.** Plug the phone into the car's USB port, or, in a car with wireless
   Android Auto, tap Connect wirelessly and pick the car. Pair the phone with the car over
-  Bluetooth first.
+  Bluetooth first. After the first wireless drive, Android asks once whether Gearslip may
+  watch for that car; from then on, Gearslip connects whenever the car's Bluetooth does.
 - **Setup walks you through it.** First launch asks for the Android Auto certificate,
   then one permission at a time, each with a plain reason and an Allow or Skip. A help
   screen inside the car answers anything setup didn't cover.
-- **Templated apps work.** Gearslip renders all 16 template types that the Car App
-  Library defines, and it draws its own keyboard for search, sign-in, and text fields.
-  It has been tested against several real navigation and media apps.
+- **Templated apps work.** Gearslip renders the Car App Library's templates on the car
+  screen, and it draws its own keyboard for search, sign-in, and text fields. It has been
+  tested against several real navigation and media apps.
 - **Gearslip works with [LIVI](https://github.com/f-io/LIVI),** the open-source head unit
   used in homemade car dashboards.
 - **Some apps refuse Gearslip.** Spotify, Waze, and Google Messages use a version of
   Google's car library that accepts only Android Auto itself. Spotify still plays through
-  Gearslip's own player.
+  Gearslip's own player. TIDAL lets only approved apps browse its library.
 - **Calls use the car's Bluetooth,** as they do in Android Auto. Pair the phone with the
   car to hear calls through its speakers.
 - **Music reaches the car over Bluetooth or USB.** Setup asks which. Bluetooth is the
   default: Android never asks for permission, and your map app's voice reaches the car
-  too. USB sounds a little clearer, with no delay, but Android shows a screen-share
-  consent dialog once per drive. Gearslip never reads the screen; capturing playback is
+  too. USB sounds a little clearer, with no delay, but each drive Android asks you to
+  share your screen, which lets Gearslip send the sound. Gearslip never reads the screen; capturing playback is
   the only way an ordinary app can pass another app's audio along.
 - **Gearslip needs no adb, root, or Shizuku.** Every feature relies on an ordinary
   Android permission or an on-device consent dialog. For USB audio, setup offers two
