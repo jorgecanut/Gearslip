@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -87,6 +88,8 @@ fun CarSettingsScreen() {
             ScreenHeader("Settings")
         }
 
+        item { Group("Screen") }
+
         item {
             ChoiceRow(
                 "Open on connect",
@@ -153,6 +156,8 @@ fun CarSettingsScreen() {
             ) { CarSettings.setScreenFit(it) }
         }
 
+        item { Group("Nav bar and player") }
+
         item {
             ChoiceRow(
                 "Nav bar",
@@ -189,6 +194,8 @@ fun CarSettingsScreen() {
             ) { CarSettings.setAutoplay(it) }
         }
 
+        item { Group("Sound and voice") }
+
         item {
             ChoiceRow(
                 "Car audio",
@@ -206,6 +213,8 @@ fun CarSettingsScreen() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        item { Group("Warnings") }
 
         if (!pipeAudio) item {
             ChoiceRow(
@@ -249,6 +258,8 @@ fun CarSettingsScreen() {
                 checked = systemSpeech,
             ) { CarSettings.setSystemSpeech(it) }
         }
+
+        item { Group("More") }
 
         item {
             WebPageSetting()
@@ -300,8 +311,37 @@ fun CarSettingsScreen() {
 
 @Composable
 private fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    // On a wide screen the name sits beside its choices, which halves how far there is to scroll.
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= 720.dp && options.size <= 4) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(0.3f))
+                Box(Modifier.weight(0.7f)) { ChoiceButtons(options, selected, onSelect) }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                ChoiceButtons(options, selected, onSelect)
+            }
+        }
+    }
+}
+
+/** A group of settings: a heading, so a long list reads as a few short ones. */
+@Composable
+private fun Group(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 12.dp),
+    )
+}
+
+@Composable
+private fun <T> ChoiceButtons(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    run {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             options.forEach { (value, label) ->
                 val on = value == selected
