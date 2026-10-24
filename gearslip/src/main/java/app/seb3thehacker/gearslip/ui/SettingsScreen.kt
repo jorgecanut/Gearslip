@@ -200,6 +200,14 @@ private fun DebugSection() {
             subtitle = "Posts a message notification to read on the car",
             icon = Icons.AutoMirrored.Filled.Send,
         )
+        SettingsDivider()
+        val badge by CarSettings.debugBadge.collectAsState()
+        SettingsRow(
+            "Debug badge on the car screen",
+            Modifier.clickable { CarSettings.setDebugBadge(!badge) },
+            subtitle = "Turn it off for screenshots",
+            trailing = { Switch(checked = badge, onCheckedChange = null) },
+        )
     }
 }
 

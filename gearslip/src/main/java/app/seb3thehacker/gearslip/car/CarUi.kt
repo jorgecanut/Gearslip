@@ -317,7 +317,8 @@ fun CarUi() {
                         VoiceHelpOverlay(Modifier.align(Alignment.Center))
                         CallOverlay()
                         AssistantOverlay(Modifier.align(Alignment.BottomCenter).padding(bottom = homeInset))
-                        if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) {
+                        val badge by CarSettings.debugBadge.collectAsState()
+                        if (app.seb3thehacker.gearslip.BuildConfig.DEBUG && badge) {
                             // Bottom corner, not top: a screen's own header almost always puts
                             // something in the top-right (settings, search, a Liked Songs
                             // shortcut) and this badge used to sit right on top of it, hiding
