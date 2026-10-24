@@ -102,10 +102,18 @@ private fun AppSurface(
     // changing size moves the visible area even though the surface itself hasn't changed.
     val (width, height) = size
     val measured = bounds?.takeIf { width > 0 && height > 0 }?.let { cover?.visibleWithin(it, width, height) }
-    LaunchedEffect(template, size, measured) {
+    // The card column moves the map's centre but isn't taken out of the stable area: apps size
+    // their own overlays from it, and Vela's speedometer shrank to fit the strip right of the cards.
+    val measuredStable = bounds?.takeIf { width > 0 && height > 0 }?.let { cover?.visibleWithin(it, width, height, skip = CoverEdge.START) }
+    LaunchedEffect(template, size, measured, measuredStable) {
         if (width > 0 && height > 0) {
             val visible = visibleAreaFor(template, width, height, measured)
-            connection.reportAreas(visible = visible, stable = visible)
+            val stable = if (template is androidx.car.app.navigation.model.NavigationTemplate) {
+                visibleAreaFor(template, width, height, measuredStable)
+            } else {
+                visible
+            }
+            connection.reportAreas(visible = visible, stable = stable)
         }
     }
 

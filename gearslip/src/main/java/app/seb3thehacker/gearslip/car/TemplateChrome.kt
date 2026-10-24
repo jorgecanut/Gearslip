@@ -129,12 +129,13 @@ internal class ChromeCover {
     }
 
     /** What is left of a [width] x [height] surface at [surface] (window pixels), in surface pixels. */
-    fun visibleWithin(surface: ComposeRect, width: Int, height: Int): Rect {
+    fun visibleWithin(surface: ComposeRect, width: Int, height: Int, skip: CoverEdge? = null): Rect {
         var left = 0f
         var top = 0f
         var right = width.toFloat()
         var bottom = height.toFloat()
         pieces.values.forEach { (edge, b) ->
+            if (edge == skip) return@forEach
             when (edge) {
                 CoverEdge.TOP -> top = maxOf(top, b.bottom - surface.top)
                 CoverEdge.BOTTOM -> bottom = minOf(bottom, b.top - surface.top)
