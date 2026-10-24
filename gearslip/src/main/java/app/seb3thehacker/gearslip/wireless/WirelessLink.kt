@@ -87,6 +87,8 @@ object WirelessLink {
     val busy: Boolean get() = worker?.isAlive == true
     /** Set when Android drops the car's network mid-try, so the rest don't bind to a dead one. */
     @Volatile private var lostNetwork: Network? = null
+    /** The car network asked for or joined, until Android says it's gone or never came. */
+    @Volatile private var activeSsid: String? = null
     /** Bumped on each Wi-Fi join and on stop, so an older run of TCP tries ends instead of racing the new one. */
     @Volatile private var tcpRun = 0
     private val writeLock = Any()
@@ -131,6 +133,7 @@ object WirelessLink {
             runCatching { context.getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(cb) }
         }
         network = null
+        activeSsid = null
         // Stopped before the car's session began, so nothing else resets Home's card.
         if (starting) {
             log.i("wireless start-up stopped")
@@ -223,6 +226,14 @@ object WirelessLink {
                         val bssid = text(3)
                         val security = Wire.varint(f, 4) ?: -1
                         log.i("<- InfoResponse: ssid=\"$ssid\" bssid=$bssid security=$security password=${if (password.isEmpty()) "none" else "(${password.length} chars)"}")
+                        // ZLink head units send the Wi-Fi details again once the stream is up.
+                        // Asking Android for the network again releases the one carrying the
+                        // stream, which aborts its socket; a phone running Android Auto just
+                        // carries on, so the repeat is ignored while that network is in use.
+                        if (ssid == activeSsid) {
+                            log.i("InfoResponse again for \"$ssid\", which the phone is already on - ignoring it")
+                            continue
+                        }
                         val join = { ip: String, port: Int -> joinWifi(context, output, name, ssid, password, bssid, ip, port) }
                         val known = target
                         if (known != null) {
@@ -332,6 +343,7 @@ object WirelessLink {
             }
 
             override fun onUnavailable() {
+                if (activeSsid == ssid) activeSsid = null
                 log.w("Wi-Fi: couldn't join \"$ssid\" (declined, out of range, or wrong password)")
                 runCatching { send(output, MSG_CONNECTION_STATUS, Protobuf.varintField(1, -1)) }
                 SessionStatus.failed(
@@ -356,6 +368,7 @@ object WirelessLink {
 
             override fun onLost(net: Network) {
                 lostNetwork = net
+                if (activeSsid == ssid) activeSsid = null
                 log.w(
                     "Wi-Fi: lost \"$ssid\" - Android dropped the car's network. Picking it by hand " +
                         "in the Wi-Fi list does this; the remaining tries go over the phone's own Wi-Fi",
@@ -364,6 +377,7 @@ object WirelessLink {
         }
         network?.let { runCatching { manager.unregisterNetworkCallback(it) } }
         network = callback
+        activeSsid = ssid
         manager.requestNetwork(request, callback, WIFI_WAIT_MS)
     }
 
