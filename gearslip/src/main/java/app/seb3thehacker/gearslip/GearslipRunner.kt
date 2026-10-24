@@ -1094,6 +1094,8 @@ class GearslipRunner(
         smoothWindows = 0
         lastCut = null
         decoderBound = false
+        adaptiveVideo = CarSettings.experimentalFeaturesEnabled.value && CarSettings.adaptiveVideoEnabled.value
+        if (adaptiveVideo) log.i("video: adaptive bitrate on (experimental)")
         videoSource = VideoSource(
             width = width,
             height = height,
@@ -1407,6 +1409,8 @@ class GearslipRunner(
     private var smoothWindows = 0
     /** The bitrate and frame rate before the last cut, to see whether cutting helped. */
     private var lastCut: Pair<Int, Double>? = null
+    /** Experimental: read once per stream, so flipping the switch mid-drive changes nothing. */
+    @Volatile private var adaptiveVideo = false
     /** Set once a cut didn't help: this car's decoder, not the link, sets the pace. */
     private var decoderBound = false
 
@@ -1417,6 +1421,7 @@ class GearslipRunner(
      * where the stream started. A still screen (few frames, no waiting) changes nothing.
      */
     private fun adaptBitRate(fps: Double, waitedMs: Long) {
+        if (!adaptiveVideo) return
         val source = videoSource ?: return
         val target = videoFrameRate.toDouble()
         val behind = waitedMs > ADAPT_WINDOW_MS / 2 && fps < target * 0.8

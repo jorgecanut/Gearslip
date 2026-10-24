@@ -69,6 +69,7 @@ fun CarSettingsScreen() {
     val uiTheme by CarSettings.uiTheme.collectAsState()
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
+    val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
     val systemSpeech by CarSettings.systemSpeech.collectAsState()
     val display by CarEnvironment.display.collectAsState()
     val vehicle by CarEnvironment.vehicle.collectAsState()
@@ -278,7 +279,7 @@ fun CarSettingsScreen() {
         }
 
         if (experimentalFeatures) item {
-            ExperimentalFeaturesList(carSensors)
+            ExperimentalFeaturesList(carSensors, adaptiveVideo)
         }
 
         item {
@@ -368,7 +369,7 @@ private fun <T> ChoiceButtons(options: List<Pair<T, String>>, selected: T, onSel
  * so the list reads fine whether there's one entry or several.
  */
 @Composable
-private fun ExperimentalFeaturesList(carSensors: Boolean) {
+private fun ExperimentalFeaturesList(carSensors: Boolean, adaptiveVideo: Boolean) {
     Column(
         Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -381,6 +382,12 @@ private fun ExperimentalFeaturesList(carSensors: Boolean) {
                 "guess, not a fact, until you've watched one change for yourself.",
             checked = carSensors,
         ) { CarSettings.setCarSensorsEnabled(it) }
+        ExperimentalFeatureRow(
+            title = "Adaptive video quality",
+            description = "Lowers the picture's quality when the car, or its Wi-Fi, can't keep " +
+                "up, and raises it again once it can. Takes effect on the next connection.",
+            checked = adaptiveVideo,
+        ) { CarSettings.setAdaptiveVideoEnabled(it) }
     }
 }
 

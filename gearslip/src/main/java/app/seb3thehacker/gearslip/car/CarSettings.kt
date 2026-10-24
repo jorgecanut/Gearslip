@@ -71,6 +71,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_EXPERIMENTAL_FEATURES = "car_experimental_features"
     private const val KEY_SYSTEM_SPEECH = "car_system_speech"
     private const val KEY_CAR_SENSORS = "car_sensors_enabled"
+    private const val KEY_ADAPTIVE_VIDEO = "adaptive_video_enabled"
     private const val KEY_SEEN_SAFETY_WARNING = "car_seen_safety_warning"
     private const val KEY_UNITS = "car_units"
     private const val KEY_NAV_BAR = "car_nav_bar"
@@ -113,6 +114,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val experimentalFeaturesFlow = MutableStateFlow(false)
     private val systemSpeechFlow = MutableStateFlow(false)
     private val carSensorsFlow = MutableStateFlow(false)
+    private val adaptiveVideoFlow = MutableStateFlow(false)
     private val seenSafetyWarningFlow = MutableStateFlow(false)
     private val unitsFlow = MutableStateFlow(Units.AUTO)
 
@@ -273,6 +275,12 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     val carSensorsEnabled: StateFlow<Boolean> = carSensorsFlow
 
     /**
+     * Video bitrate that backs off when the car, or the Wi-Fi to it, falls behind. Takes effect
+     * only while [experimentalFeaturesEnabled] is on too; untested in a car so far.
+     */
+    val adaptiveVideoEnabled: StateFlow<Boolean> = adaptiveVideoFlow
+
+    /**
      * Whether the car screen's own "drive safely" warning has already been shown and dismissed
      * once, from this same install. Separate from the phone side's own compat/safety dialogs -
      * a driver who only ever plugs in and never opens the phone app should still see this once,
@@ -314,6 +322,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         experimentalFeaturesFlow.value = AppSettings.getString(app, KEY_EXPERIMENTAL_FEATURES, "false") == "true"
         systemSpeechFlow.value = AppSettings.getString(app, KEY_SYSTEM_SPEECH, "false") == "true"
         carSensorsFlow.value = AppSettings.getString(app, KEY_CAR_SENSORS, "false") == "true"
+        adaptiveVideoFlow.value = AppSettings.getString(app, KEY_ADAPTIVE_VIDEO, "false") == "true"
         seenSafetyWarningFlow.value = AppSettings.getString(app, KEY_SEEN_SAFETY_WARNING, "false") == "true"
         unitsFlow.value = runCatching {
             Units.valueOf(AppSettings.getString(app, KEY_UNITS, Units.AUTO.name))
@@ -414,6 +423,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     fun setSystemSpeech(on: Boolean) {
         systemSpeechFlow.value = on
         AppSettings.putString(app, KEY_SYSTEM_SPEECH, on.toString())
+    }
+
+    fun setAdaptiveVideoEnabled(on: Boolean) {
+        adaptiveVideoFlow.value = on
+        AppSettings.putString(app, KEY_ADAPTIVE_VIDEO, on.toString())
     }
 
     fun setCarSensorsEnabled(on: Boolean) {
