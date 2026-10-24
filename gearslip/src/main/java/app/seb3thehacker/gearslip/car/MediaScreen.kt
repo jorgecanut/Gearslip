@@ -491,7 +491,14 @@ private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier) {
             shadowElevation = 6.dp,
             modifier = Modifier.size(minOf(maxWidth, maxHeight)),
         ) {
-            art?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+            if (art != null) {
+                Image(art.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                // No cover (or nothing playing): a note, so the square reads as a cover, not a hole.
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(MediaIcons.MusicNote, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxSize(0.35f))
+                }
+            }
         }
     }
 }
@@ -518,6 +525,12 @@ private fun NowPlayingControls(now: NowPlaying, media: CarMedia, modifier: Modif
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
             now.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, maxLines = 2) }
+            if (now.title.isEmpty() && now.error == null) {
+                Text(
+                    "Press play to pick up where you left off, or find something in Browse.",
+                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         PlayerProgress(now, media, Modifier.fillMaxWidth())
         TransportRow(now, media, skip = 60.dp, modifier = Modifier.fillMaxWidth())
@@ -631,9 +644,7 @@ private fun QueueRow(track: QueueTrack, media: CarMedia) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(62.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surface)) {
-                icon?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-            }
+            RowArt(icon, MediaIcons.MusicNote)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(track.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (track.subtitle.isNotEmpty()) {
@@ -658,9 +669,7 @@ private fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(62.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surface)) {
-                icon?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-            }
+            RowArt(icon, if (entry.browsable) MediaIcons.Folder else MediaIcons.MusicNote)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(entry.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (entry.subtitle.isNotEmpty()) {
@@ -675,8 +684,22 @@ private fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = {
     }
 }
 
+/** A row's artwork, or a folder or note in its place when the app sends none. */
+@Composable
+private fun RowArt(icon: android.graphics.Bitmap?, fallback: ImageVector) {
+    Box(
+        Modifier.size(62.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (icon != null) Image(icon.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        else Icon(fallback, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(30.dp))
+    }
+}
+
 /** Material's transport icons, from their published path data (they live in the extended set). */
 internal object MediaIcons {
+    val MusicNote = icon("MusicNote", "M12,3v10.55c-0.59,-0.34 -1.27,-0.55 -2,-0.55 -2.21,0 -4,1.79 -4,4s1.79,4 4,4 4,-1.79 4,-4V7h4V3h-6z")
+    val Folder = icon("Folder", "M10,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8c0,-1.1 -0.9,-2 -2,-2h-8l-2,-2z")
     val Pause = icon("Pause", "M6,19h4L10,5L6,5v14zM14,5v14h4L18,5h-4z")
     val Next = icon("SkipNext", "M6,18l8.5,-6L6,6v12zM16,6v12h2V6h-2z")
     /** The 3x3 app grid; not in material-icons-core. */
