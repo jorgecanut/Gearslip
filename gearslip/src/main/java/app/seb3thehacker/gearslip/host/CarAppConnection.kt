@@ -403,6 +403,8 @@ class CarAppConnection(private val context: Context) {
         // failure worth surfacing.
         runCatching {
             app.getManager(CarContext.NAVIGATION_SERVICE, object : IOnDoneCallback.Stub() {
+                // Car App Library 1.8 versions its host interfaces; each answers with the version it was built from.
+                override fun getInterfaceVersion(): Int = IOnDoneCallback.VERSION
                 override fun onSuccess(response: Bundleable?) {
                     val value = response?.let { runCatching { it.get() }.getOrNull() }
                     navigationManager = when (value) {
@@ -626,6 +628,7 @@ class CarAppConnection(private val context: Context) {
     // --- host interfaces the app calls back into -----------------------------------------
 
     private fun createAppHost(owner: Any) = object : IAppHost.Stub() {
+        override fun getInterfaceVersion(): Int = IAppHost.VERSION
         override fun invalidate() {
             GearslipLog.i("host: app invalidated its template")
             main.post { requestTemplate() }
@@ -664,6 +667,7 @@ class CarAppConnection(private val context: Context) {
     val trip: StateFlow<androidx.car.app.navigation.model.Trip?> = _trip.asStateFlow()
 
     private val navigationHost = object : INavigationHost.Stub() {
+        override fun getInterfaceVersion(): Int = INavigationHost.VERSION
         override fun navigationStarted() {
             GearslipLog.i("host: navigation started")
             navigating = true
@@ -691,6 +695,7 @@ class CarAppConnection(private val context: Context) {
      * IBinder must be a real IOnDoneCallback - the app dispatches the reply through it.
      */
     private val hardwareHost = object : ICarHardwareHost.Stub() {
+        override fun getInterfaceVersion(): Int = ICarHardwareHost.VERSION
         override fun getCarHardwareResult(
             type: Int,
             params: Bundleable?,
@@ -721,6 +726,7 @@ class CarAppConnection(private val context: Context) {
      * Library documents for a projected head unit; they are about the screen, not about us.
      */
     private val constraintHost = object : IConstraintHost.Stub() {
+        override fun getInterfaceVersion(): Int = IConstraintHost.VERSION
         override fun getContentLimit(type: Int): Int = when (type) {
             ConstraintManager.CONTENT_LIMIT_TYPE_GRID -> 12
             ConstraintManager.CONTENT_LIMIT_TYPE_PANE -> 4
@@ -739,10 +745,12 @@ class CarAppConnection(private val context: Context) {
      * that pushes suggestions shouldn't fail because its host doesn't surface them.
      */
     private val suggestionHost = object : ISuggestionHost.Stub() {
+        override fun getInterfaceVersion(): Int = ISuggestionHost.VERSION
         override fun updateSuggestions(suggestions: Bundleable?) = Unit
     }
 
     private fun createCarHost(owner: Any) = object : ICarHost.Stub() {
+        override fun getInterfaceVersion(): Int = ICarHost.VERSION
         private val appHost = createAppHost(owner)
 
         override fun getHost(type: String?): IBinder? = when (type) {
@@ -775,6 +783,7 @@ class CarAppConnection(private val context: Context) {
      */
     private fun call(name: String, onValue: (Any?) -> Unit, send: (IOnDoneCallback) -> Unit) {
         val callback = object : IOnDoneCallback.Stub() {
+            override fun getInterfaceVersion(): Int = IOnDoneCallback.VERSION
             override fun onSuccess(response: Bundleable?) {
                 val value = response?.let { runCatching { it.get() }.getOrNull() }
                 main.post { onValue(value) }
@@ -790,6 +799,7 @@ class CarAppConnection(private val context: Context) {
     }
 
     private fun noop(name: String) = object : IOnDoneCallback.Stub() {
+        override fun getInterfaceVersion(): Int = IOnDoneCallback.VERSION
         override fun onSuccess(response: Bundleable?) = Unit
         override fun onFailure(response: Bundleable?) = GearslipLog.w("host: $name failed")
     }
