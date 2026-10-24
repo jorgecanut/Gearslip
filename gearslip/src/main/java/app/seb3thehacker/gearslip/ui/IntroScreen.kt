@@ -135,11 +135,6 @@ object Intro {
             .apply()
     }
 
-    /** A replay from Settings starts at the first page. */
-    fun replay(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_STEP).apply()
-    }
-
     /** The page the intro was on, so an app restart part-way through resumes there. */
     internal fun savedStep(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_STEP, null)
