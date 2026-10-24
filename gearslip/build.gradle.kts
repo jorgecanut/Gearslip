@@ -74,8 +74,9 @@ android {
             applicationIdSuffix = ".dev"
             signingConfigs.findByName("release")?.let { signingConfig = it }
             manifestPlaceholders["appLabel"] = "Gearslip Debug"
-            // -Pr8 shrinks a debug build like a release one, to test R8 in the debug install.
-            if (project.hasProperty("r8")) {
+            // Shrunk with R8 like a release, so a debug install behaves like what ships (a keep
+            // rule missing for release shows up here first). -PnoR8 skips it for a quicker build.
+            if (!project.hasProperty("noR8")) {
                 isMinifyEnabled = true
                 isShrinkResources = true
                 proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
