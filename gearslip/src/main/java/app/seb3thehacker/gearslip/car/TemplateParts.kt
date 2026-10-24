@@ -106,7 +106,8 @@ internal fun ChromeSurface(
 ) {
     Surface(
         shadowElevation = shadowElevation,
-        color = MaterialTheme.colorScheme.surface,
+        // The nav bar's own container colour, so cards over the map match the rest of the car UI.
+        color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = shape,
         modifier = modifier,

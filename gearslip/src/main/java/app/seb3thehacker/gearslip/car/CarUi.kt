@@ -75,6 +75,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.GsColors
+import app.seb3thehacker.gearslip.car.theme.withTintedSurfaces
 import app.seb3thehacker.gearslip.car.theme.GsIconBox
 import app.seb3thehacker.gearslip.car.theme.GsIconButton
 import app.seb3thehacker.gearslip.car.theme.GsButton
@@ -117,7 +118,7 @@ fun CarUi() {
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
     }
-    val colors = if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)
+    val colors = (if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)).withTintedSurfaces(dark)
     val base = LocalDensity.current
     val insets by CarEnvironment.insets.collectAsState()
     val navigator = remember { CarNavigator(CarSettings.openOnConnect.value) }
