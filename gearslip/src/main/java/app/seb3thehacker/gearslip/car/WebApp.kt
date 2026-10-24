@@ -31,6 +31,10 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import app.seb3thehacker.gearslip.GearslipLog
 import org.json.JSONObject
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 
 /**
  * A browser inside the car UI. [content] is a URL, or raw HTML when it does not look like one.
@@ -56,6 +60,11 @@ fun WebApp(content: String) {
     // the video's then leaves full screen too, instead of stranding them in it.
     var videoMadeFullscreen by remember { mutableStateOf(false) }
     val fullscreen = CarFullscreen.active
+    // What the header shows and what its buttons can do, refreshed as pages load.
+    var pageTitle by remember { mutableStateOf("") }
+    var canGoForward by remember { mutableStateOf(false) }
+    // The address being typed, or null while the header shows the page title.
+    var address by remember { mutableStateOf<String?>(null) }
 
     // Leaving the browser ends full screen, whoever started it.
     DisposableEffect(Unit) { onDispose { CarFullscreen.exit() } }
@@ -86,7 +95,18 @@ fun WebApp(content: String) {
     Column(Modifier.fillMaxSize()) {
         // Back steps through the page's history first (the interceptor above), then leaves.
         if (!fullscreen) {
-            ScreenHeader("Browser", Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            ScreenHeader(pageTitle.ifEmpty { "Browser" }, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                GsIconButton(androidx.compose.material.icons.Icons.Filled.Search, "Search or type an address", {
+                    fieldText = null
+                    address = ""
+                })
+                if (canGoForward) {
+                    GsIconButton(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowForward, "Forward", { web?.goForward() })
+                }
+                GsIconButton(androidx.compose.material.icons.Icons.Filled.Refresh, "Reload", { web?.reload() })
+                GsIconButton(androidx.compose.material.icons.Icons.Filled.Home, "Start page", {
+                    web?.let { view -> loadContent(view, content) }
+                })
                 GsIconButton(MediaIcons.Fullscreen, "Full screen", CarFullscreen::enter)
             }
         }
@@ -99,8 +119,15 @@ fun WebApp(content: String) {
                     settings.domStorageEnabled = true
                     settings.loadWithOverviewMode = true
                     settings.useWideViewPort = true
-                    webViewClient = LoggingClient(ring)
+                    webViewClient = LoggingClient(ring) { view ->
+                        canGoForward = view.canGoForward()
+                        pageTitle = view.title.orEmpty().takeUnless { it.startsWith("http") || it == "about:blank" }.orEmpty()
+                    }
                     webChromeClient = object : WebChromeClient() {
+                        override fun onReceivedTitle(view: WebView?, title: String?) {
+                            pageTitle = title.orEmpty().takeUnless { it.startsWith("http") || it == "about:blank" }.orEmpty()
+                        }
+
                         override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                             videoMadeFullscreen = !CarFullscreen.active
                             pageFullscreen = view to callback
@@ -117,11 +144,7 @@ fun WebApp(content: String) {
                         FieldFocusBridge(onFocus = { fieldText = it }, onBlur = { fieldText = null }),
                         "GearslipField",
                     )
-                    if (content.startsWith("http://") || content.startsWith("https://")) {
-                        loadUrl(content)
-                    } else {
-                        loadDataWithBaseURL(null, content, "text/html", "utf-8", null)
-                    }
+                    loadContent(this, content)
                     web = this
                 }
             },
@@ -145,6 +168,17 @@ fun WebApp(content: String) {
             }
         }
         }
+        address?.let { typed ->
+            CarKeyboard(
+                text = typed,
+                onTextChange = { address = it },
+                onSubmit = {
+                    web?.loadUrl(addressToUrl(typed))
+                    address = null
+                },
+                onDismiss = { address = null },
+            )
+        }
         fieldText?.let { text ->
             CarKeyboard(
                 text = text,
@@ -162,9 +196,29 @@ fun WebApp(content: String) {
     }
 }
 
-private class LoggingClient(private val ring: String) : WebViewClient() {
+/** The start page: a web address, or a page of HTML Gearslip made itself. */
+private fun loadContent(view: WebView, content: String) {
+    if (content.startsWith("http://") || content.startsWith("https://")) {
+        view.loadUrl(content)
+    } else {
+        view.loadDataWithBaseURL(null, content, "text/html", "utf-8", null)
+    }
+}
+
+/** Something that looks like an address opens as one; anything else is searched for. */
+private fun addressToUrl(typed: String): String {
+    val text = typed.trim()
+    return when {
+        text.startsWith("http://") || text.startsWith("https://") -> text
+        ' ' !in text && '.' in text -> "https://$text"
+        else -> "https://duckduckgo.com/?q=" + java.net.URLEncoder.encode(text, "UTF-8")
+    }
+}
+
+private class LoggingClient(private val ring: String, private val onLoaded: (WebView) -> Unit) : WebViewClient() {
     override fun onPageFinished(view: WebView?, url: String?) {
         GearslipLog.i("car web page loaded: $url")
+        view?.let(onLoaded)
         view?.evaluateJavascript(FOCUS_TRACKING_JS, null)
         view?.evaluateJavascript(focusRingJs(ring), null)
     }
