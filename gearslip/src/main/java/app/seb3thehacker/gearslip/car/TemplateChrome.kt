@@ -109,7 +109,7 @@ fun visibleAreaFor(template: Template?, width: Int, height: Int, measured: Rect?
 }
 
 /** The side of the map a piece of chrome sits against, and so the side it shrinks the visible area from. */
-internal enum class CoverEdge { TOP, BOTTOM, END }
+internal enum class CoverEdge { TOP, BOTTOM, START, END }
 
 /**
  * Where the chrome over the map actually landed, in window pixels. The map buttons count even
@@ -138,6 +138,7 @@ internal class ChromeCover {
             when (edge) {
                 CoverEdge.TOP -> top = maxOf(top, b.bottom - surface.top)
                 CoverEdge.BOTTOM -> bottom = minOf(bottom, b.top - surface.top)
+                CoverEdge.START -> left = maxOf(left, b.right - surface.left)
                 CoverEdge.END -> right = minOf(right, b.left - surface.left)
             }
         }
@@ -179,10 +180,10 @@ private fun NavigationChrome(template: NavigationTemplate, modifier: Modifier) {
 }
 
 /**
- * The turn in one short bar across the top, the arrival time in another along the bottom, so the
- * map keeps its full width. Neither grows past [NAV_BAR_MAX_WIDTH]. The bottom one is short and
- * left out of the visible area on purpose, so a speedometer in the app's bottom corner sits level
- * with it rather than stacked above it. The map buttons sit between them on the right.
+ * Cards down the left, map on the right: the turn on top, the trip along the bottom, the map
+ * buttons at the right edge. The whole column counts as covered, so the app centres its map in
+ * what is left over and the car sits right of the cards rather than under them. Pan mode drops
+ * the cards and gives the map the whole width.
  */
 @Composable
 private fun NavigationBars(
@@ -192,84 +193,102 @@ private fun NavigationBars(
     modifier: Modifier,
 ) {
     val pan by CarServices.nav.panMode.collectAsState()
-    Column(modifier.fillMaxSize()) {
-        routing?.let {
-            RoutingBar(
-                it,
-                Modifier.covers("nav-top", CoverEdge.TOP).padding(start = 12.dp, top = 12.dp, end = 12.dp)
-                    .widthIn(max = NAV_BAR_MAX_WIDTH).fillMaxWidth(),
-            )
-        }
-        Row(Modifier.weight(1f).fillMaxWidth()) {
-            Box(Modifier.weight(1f).fillMaxHeight()) {
-                estimate?.let {
-                    TravelEstimateBar(
-                        it,
-                        Modifier.align(Alignment.BottomStart).padding(12.dp)
-                            .widthIn(max = NAV_BAR_MAX_WIDTH),
-                    )
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
+        val column = (maxWidth * NAV_COLUMN_FRACTION).coerceIn(NAV_COLUMN_MIN, NAV_COLUMN_MAX)
+        Row(Modifier.fillMaxSize()) {
+            if (routing != null || estimate != null) {
+                Column(
+                    Modifier.width(column).fillMaxHeight().covers("nav-cards", CoverEdge.START).padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    routing?.let { RoutingCard(it, Modifier.fillMaxWidth()) }
+                    Spacer(Modifier.weight(1f))
+                    estimate?.let { TravelEstimateCard(it, Modifier.fillMaxWidth()) }
                 }
             }
+            Spacer(Modifier.weight(1f))
             RightEdgeControls(
                 if (pan) null else template.actionStrip,
                 template.mapActionStrip,
                 Modifier.padding(12.dp),
-                // Only the column: the app's own buttons are a wide row up top, over the map's
-                // edge rather than where a speedometer or the like would go.
                 mapActionsModifier = Modifier.covers("nav-buttons", CoverEdge.END),
             )
         }
     }
 }
 
-/** The manoeuvre in one row: arrow, distance, what to do, onto what road, and lanes or the next turn. */
+/**
+ * The manoeuvre, big enough to read at a glance: the arrow and the distance to it, what to do
+ * and onto which road, the lanes to be in, and the turn after it along the bottom.
+ */
 @Composable
-private fun RoutingBar(info: RoutingInfo, modifier: Modifier = Modifier) {
+private fun RoutingCard(info: RoutingInfo, modifier: Modifier = Modifier) {
     if (info.isLoading) {
         ChromeSurface(modifier) {
-            Text("Finding a route…", Modifier.padding(horizontal = 16.dp, vertical = 12.dp), style = ChromeType.title)
+            Text("Finding a route…", Modifier.padding(horizontal = 18.dp, vertical = 16.dp), style = ChromeType.title)
         }
         return
     }
 
     val step = info.currentStep ?: return
+    val scheme = MaterialTheme.colorScheme
     ChromeSurface(modifier) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CarGlyph(step.maneuver?.icon, Modifier.size(40.dp))
-                Spacer(Modifier.width(12.dp))
-                val distance = info.currentDistance.display()
-                if (distance.isNotEmpty()) {
-                    Text(distance, style = ChromeType.headline, maxLines = 1)
-                    Spacer(Modifier.width(14.dp))
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(step.cue.text(), style = ChromeType.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column {
+            Column(
+                Modifier.fillMaxWidth().background(scheme.primaryContainer).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.material3.LocalContentColor provides scheme.onPrimaryContainer,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CarGlyph(step.maneuver?.icon, Modifier.size(64.dp))
+                        Spacer(Modifier.width(14.dp))
+                        val distance = info.currentDistance.display()
+                        if (distance.isNotEmpty()) {
+                            Text(
+                                distance,
+                                style = MaterialTheme.typography.displaySmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                    val cue = step.cue.text()
+                    if (cue.isNotEmpty()) {
+                        Text(cue, style = ChromeType.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
                     val road = step.road.text()
-                    if (road.isNotEmpty()) {
+                    // "Turn left onto Queensberry Drive" already says the road; saying it twice is noise.
+                    if (road.isNotEmpty() && !cue.contains(road, ignoreCase = true)) {
                         Text(
                             road,
                             style = ChromeType.body,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                }
-                val next = info.nextStep
-                if (step.lanesImage != null || step.lanes.orEmpty().isNotEmpty()) {
-                    LaneGuidance(step, Modifier.padding(start = 12.dp).widthIn(max = 200.dp).heightIn(max = 48.dp))
-                } else if (next != null) {
-                    Spacer(Modifier.width(12.dp))
-                    Text("then", style = ChromeType.label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.width(8.dp))
-                    CarGlyph(next.maneuver?.icon, Modifier.size(24.dp))
+                    if (step.lanesImage != null || step.lanes.orEmpty().isNotEmpty()) {
+                        LaneGuidance(step, Modifier.fillMaxWidth().heightIn(max = 56.dp))
+                    }
+                    // Rare, and only where an arrow can't explain the junction: worth the card growing for.
+                    info.junctionImage?.let { JunctionImage(it) }
                 }
             }
-            // Rare, and only where an arrow can't explain the junction: worth the bar growing for.
-            info.junctionImage?.let { junction ->
-                Spacer(Modifier.height(8.dp))
-                JunctionImage(junction)
+            info.nextStep?.let { next ->
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Then", style = ChromeType.label, color = scheme.onSurfaceVariant)
+                    Spacer(Modifier.width(10.dp))
+                    CarGlyph(next.maneuver?.icon, Modifier.size(28.dp))
+                    val nextText = next.cue.text().ifEmpty { next.road.text() }
+                    if (nextText.isNotEmpty()) {
+                        Spacer(Modifier.width(10.dp))
+                        Text(nextText, style = ChromeType.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
             }
         }
     }
@@ -345,68 +364,58 @@ private fun LaneDirection?.turnDegrees(): Float = when (this?.shape) {
 }
 
 /**
- * The trip at a glance: time and distance left, the clock time it ends at, and - beside them,
- * where a thumb reaches - the app's own way to stop navigating. One short line along the bottom,
- * stopping short of the map buttons. The close button is Gearslip's own, not the app's: an
- * actionStrip's actions carry no flag saying which one (if any) means "stop navigating" - the
- * first button here turned out to be a mute toggle, not an exit - so this leaves the app the way
- * going Home already does, rather than guess at the app's own controls and risk getting it wrong.
+ * The trip at a glance, stacked: time left on top, then the clock time it ends at and the
+ * distance, with Gearslip's own stop button beside them. The close button is Gearslip's, not the
+ * app's: an actionStrip's actions carry no flag saying which one (if any) means "stop
+ * navigating" - the first button turned out to be a mute toggle, not an exit - so this ends
+ * navigation the way going Home already does rather than guess at the app's own controls.
  */
 @Composable
-private fun TravelEstimateBar(estimate: TravelEstimate, modifier: Modifier = Modifier) {
+private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Modifier) {
     val time = remainingTime(estimate.remainingTimeSeconds)
     val distance = estimate.remainingDistance.display()
     val arrival = estimate.arrivalTimeAtDestination.clockTime()
     val trip = estimate.tripText.text()
     if (time.isEmpty() && distance.isEmpty() && arrival.isEmpty() && trip.isEmpty()) return
 
-    val detail = listOfNotNull(
-        arrival.takeIf { it.isNotEmpty() },
-        distance.takeIf { it.isNotEmpty() },
-        trip.takeIf { it.isNotEmpty() },
-    ).joinToString("  •  ")
-
-    // The same solid card the manoeuvre bar above it uses - one surface for the whole map
-    // chrome, rather than this one spot styled on its own as a bar over the map.
-    ChromeSurface(modifier, shadowElevation = 8.dp) {
+    ChromeSurface(modifier) {
         val dark = MaterialTheme.colorScheme.surface.luminanceIsDark()
         Row(
-            Modifier.padding(start = 8.dp, end = 18.dp, top = 10.dp, bottom = 10.dp),
+            Modifier.padding(start = 18.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Column(Modifier.weight(1f)) {
+                if (time.isNotEmpty()) {
+                    Text(
+                        time,
+                        style = ChromeType.headline,
+                        color = estimate.remainingTimeColor.color(dark, MaterialTheme.colorScheme.onSurface),
+                        maxLines = 1,
+                    )
+                }
+                val detail = listOfNotNull(
+                    arrival.takeIf { it.isNotEmpty() }?.let { "Arrive $it" },
+                    distance.takeIf { it.isNotEmpty() },
+                ).joinToString("  •  ")
+                if (detail.isNotEmpty()) {
+                    Text(detail, style = ChromeType.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (trip.isNotEmpty()) {
+                    Text(trip, style = ChromeType.body, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
             // Not a disconnect: the connection stays up and the app decides its own next screen.
             // Ending navigation is its own call, separate from a back press - a back press only
-            // pops the on-screen card, leaving the app still believing it is navigating (so a
-            // freshly picked destination silently does nothing); this is the call that actually
-            // clears that flag on the app's side.
+            // pops the on-screen card, leaving the app still believing it is navigating.
             GsIconButton(
                 Icons.Filled.Close,
                 "Stop navigating",
                 { CarServices.nav.stopNavigating() },
                 colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.onSurface),
-                size = 40.dp,
-                iconSize = 20.dp,
+                size = 52.dp,
+                iconSize = 26.dp,
                 shape = CircleShape,
             )
-            Spacer(Modifier.width(10.dp))
-            if (time.isNotEmpty()) {
-                Text(
-                    time,
-                    style = ChromeType.headline,
-                    color = estimate.remainingTimeColor.color(dark, MaterialTheme.colorScheme.onSurface),
-                    maxLines = 1,
-                )
-            }
-            if (detail.isNotEmpty()) {
-                Spacer(Modifier.width(16.dp))
-                Text(
-                    detail,
-                    style = ChromeType.body,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
     }
 }
@@ -563,7 +572,9 @@ private const val CONTENT_PANE_FRACTION = 0.42f
 
 
 /** Past this the bars only spread the same words further apart, across a map left with no music beside it. */
-private val NAV_BAR_MAX_WIDTH = 460.dp
+private val NAV_COLUMN_MIN = 280.dp
+private val NAV_COLUMN_MAX = 420.dp
+private const val NAV_COLUMN_FRACTION = 0.38f
 
 /** Search, sign-in and the like are laid out for a whole column, so they keep one. */
 private fun Template?.needsFullHeight() =
