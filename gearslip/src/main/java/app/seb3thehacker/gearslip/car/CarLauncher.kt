@@ -125,7 +125,11 @@ internal object LauncherCache {
         // MediaBrowserService, which otherwise land as two identically-labeled tiles with no
         // way to tell them apart. They're genuinely different screens - browsing versus Now
         // Playing - so only the label needs disambiguating, not the tile itself.
-        val mediaPackages = mediaApps.map { it.component.packageName }.toSet()
+        // An app whose car screen is something else (RF Sentinel is a POI app) only uses its media
+        // service for sound: its car screen gets the tile, under its own name, and no player tile.
+        val otherScreens = navApps.filter { !it.isMediaScreen }.map { it.component.packageName }.toSet()
+        val allMedia = mediaApps.map { it.component.packageName }.toSet()
+        val mediaPackages = allMedia - otherScreens
 
         val messagingApps = MessagingCatalog.installed(context)
         // Google Messages ships its own car app, which won't start under Gearslip. Gearslip's
@@ -142,10 +146,12 @@ internal object LauncherCache {
                 val label = if (it.component.packageName in mediaPackages) "${it.label} · Browse" else it.label
                 Entry(label, iconOf(it.component.packageName), template = it)
             }
-        val media = mediaApps.map { Entry(it.label, iconOf(it.component.packageName), media = it) }
+        val media = mediaApps
+            .filter { it.component.packageName !in otherScreens }
+            .map { Entry(it.label, iconOf(it.component.packageName), media = it) }
         // A messenger that is also a car media app keeps only its player tile.
         val messaging = messagingApps
-            .filter { it.packageName !in mediaPackages }
+            .filter { it.packageName !in allMedia }
             .map { Entry(it.label, iconOf(it.packageName), messaging = it) }
         return (nav + media + messaging).sortedBy { it.label.lowercase() }.also { flow.value = it }
     }

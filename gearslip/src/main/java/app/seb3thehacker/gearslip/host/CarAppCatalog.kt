@@ -13,6 +13,9 @@ class TemplateApp(
 ) {
     val isNavigation: Boolean get() = CarAppService.CATEGORY_NAVIGATION_APP in categories
 
+    /** A media car screen, or one that names no category (older media apps). */
+    val isMediaScreen: Boolean get() = kind == "media" || kind == "app"
+
     /** "navigation", "media", ... - what the app told the system it is. */
     val kind: String
         get() = categories.firstOrNull { it.startsWith(CATEGORY_PREFIX) }
