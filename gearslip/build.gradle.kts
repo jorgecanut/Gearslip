@@ -106,9 +106,10 @@ android {
 
 }
 
-// Renames the produced APK and moves it to the root build/ folder (<root>/build/Gearslip-debug.apk)
-// after the fact rather than fighting AGP's variant-output API across versions - simpler and
-// doesn't break when that API moves again.
+// Copies the produced APK to the root build/ folder (<root>/build/Gearslip-debug.apk) after the
+// fact rather than fighting AGP's variant-output API across versions - simpler and doesn't break
+// when that API moves again. A copy, not a move: AGP packages incrementally into the APK it left
+// last time, and with that file gone a build came out holding nothing but classes.dex.
 tasks.register("renameApk") {
     doLast {
         val rootBuildDir = rootProject.layout.buildDirectory.get().asFile
@@ -118,7 +119,6 @@ tasks.register("renameApk") {
             .forEach { apk ->
                 val renamed = File(rootBuildDir, "Gearslip-${apk.parentFile.name}.apk")
                 apk.copyTo(renamed, overwrite = true)
-                apk.delete()
             }
     }
 }
