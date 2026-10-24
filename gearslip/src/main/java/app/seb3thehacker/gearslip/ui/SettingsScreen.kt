@@ -221,7 +221,7 @@ private fun CarAudioSection() {
         SettingsRow(
             "USB",
             Modifier.selectable(usb, role = Role.RadioButton) { CarSettings.setPipeAudio(true) },
-            subtitle = "Clearer sound with no delay. Android asks to share audio once each drive",
+            subtitle = "Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound",
             trailing = { RadioButton(selected = usb, onClick = null) },
         )
     }

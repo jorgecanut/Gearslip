@@ -427,7 +427,7 @@ private fun AudioChoice() {
         ) { CarSettings.setPipeAudio(false) }
         AudioCard(
             "USB", null,
-            "Clearer sound with no delay. Android asks to share audio once each drive.",
+            "Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound.",
             selected = usb,
         ) { CarSettings.setPipeAudio(true) }
     }
