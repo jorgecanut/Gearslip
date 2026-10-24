@@ -68,6 +68,7 @@ fun HomeScreen(
     onOpenCarPreview: () -> Unit,
     onOpenLogs: () -> Unit,
     onDisconnect: () -> Unit,
+    onOpenCarGroup: (CarGroup) -> Unit,
 ) {
     val status by SessionStatus.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -126,7 +127,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(16.dp))
                     UpdateCard()
                     Spacer(Modifier.height(24.dp))
-                    HomeCarSettings()
+                    HomeCarSettings(onOpenCarGroup)
                     Spacer(Modifier.height(16.dp))
                 }
 

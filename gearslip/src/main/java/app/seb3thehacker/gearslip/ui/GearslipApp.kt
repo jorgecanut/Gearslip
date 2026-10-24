@@ -37,7 +37,7 @@ import app.seb3thehacker.gearslip.BuildConfig
 import app.seb3thehacker.gearslip.CertProvider
 import app.seb3thehacker.gearslip.stats.UsageStats
 
-private enum class Screen { INTRO, HOME, LOGS, SETTINGS, CAR_PREVIEW, CERT_SETUP, SETUP_GUIDE, USAGE_NOTES, HELP, WHATS_NEW, RECOMMENDED_APPS }
+private enum class Screen { INTRO, HOME, LOGS, SETTINGS, CAR_PREVIEW, CERT_SETUP, SETUP_GUIDE, USAGE_NOTES, HELP, WHATS_NEW, RECOMMENDED_APPS, CAR_GROUP }
 
 /** Three screens and a back stack of depth one: no navigation library needed. */
 @Composable
@@ -64,6 +64,8 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
     var settingsAtUsageNotes by rememberSaveable { mutableStateOf(false) }
     // What's new and Connection help open from Home and from Settings; back returns to whichever.
     var backTo by rememberSaveable { mutableStateOf(Screen.SETTINGS) }
+    // Which of the car's setting groups Home opened.
+    var carGroup by rememberSaveable { mutableStateOf(CarGroup.SCREEN) }
     BackHandler(enabled = screen != Screen.HOME && screen != Screen.INTRO) {
         screen = when (screen) {
             Screen.RECOMMENDED_APPS, Screen.LOGS, Screen.CAR_PREVIEW -> Screen.SETTINGS
@@ -113,7 +115,9 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                     onOpenCarPreview = { backTo = Screen.HOME; screen = Screen.CAR_PREVIEW },
                     onOpenLogs = { backTo = Screen.HOME; screen = Screen.LOGS },
                     onDisconnect = onDisconnect,
+                    onOpenCarGroup = { carGroup = it; screen = Screen.CAR_GROUP },
                 )
+                Screen.CAR_GROUP -> CarGroupScreen(carGroup, onBack = { screen = Screen.HOME })
                 Screen.WHATS_NEW -> WhatsNewScreen(onBack = { screen = backTo })
                 Screen.LOGS -> LogsScreen(onBack = { screen = backTo })
                 Screen.SETTINGS -> SettingsScreen(
