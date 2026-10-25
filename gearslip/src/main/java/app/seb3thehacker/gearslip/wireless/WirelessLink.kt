@@ -107,7 +107,7 @@ object WirelessLink {
     fun name(device: BluetoothDevice): String = device.name ?: device.address
 
     /**
-     * [automatic] is a start from [AutoConnect]: the phone has only just reached the car over
+     * [automatic] is a start from [WirelessAuto]: the phone has only just reached the car over
      * Bluetooth, and a head unit that is still booting brings Android Auto up some seconds after
      * its Bluetooth, so the call is retried for a while before waiting for the car instead.
      */
