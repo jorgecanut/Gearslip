@@ -1,27 +1,20 @@
-Gearslip 0.3.02 connects wirelessly by itself, and phone calls work much better.
+Gearslip 0.3.12 gives the car screen a fresh look and fixes the wireless loop 0.3.02 caused on some head units.
 
 ## New
-- Wireless connects by itself. After your first wireless drive, Android asks once whether Gearslip may watch for that car. From then on, Gearslip connects whenever the car's Bluetooth does. A USB cable still wins.
-- Phone calls work much better. Calls you place from the car's dialer go through, and you can end or mute a call from the nav bar, which shows who you're talking to and for how long.
-- The browser goes full screen, for the whole page or a video in it.
-- The nav bar can hide while you navigate, or until you tap the screen.
-- Directions sit in short bars, so map apps keep their maps clear of them.
-- Share a log from an earlier launch, not just the current one.
-- In the car preview, you type with the phone's keyboard.
+- Navigation cards sit down the left side, with a bigger turn card that shows your lane. The map keeps the right side.
+- The car screen and the phone app take their colors from your phone's Material You palette.
+- The car's settings sit on the phone's home screen, each group on its own screen.
+- Put the home screen's player left or right of the map.
+- The browser shows the page title, and it has an address bar, forward, reload, and a start page.
+- If Gearslip lacks call permissions, the car's Phone screen asks for them on the phone.
 
 ## Changed
-- Help, Preview, and Logs sit in a row at the bottom of the phone's home screen.
-- What's new, at the top of Settings, opens the release notes here on GitHub.
+- Gearslip uses Car App Library 1.8. Map apps show the right turn arrows and route times, and Vela works fully.
+- Setup ends with recommended apps, then the button picker, then usage notes.
 
 ## Fixed
-- Before each spoken turn, Gearslip asks the car for its speakers, as Android Auto does. Some head units rebooted without this.
-- An app that won't run in Gearslip, such as Yandex Maps or 2GIS, now says so after 10 seconds instead of showing "Starting" forever.
-- Head units that take only AAC music get one start message, not two. A 2014 aftermarket unit dropped the connection over the second.
-- With music on Bluetooth, the car keeps its Bluetooth source.
-- Head units offering Android Auto 4.x and 6.x get a version they accept.
-- Homemade head units without a certificate keep working, and the wheel buttons and knob work as they do in the main build.
-- A car that reports the wrong screen size gets the right one.
-- iscle fixed how Gearslip frames, secures, and negotiates the connection, and how it checks what the car sends.
-
-## Known issues
-- Call audio plays through the car's Bluetooth phone connection, as it does with Android Auto. If a call plays on the phone instead, open the car in the phone's Bluetooth settings and turn on Phone calls.
+- Some head units, such as ZLink adapters, sent their Wi-Fi details twice. Gearslip rejoined the network each time and dropped the connection. It now ignores the repeat.
+- Gearslip no longer crashes when a wireless connection ends.
+- Opening a second music app without playing anything keeps the player on the song that's still playing.
+- Vela's speed sign is full size again.
+- RF Sentinel and other non-media car apps get their own tile in the launcher.
