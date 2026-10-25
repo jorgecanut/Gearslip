@@ -1,5 +1,12 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
 import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
@@ -95,15 +102,24 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .consumeWindowInsets(WindowInsets.statusBars),
-    ) {
-        if (BuildConfig.DEBUG && screen != Screen.CAR_PREVIEW) DebugBuildBanner()
+    // On a debug build, Home's yellow header runs up behind the status bar, whose icons then go dark.
+    val debugHeader = BuildConfig.DEBUG && screen == Screen.HOME
+    val view = LocalView.current
+    val darkTheme = isSystemInDarkTheme()
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = debugHeader || !darkTheme
+    }
 
-        Column(Modifier.weight(1f)) {
+    Column(Modifier.fillMaxSize()) {
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(if (debugHeader) DebugYellow else Color.Transparent),
+        )
+
+        Column(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) {
             when (screen) {
                 Screen.HOME -> HomeScreen(
                     onOpenSettings = { settingsAtUsageNotes = false; screen = Screen.SETTINGS },
@@ -148,28 +164,5 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
         // A car keyboard is open: offer the phone's own, for a passenger. In the car preview it is
         // the only keyboard, since the preview draws none of its own.
         PhoneTypingBar()
-    }
-}
-
-/**
- * Debug builds only ([BuildConfig.DEBUG]); a release build never composes this. Sits above every
- * phone screen, below the status bar - not the car screen, which is a separate render target
- * ([app.seb3thehacker.gearslip.car.CarUi] carries its own corner badge) - so a debug install is
- * never mistaken for a release one.
- */
-@Composable
-private fun DebugBuildBanner() {
-    Surface(
-        modifier = Modifier.fillMaxWidth().height(28.dp),
-        color = Color(0xFFF5C518),
-        contentColor = Color.Black,
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                "DEBUG BUILD",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-            )
-        }
     }
 }

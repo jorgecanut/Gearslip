@@ -82,7 +82,12 @@ fun HomeScreen(
             Column(
                 Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .padding(padding),
+            ) {
+            HomeHeader(onOpenSettings)
+            Column(
+                Modifier
+                    .weight(1f)
                     .padding(horizontal = 24.dp),
             ) {
                 Column(
@@ -90,30 +95,6 @@ fun HomeScreen(
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    Spacer(Modifier.height(24.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            "Gearslip",
-                            style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        IconButton(
-                            onClick = onOpenSettings,
-                            modifier = Modifier.size(56.dp),
-                        ) {
-                            Icon(Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(40.dp))
-                        }
-                    }
-                    Text(
-                        "v${LocalContext.current.appVersionName()}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     Spacer(Modifier.height(16.dp))
                     StatusCard(status)
                     if (live) BluetoothMissingCard()
@@ -147,11 +128,44 @@ fun HomeScreen(
                     }
                 }
             }
+            }
         }
         // Sharing just went on from the "it worked" ask: a little thanks.
         if (celebrate) ConfettiFall(onDone = WorkedPrompt::celebrated)
         // The usage notes ask comes first; the donation ask waits until that's answered.
         if (workedCar == null) DonateDialog(live)
+    }
+}
+
+/** Debug builds wear a yellow header, behind the status bar too, so they're never mistaken for a release install. */
+internal val DebugYellow = Color(0xFFF5C518)
+private val OnDebugYellow = Color(0xFF2A2200)
+
+/** The app's name, version and Settings, fixed above Home's scrolling cards. */
+@Composable
+private fun HomeHeader(onOpenSettings: () -> Unit) {
+    val debug = BuildConfig.DEBUG
+    val content = if (debug) OnDebugYellow else MaterialTheme.colorScheme.onBackground
+    Surface(color = if (debug) DebugYellow else Color.Transparent, contentColor = content) {
+        Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Gearslip",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onOpenSettings, modifier = Modifier.size(56.dp)) {
+                    Icon(Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(32.dp))
+                }
+            }
+            val version = "v${LocalContext.current.appVersionName()}"
+            Text(
+                if (debug) "$version · debug build" else version,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (debug) content else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
