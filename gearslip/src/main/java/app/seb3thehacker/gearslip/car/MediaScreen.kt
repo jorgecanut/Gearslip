@@ -418,9 +418,19 @@ internal fun LyricsPanel(
             val lines = state.result.lines
             val current = if (state.result.synced) lines.indexOfLast { it.timeMs <= position } else -1
             LaunchedEffect(current) {
-                if (current >= 0) list.animateScrollToItem((current - 1).coerceAtLeast(0))
+                val offset = if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) 1 else 0
+                if (current >= 0) list.animateScrollToItem((current - 1 + offset).coerceAtLeast(0))
             }
             LazyColumn(modifier, state = list, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Debug builds name the service the lyrics came from, to see which one answers.
+                if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) item {
+                    val from = state.result.source.ifEmpty { "an older cache" }
+                    Text(
+                        "From $from · ${if (state.result.synced) "synced" else "plain"}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
                 itemsIndexed(lines) { index, line ->
                     Text(
                         line.text.ifEmpty { " " },

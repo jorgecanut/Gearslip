@@ -23,8 +23,11 @@ import kotlin.math.abs
 
 class LyricLine(val timeMs: Long, val text: String)
 
-/** [synced] means every line carries a time, so the current one can be followed along. */
-class LyricsResult(val lines: List<LyricLine>, val synced: Boolean)
+/**
+ * [synced] means every line carries a time, so the current one can be followed along. [source]
+ * names the service that had them, shown on debug builds.
+ */
+class LyricsResult(val lines: List<LyricLine>, val synced: Boolean, val source: String = "")
 
 /**
  * Looks lyrics up online, in the order Metrolist uses: BetterLyrics, then LRCLIB, then KuGou.
@@ -77,7 +80,7 @@ object Lyrics {
         var result: LyricsResult? = null
         for ((name, lookup) in sources) {
             val job = io.async { runCatching(lookup).onFailure { GearslipLog.w("lyrics: $name failed: ${it.message}") }.getOrNull() }
-            result = withTimeoutOrNull(SOURCE_TIMEOUT_MS) { job.await() }
+            result = withTimeoutOrNull(SOURCE_TIMEOUT_MS) { job.await() }?.let { LyricsResult(it.lines, it.synced, name) }
             if (result != null) {
                 GearslipLog.i("lyrics: found on $name (${if (result.synced) "synced" else "plain"})")
                 break
@@ -104,7 +107,7 @@ object Lyrics {
                 LyricLine(line.getLong("t"), line.getString("x"))
             }
         }
-        LyricsResult(lines, json.getBoolean("synced"))
+        LyricsResult(lines, json.getBoolean("synced"), json.optString("source"))
     }.getOrNull()
 
     private fun writeDisk(context: Context, key: String, result: LyricsResult) {
@@ -113,7 +116,7 @@ object Lyrics {
             result.lines.forEach { line ->
                 lines.put(JSONObject().put("t", line.timeMs).put("x", line.text))
             }
-            val json = JSONObject().put("synced", result.synced).put("lines", lines)
+            val json = JSONObject().put("synced", result.synced).put("source", result.source).put("lines", lines)
             cacheFile(context, key).writeText(json.toString())
         }.onFailure { GearslipLog.w("lyrics: could not write disk cache: ${it.message}") }
     }
