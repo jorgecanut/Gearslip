@@ -55,14 +55,39 @@ object Lyrics {
 
     /** Longest any one source may take, DNS included: a server that never answers can't hold the rest up. */
     private const val SOURCE_TIMEOUT_MS = 12_000L
+    /** How long a cached song waits before its sources are asked again for better lyrics. */
+    private const val RECHECK_MS = 24 * 60 * 60 * 1000L
     private val io = CoroutineScope(Dispatchers.IO)
+
+    /** Word-timed beats line-timed, which beats plain text. */
+    private const val BEST = 3
+    private fun quality(result: LyricsResult?): Int = when {
+        result == null -> 0
+        !result.synced -> 1
+        result.source == "BetterLyrics" -> BEST
+        else -> 2
+    }
+
+    /** One place to look, with the best [quality] it can give. */
+    private class Source(val name: String, val best: Int, val lookup: () -> LyricsResult?)
+
+    private fun sources(title: String, artist: String, album: String, durationMs: Long): List<Source> {
+        val more = CarSettings.moreLyrics.value
+        val seconds = (durationMs / 1000).toInt()
+        return buildList {
+            if (more) add(Source("BetterLyrics", BEST) { betterLyrics(title, artist, album, seconds) })
+            add(Source("LRCLIB", 2) { exact(title, artist, album, durationMs) ?: search(title, artist) })
+            if (more) add(Source("KuGou", 2) { kuGou(title, artist, album, seconds) })
+        }
+    }
+
+    private fun key(title: String, artist: String, album: String, durationMs: Long) = "$title|$artist|$album|$durationMs"
 
     suspend fun find(context: Context, title: String, artist: String, album: String, durationMs: Long): LyricsResult? {
         if (title.isBlank()) return null
-        val more = CarSettings.moreLyrics.value
-        val key = "$title|$artist|$album|$durationMs"
+        val key = key(title, artist, album, durationMs)
         // A miss with only LRCLIB isn't a miss once more sources are on, so the mode is part of it.
-        val memoryKey = "$more|$key"
+        val memoryKey = "${CarSettings.moreLyrics.value}|$key"
         synchronized(cache) { if (cache.containsKey(memoryKey)) return cache[memoryKey] }
 
         val fromDisk = withContext(Dispatchers.IO) { readDisk(context, key) }
@@ -71,31 +96,60 @@ object Lyrics {
             return fromDisk
         }
 
-        val seconds = (durationMs / 1000).toInt()
-        val sources: List<Pair<String, () -> LyricsResult?>> = buildList {
-            if (more) add("BetterLyrics" to { betterLyrics(title, artist, album, seconds) })
-            add("LRCLIB" to { exact(title, artist, album, durationMs) ?: search(title, artist) })
-            if (more) add("KuGou" to { kuGou(title, artist, album, seconds) })
-        }
-        var result: LyricsResult? = null
-        for ((name, lookup) in sources) {
-            val job = io.async { runCatching(lookup).onFailure { GearslipLog.w("lyrics: $name failed: ${it.message}") }.getOrNull() }
-            result = withTimeoutOrNull(SOURCE_TIMEOUT_MS) { job.await() }?.let { LyricsResult(it.lines, it.synced, name) }
-            if (result != null) {
-                GearslipLog.i("lyrics: found on $name (${if (result.synced) "synced" else "plain"})")
-                break
+        val result = firstBetter(sources(title, artist, album, durationMs), than = 0)
+        synchronized(cache) { cache[memoryKey] = result }
+        if (result != null) withContext(Dispatchers.IO) { writeDisk(context, key, result, System.currentTimeMillis()) }
+        return result
+    }
+
+    /**
+     * After [find] answered with [current], looks for better lyrics than it: word-timed where it has
+     * line-timed, timed where it has plain. Only the sources that could beat it are asked, and only
+     * once a day per song, so an old cache entry improves when a source gains the song without every
+     * play sending the song out again. Returns the better lyrics, or null to keep [current].
+     */
+    suspend fun upgrade(
+        context: Context, title: String, artist: String, album: String, durationMs: Long, current: LyricsResult,
+    ): LyricsResult? {
+        val have = quality(current)
+        if (have >= BEST || title.isBlank()) return null
+        val key = key(title, artist, album, durationMs)
+        val checked = withContext(Dispatchers.IO) { checkedAt(context, key) }
+        if (System.currentTimeMillis() - checked < RECHECK_MS) return null
+
+        val candidates = sources(title, artist, album, durationMs).filter { it.best > have && it.name != current.source }
+        val better = firstBetter(candidates, than = have)
+        withContext(Dispatchers.IO) { writeDisk(context, key, better ?: current, System.currentTimeMillis()) }
+        if (better == null) return null
+        GearslipLog.i("lyrics: replaced ${current.source.ifEmpty { "cached" }} lyrics with ${better.source}'s")
+        synchronized(cache) { cache["${CarSettings.moreLyrics.value}|$key"] = better }
+        return better
+    }
+
+    /** Asks [sources] in order and returns the first answer of a higher [quality] than [than]. */
+    private suspend fun firstBetter(sources: List<Source>, than: Int): LyricsResult? {
+        for (source in sources) {
+            val job = io.async {
+                runCatching(source.lookup).onFailure { GearslipLog.w("lyrics: ${source.name} failed: ${it.message}") }.getOrNull()
+            }
+            val result = withTimeoutOrNull(SOURCE_TIMEOUT_MS) { job.await() }
+                ?.let { LyricsResult(it.lines, it.synced, source.name) }
+            if (quality(result) > than) {
+                GearslipLog.i("lyrics: found on ${source.name} (${if (result!!.synced) "synced" else "plain"})")
+                return result
             }
         }
-        synchronized(cache) { cache[memoryKey] = result }
-        if (result != null) withContext(Dispatchers.IO) { writeDisk(context, key, result) }
-        return result
+        return null
     }
 
     private fun cacheFile(context: Context, key: String): File {
         val digest = MessageDigest.getInstance("SHA-1").digest(key.toByteArray())
         val name = digest.joinToString("") { "%02x".format(it) }
-        return File(context.cacheDir, "lyrics").apply { mkdirs() }.resolve("$name.json")
+        return File(context.cacheDir, LYRICS_DIR).apply { mkdirs() }.resolve("$name.json")
     }
+
+    /** Where the lyrics cache lives under the app's cache directory, for the storage screen too. */
+    const val LYRICS_DIR = "lyrics"
 
     private fun readDisk(context: Context, key: String): LyricsResult? = runCatching {
         val file = cacheFile(context, key)
@@ -110,15 +164,26 @@ object Lyrics {
         LyricsResult(lines, json.getBoolean("synced"), json.optString("source"))
     }.getOrNull()
 
-    private fun writeDisk(context: Context, key: String, result: LyricsResult) {
+    /** When the song's sources were last asked; 0 for entries from before the date was kept. */
+    private fun checkedAt(context: Context, key: String): Long =
+        runCatching { JSONObject(cacheFile(context, key).readText()).optLong("checked") }.getOrDefault(0L)
+
+    private fun writeDisk(context: Context, key: String, result: LyricsResult, checked: Long) {
         runCatching {
             val lines = JSONArray()
             result.lines.forEach { line ->
                 lines.put(JSONObject().put("t", line.timeMs).put("x", line.text))
             }
-            val json = JSONObject().put("synced", result.synced).put("source", result.source).put("lines", lines)
+            val json = JSONObject().put("synced", result.synced).put("source", result.source)
+                .put("checked", checked).put("lines", lines)
             cacheFile(context, key).writeText(json.toString())
         }.onFailure { GearslipLog.w("lyrics: could not write disk cache: ${it.message}") }
+    }
+
+    /** Forgets every cached song, on disk and in memory. */
+    fun clearCache(context: Context) {
+        synchronized(cache) { cache.clear() }
+        File(context.cacheDir, LYRICS_DIR).deleteRecursively()
     }
 
     // --- BetterLyrics ---

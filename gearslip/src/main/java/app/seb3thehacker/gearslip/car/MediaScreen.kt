@@ -394,8 +394,13 @@ internal fun LyricsPanel(
     val context = LocalContext.current
     val lyrics by produceState<LyricsState>(LyricsState.Loading, now.title, now.artist, now.album, now.durationMs) {
         value = LyricsState.Loading
-        value = Lyrics.find(context, now.title, now.artist, now.album, now.durationMs)
-            ?.let { LyricsState.Found(it) } ?: LyricsState.Missing
+        val found = Lyrics.find(context, now.title, now.artist, now.album, now.durationMs)
+        value = found?.let { LyricsState.Found(it) } ?: LyricsState.Missing
+        // Cached lyrics show at once; if a source now has better ones, they replace them.
+        if (found != null) {
+            Lyrics.upgrade(context, now.title, now.artist, now.album, now.durationMs, found)
+                ?.let { value = LyricsState.Found(it) }
+        }
     }
     val list = rememberLazyListState()
 
