@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.runtime.withFrameNanos
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -83,6 +84,16 @@ fun SettingsScreen(
     atUsageNotes: Boolean = false,
 ) {
     val scroll = rememberScrollState()
+    // Built a section per frame after the first two, so the screen shows at once instead of
+    // freezing while all of it composes; once built, it scrolls without composing anything new.
+    var built by remember { mutableIntStateOf(2) }
+    LaunchedEffect(Unit) {
+        while (built < SECTIONS) {
+            withFrameNanos { }
+            built++
+        }
+    }
+    fun ready(n: Int) = built > n
     // Opened from Home's "it worked" card: start at usage notes.
     var usageNotesY by remember { mutableIntStateOf(-1) }
     if (atUsageNotes) {
@@ -128,24 +139,27 @@ fun SettingsScreen(
                 "Support Gearslip",
                 footer = "Gearslip is free, with no ads and no tracking. Your support keeps it going.",
             ) { DonateRows() }
-            ConnectionSection()
-            CarAudioSection()
-            CarScreenSection()
-            VoiceModelSection()
-            if (SHOW_RECOMMENDED_APPS) AppsSection(onOpenRecommendedApps)
-            SettingsSection(
+            if (ready(2)) ConnectionSection()
+            if (ready(3)) CarAudioSection()
+            if (ready(4)) CarScreenSection()
+            if (ready(5)) VoiceModelSection()
+            if (SHOW_RECOMMENDED_APPS && ready(6)) AppsSection(onOpenRecommendedApps)
+            if (ready(7)) SettingsSection(
                 "Usage notes",
                 Modifier.onGloballyPositioned { usageNotesY = it.positionInParent().y.toInt() },
                 header = USAGE_STATS_INTRO,
             ) { UsageStatsRows() }
-            SettingsSection("Updates") { UpdateRow() }
-            CertificateSection()
-            AboutSection(onReplayTutorial)
-            if (BuildConfig.DEBUG) DebugSection()
+            if (ready(8)) SettingsSection("Updates") { UpdateRow() }
+            if (ready(9)) CertificateSection()
+            if (ready(10)) AboutSection(onReplayTutorial)
+            if (BuildConfig.DEBUG && ready(11)) DebugSection()
             Spacer(Modifier.height(16.dp))
         }
     }
 }
+
+/** How many sections Settings builds one frame at a time; see [ready]. */
+private const val SECTIONS = 12
 
 @Composable
 private fun Arrow() = Icon(
