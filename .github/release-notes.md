@@ -1,3 +1,14 @@
+Gearslip 0.3.12 plus fixes for head units whose music channel only takes AAC (tested on an aftermarket GalReceiver 2014 unit). This is a fork build, not an official release.
+
+## Fork fixes
+- Music plays on head units that only take raw AAC: the AAC codec config goes out right after Start, before the first frame. Before, the head unit reset the connection half a second into the first song.
+- The phone stays silent while music goes to the car. Pressing volume up no longer brings the phone's speaker back for good.
+- Connecting by itself waits for a head unit that is still starting up: Gearslip keeps calling the car for up to a minute instead of giving up on the first try.
+
+This build is signed with a different key than the official releases: uninstall the official Gearslip before installing it.
+
+---
+
 Gearslip 0.3.12 gives the car screen a fresh look and fixes the wireless loop 0.3.02 caused on some head units.
 
 ## New
