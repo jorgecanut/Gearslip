@@ -451,7 +451,7 @@ private fun BadgeStep(
 private fun VoiceStep(c: IntroColors, cq: (Float) -> Dp, cqSp: (Float) -> TextUnit, key: IntroStep) {
     val context = LocalContext.current
     remember { SpeechModels.init(context) }
-    val needed = SpeechModels.RECOMMENDED
+    val needed = SpeechModels.recommended
     val states = needed.map { SpeechModels.state(it).collectAsState().value }
     val ready = states.all { it == SpeechModels.State.Ready }
     val label = when {

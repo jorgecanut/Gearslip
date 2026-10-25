@@ -14,6 +14,7 @@ import app.seb3thehacker.gearslip.GearslipLog
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import java.util.concurrent.Executors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,16 @@ object SpeechModels {
 
     enum class Role { LIVE, FINAL }
 
+    /** What the assistant listens and answers in. [code] is the ISO 639-1 code the models take. */
+    enum class Language(val code: String, val label: String, private val fallbackTag: String) {
+        ENGLISH("en", "English", "en-US"),
+        SPANISH("es", "Español", "es-ES"),
+        ;
+
+        /** The phone's own variant when it's set to this language, so es-AR stays es-AR. */
+        val locale: Locale get() = Locale.getDefault().takeIf { it.language == code } ?: Locale.forLanguageTag(fallbackTag)
+    }
+
     enum class Model(
         val role: Role,
         val id: String,
@@ -45,11 +56,22 @@ object SpeechModels {
         val modelType: String = "",
         /** Where the unpacked files are, when not under the archive's own name on Hugging Face. */
         private val filesAt: String? = null,
+        /** The languages it understands. */
+        val languages: Set<Language>,
+        /** What setup offers in one tap for each language it understands. */
+        val recommended: Boolean = false,
     ) {
         KROKO(
             Role.LIVE, "kroko-en", "Kroko", "Banafo's Kroko ASR, CC BY-SA 4.0", 68,
             "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06",
             "encoder.onnx", "decoder.onnx", "joiner.onnx", modelType = "zipformer2",
+            languages = setOf(Language.ENGLISH), recommended = true,
+        ),
+        KROKO_ES(
+            Role.LIVE, "kroko-es", "Kroko", "Banafo's Kroko ASR, CC BY-SA 4.0", 149,
+            "sherpa-onnx-streaming-zipformer-es-kroko-2025-08-06",
+            "encoder.onnx", "decoder.onnx", "joiner.onnx", modelType = "zipformer2",
+            languages = setOf(Language.SPANISH), recommended = true,
         ),
         PARAKEET_SMALL(
             Role.FINAL, "parakeet-110m-en", "Parakeet small", "Lighter and quicker, misses more names. NVIDIA NeMo, CC BY 4.0", 131,
@@ -58,16 +80,20 @@ object SpeechModels {
             // The official unpacked copy is empty. This mirror's files are byte for byte the
             // official archive's, checked by SHA-256, and pinned to that commit so they can't change.
             filesAt = "punitd/sherpa-onnx-nemo-parakeet_tdt_transducer_110m-en-36000-int8/resolve/66a4fa70643dc7ce25c9b38b2f87e1b35ddad33d",
+            languages = setOf(Language.ENGLISH),
         ),
         CANARY(
-            Role.FINAL, "canary-180m-en", "Canary", "Recommended. Quick, and hears names and places well. Knows English, Spanish, German and French; Gearslip listens in English for now. NVIDIA NeMo, CC BY 4.0", 198,
+            Role.FINAL, "canary-180m-en", "Canary", "Recommended. Quick, and hears names and places well. NVIDIA NeMo, CC BY 4.0", 198,
             "sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8",
             "encoder.int8.onnx", "decoder.int8.onnx", "", modelType = "canary",
+            // It knows German and French too; Gearslip has no commands in those yet.
+            languages = setOf(Language.ENGLISH, Language.SPANISH), recommended = true,
         ),
         PARAKEET_LARGE(
             Role.FINAL, "parakeet-0.6b-en", "Parakeet large", "Hears names best, but slower and three times the size. NVIDIA NeMo, CC BY 4.0", 631,
             "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8",
             "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", modelType = "nemo_transducer",
+            languages = setOf(Language.ENGLISH),
         ),
         ;
 
@@ -75,10 +101,10 @@ object SpeechModels {
         val files get() = listOf(encoder, decoder, joiner, "tokens.txt").filter { it.isNotEmpty() }
     }
 
-    /** What setup offers in one tap: Kroko for the live words, Canary for the final ones. */
-    val RECOMMENDED = listOf(Model.KROKO, Model.CANARY)
+    /** What setup offers in one tap for the chosen language: a live model and a final one. */
+    val recommended get() = Model.entries.filter { it.recommended && language.value in it.languages }
 
-    fun downloadRecommended(context: Context) = RECOMMENDED.forEach { download(context, it) }
+    fun downloadRecommended(context: Context) = recommended.forEach { download(context, it) }
 
     sealed interface State {
         data object Missing : State
@@ -90,6 +116,7 @@ object SpeechModels {
     private const val PREFS = "speech"
     private const val KEY_MODEL = "model"
     private const val KEY_FINAL = "final_model"
+    private const val KEY_LANGUAGE = "language"
     private const val CHANNEL = "voice_download"
     private const val NOTIFICATION_ID = 4_312
 
@@ -101,9 +128,13 @@ object SpeechModels {
 
     /** The model that rereads the whole phrase at the end; null to keep the live model's words. */
     val final: StateFlow<Model?> = _final.asStateFlow()
+    private val _language = MutableStateFlow(Language.ENGLISH)
+    val language: StateFlow<Language> = _language.asStateFlow()
     @Volatile private var cancelled: Model? = null
 
     fun init(context: Context) {
+        val code = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LANGUAGE, null)
+        _language.value = Language.entries.firstOrNull { it.code == code } ?: Language.ENGLISH
         val id = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_MODEL, null)
         _selected.value = Model.entries.firstOrNull { it.id == id && it.role == Role.LIVE } ?: Model.KROKO
         // Canary is the default. A driver who never chose but already has Parakeet large keeps it.
@@ -192,6 +223,18 @@ object SpeechModels {
         if (model.role == Role.FINAL) return selectFinal(context, model)
         _selected.value = model
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_MODEL, model.id).apply()
+        SpeechEngine.unload()
+    }
+
+    /**
+     * Listens in [language] from now on. Models that don't understand it give way to the
+     * recommended ones; a final model of None stays None.
+     */
+    fun selectLanguage(context: Context, language: Language) {
+        _language.value = language
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LANGUAGE, language.code).apply()
+        if (language !in _selected.value.languages) select(context, recommended.first { it.role == Role.LIVE })
+        _final.value?.let { if (language !in it.languages) selectFinal(context, recommended.firstOrNull { it.role == Role.FINAL }) }
         SpeechEngine.unload()
     }
 

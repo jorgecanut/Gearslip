@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.seb3thehacker.gearslip.speech.SpeechModels
+import app.seb3thehacker.gearslip.speech.SpeechModels.Language
 import app.seb3thehacker.gearslip.speech.SpeechModels.Model
 import app.seb3thehacker.gearslip.speech.SpeechModels.State
 
@@ -35,16 +37,29 @@ internal fun VoiceModelSection() {
     remember { SpeechModels.init(context) }
     val selected by SpeechModels.selected.collectAsState()
     val final by SpeechModels.final.collectAsState()
+    val language by SpeechModels.language.collectAsState()
+    SettingsSection(title = "Voice: language") {
+        Language.entries.forEachIndexed { i, entry ->
+            if (i > 0) SettingsDivider()
+            RadioRow(entry.label, null, entry == language) { SpeechModels.selectLanguage(context, entry) }
+        }
+        SettingsDivider()
+        SettingsRow(
+            "Your language isn't here?",
+            Modifier.clickable { GearslipLinks.open(context, GearslipLinks.MATRIX) },
+            subtitle = "Help add it: tell us on Matrix which speech models know it, or translate the voice commands",
+        )
+    }
     SettingsSection(title = "Voice: live words") {
         Text(
             "The voice assistant turns speech into text on this phone, and nothing you say leaves it. " +
-                "It needs two models, about 270 MB together, downloaded once. " +
+                "It needs two models, about ${SpeechModels.recommended.sumOf { it.downloadMb }} MB together, downloaded once. " +
                 "This one writes your words as you speak.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
-        Model.entries.filter { it.role == SpeechModels.Role.LIVE }.forEachIndexed { i, model ->
+        Model.entries.filter { it.role == SpeechModels.Role.LIVE && language in it.languages }.forEachIndexed { i, model ->
             if (i > 0) SettingsDivider()
             ModelRow(model, model == selected)
         }
@@ -57,27 +72,33 @@ internal fun VoiceModelSection() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
-        val context = LocalContext.current
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .selectable(final == null, role = Role.RadioButton) { SpeechModels.selectFinal(context, null) }
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(final == null, onClick = null, modifier = Modifier.padding(8.dp))
-            Column {
-                Text("None", style = MaterialTheme.typography.titleMedium)
+        RadioRow("None", "Keep the live words. Fastest, least accurate", final == null) { SpeechModels.selectFinal(context, null) }
+        Model.entries.filter { it.role == SpeechModels.Role.FINAL && language in it.languages }.forEach { model ->
+            SettingsDivider()
+            ModelRow(model, model == final)
+        }
+    }
+}
+
+@Composable
+private fun RadioRow(title: String, subtitle: String?, chosen: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .selectable(chosen, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(chosen, onClick = null, modifier = Modifier.padding(8.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            subtitle?.let {
                 Text(
-                    "Keep the live words. Fastest, least accurate",
+                    it,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        Model.entries.filter { it.role == SpeechModels.Role.FINAL }.forEach { model ->
-            SettingsDivider()
-            ModelRow(model, model == final)
         }
     }
 }
