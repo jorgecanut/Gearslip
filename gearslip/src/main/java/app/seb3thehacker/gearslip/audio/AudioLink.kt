@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
  *   -> Setup { PCM }          <- Config { status, max_unacked, configuration_indices }
  *   -> AudioFocusRequest      <- AudioFocusResponse           (control channel)
  *   -> Start { session_id, configuration_index }
+ *   -> CodecConfig { AudioSpecificConfig }                     (raw AAC-LC sinks only)
  *   -> Data { 8-byte timestamp, PCM }...   <- Ack { session_id, ack }
  *   -> Stop
  *
@@ -251,6 +252,14 @@ class AudioLink(
             MSG_START,
             Protobuf.varintField(1, sessionId.toLong()) + Protobuf.varintField(2, configIndex.toLong()),
         )
+        // Raw AAC-LC has no header of its own: like video's SPS/PPS, the decoder is set up from a
+        // codec config sent before the first frame. ADTS frames describe themselves. Without it
+        // an AHU (GalReceiver 2014, AAC-only media sink) reset the connection on the first audio.
+        if (service.codecType == ServiceDiscovery.CODEC_AAC_LC) {
+            val asc = AacEncoder.audioSpecificConfig(sampleRate, channels)
+            sendOnChannel(MSG_CODEC_CONFIG, asc)
+            GearslipLog.hex("$tag: -> CodecConfig (AudioSpecificConfig)", asc)
+        }
         inFlight = 0
         lastAckAt = System.currentTimeMillis()
         if (aacSink && aac == null) {
@@ -364,6 +373,7 @@ class AudioLink(
         const val MSG_FOCUS_RESPONSE = 19
         private const val MSG_CHANNEL_OPEN_RESPONSE = 8
         private const val MSG_DATA = 0
+        private const val MSG_CODEC_CONFIG = 1
         private const val MSG_SETUP = 32768
         private const val MSG_START = 32769
         private const val MSG_STOP = 32770
