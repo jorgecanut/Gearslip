@@ -126,6 +126,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:label="${appLabel}"
         android:supportsRtl="true"
+        android:manageSpaceActivity="app.seb3thehacker.gearslip.ui.ManageSpaceActivity"
         android:theme="@style/Theme.Gearslip">
 
         <provider
@@ -162,6 +163,12 @@
           activity so Settings can switch off just this (AppSettings.setGearslipEnabled) and leave
           the head unit to Android Auto, without disabling the screen the switch is on.
         -->
+        <!-- App info › Storage › Manage space: clears lyrics, voice models and logs one at a time. -->
+        <activity
+            android:name=".ui.ManageSpaceActivity"
+            android:exported="true"
+            android:label="Gearslip storage" />
+
         <activity
             android:name=".PermissionActivity"
             android:exported="false"
