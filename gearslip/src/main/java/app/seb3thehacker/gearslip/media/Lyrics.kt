@@ -1,16 +1,25 @@
 package app.seb3thehacker.gearslip.media
 
 import android.content.Context
+import android.util.Base64
+import android.util.Xml
 import app.seb3thehacker.gearslip.GearslipLog
+import app.seb3thehacker.gearslip.car.CarSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
+import org.xmlpull.v1.XmlPullParser
 import java.io.File
+import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.security.MessageDigest
+import kotlin.math.abs
 
 class LyricLine(val timeMs: Long, val text: String)
 
@@ -18,11 +27,19 @@ class LyricLine(val timeMs: Long, val text: String)
 class LyricsResult(val lines: List<LyricLine>, val synced: Boolean)
 
 /**
- * Looks lyrics up on LRCLIB (lrclib.net), a free community database that needs no key.
+ * Looks lyrics up online, in the order Metrolist uses: BetterLyrics, then LRCLIB, then KuGou.
+ * Metrolist's other sources match songs by YouTube video id, which a song from another app
+ * doesn't have, and Paxsenix calls Apple Music with a borrowed token, so they're left out.
  *
- * Media apps almost never publish lyrics in their session metadata, so this is the only general
- * source. It sends the track's title, artist, album and length to lrclib.net, which is why the
- * lookup happens only when the driver opens the lyrics view and never in the background.
+ * - BetterLyrics (lyrics-api.boidu.dev): word-timed lyrics, but only for songs its server has
+ *   already fetched; anything else needs an API key and falls through.
+ * - LRCLIB (lrclib.net): a free community database that needs no key.
+ * - KuGou (kugou.com): a large Chinese music service, strong on Asian music.
+ *
+ * Media apps almost never publish lyrics in their session metadata, so these are the only general
+ * source. Each lookup sends the track's title, artist, album and length to these services, which
+ * is why it happens only when the driver opens the lyrics view, never in the background. With
+ * [CarSettings.moreLyrics] off, only LRCLIB is asked.
  *
  * Results are cached twice over: in memory for the life of the process, and on disk under the
  * cache directory so a song looked up on a past drive doesn't need the network again on this one.
@@ -33,23 +50,40 @@ object Lyrics {
 
     private val cache = HashMap<String, LyricsResult?>()
 
+    /** Longest any one source may take, DNS included: a server that never answers can't hold the rest up. */
+    private const val SOURCE_TIMEOUT_MS = 12_000L
+    private val io = CoroutineScope(Dispatchers.IO)
+
     suspend fun find(context: Context, title: String, artist: String, album: String, durationMs: Long): LyricsResult? {
         if (title.isBlank()) return null
+        val more = CarSettings.moreLyrics.value
         val key = "$title|$artist|$album|$durationMs"
-        synchronized(cache) { if (cache.containsKey(key)) return cache[key] }
+        // A miss with only LRCLIB isn't a miss once more sources are on, so the mode is part of it.
+        val memoryKey = "$more|$key"
+        synchronized(cache) { if (cache.containsKey(memoryKey)) return cache[memoryKey] }
 
         val fromDisk = withContext(Dispatchers.IO) { readDisk(context, key) }
         if (fromDisk != null) {
-            synchronized(cache) { cache[key] = fromDisk }
+            synchronized(cache) { cache[memoryKey] = fromDisk }
             return fromDisk
         }
 
-        val result = withContext(Dispatchers.IO) {
-            runCatching {
-                exact(title, artist, album, durationMs) ?: search(title, artist)
-            }.onFailure { GearslipLog.w("lyrics: lookup failed: ${it.message}") }.getOrNull()
+        val seconds = (durationMs / 1000).toInt()
+        val sources: List<Pair<String, () -> LyricsResult?>> = buildList {
+            if (more) add("BetterLyrics" to { betterLyrics(title, artist, album, seconds) })
+            add("LRCLIB" to { exact(title, artist, album, durationMs) ?: search(title, artist) })
+            if (more) add("KuGou" to { kuGou(title, artist, album, seconds) })
         }
-        synchronized(cache) { cache[key] = result }
+        var result: LyricsResult? = null
+        for ((name, lookup) in sources) {
+            val job = io.async { runCatching(lookup).onFailure { GearslipLog.w("lyrics: $name failed: ${it.message}") }.getOrNull() }
+            result = withTimeoutOrNull(SOURCE_TIMEOUT_MS) { job.await() }
+            if (result != null) {
+                GearslipLog.i("lyrics: found on $name (${if (result.synced) "synced" else "plain"})")
+                break
+            }
+        }
+        synchronized(cache) { cache[memoryKey] = result }
         if (result != null) withContext(Dispatchers.IO) { writeDisk(context, key, result) }
         return result
     }
@@ -84,6 +118,88 @@ object Lyrics {
         }.onFailure { GearslipLog.w("lyrics: could not write disk cache: ${it.message}") }
     }
 
+    // --- BetterLyrics ---
+
+    private fun betterLyrics(title: String, artist: String, album: String, seconds: Int): LyricsResult? {
+        if (artist.isBlank()) return null
+        val query = buildString {
+            append("s=").append(enc(title)).append("&a=").append(enc(artist))
+            if (seconds > 0) append("&d=").append(seconds)
+            if (album.isNotBlank()) append("&al=").append(enc(album))
+        }
+        val body = get("https://lyrics-api.boidu.dev/getLyrics?$query") ?: return null
+        val ttml = JSONObject(body).optString("ttml").takeIf { it.isNotBlank() && it != "null" } ?: return null
+        return parseTtml(ttml)
+    }
+
+    /**
+     * Apple-style TTML: one `<p begin=…>` per line, its words in `<span>`s with spaces between.
+     * Background vocals, translations and romanisations are left out, so a line reads as sung.
+     */
+    private fun parseTtml(ttml: String): LyricsResult? {
+        val parser = Xml.newPullParser().apply {
+            setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
+            setInput(StringReader(ttml))
+        }
+        val lines = mutableListOf<LyricLine>()
+        var inP = false
+        var lineBegin: Long? = null
+        var firstSpanBegin: Long? = null
+        var skipDepth = 0
+        val text = StringBuilder()
+        var event = parser.eventType
+        while (event != XmlPullParser.END_DOCUMENT) {
+            when (event) {
+                XmlPullParser.START_TAG -> when {
+                    parser.name == "p" -> {
+                        inP = true; text.clear(); firstSpanBegin = null
+                        lineBegin = attr(parser, "begin")?.let(::ttmlMs)
+                    }
+                    inP && skipDepth > 0 -> skipDepth++
+                    inP && parser.name == "span" -> {
+                        val role = attr(parser, "role")
+                        if (role == "x-bg" || role == "x-translation" || role == "x-roman") skipDepth = 1
+                        else if (firstSpanBegin == null) firstSpanBegin = attr(parser, "begin")?.let(::ttmlMs)
+                    }
+                }
+                XmlPullParser.TEXT -> if (inP && skipDepth == 0) text.append(parser.text)
+                XmlPullParser.END_TAG -> when {
+                    inP && skipDepth > 0 -> skipDepth--
+                    parser.name == "p" -> {
+                        inP = false
+                        val words = text.toString().replace(Regex("\\s+"), " ").trim()
+                        if (words.isNotEmpty()) lines.add(LyricLine(lineBegin ?: firstSpanBegin ?: -1, words))
+                    }
+                }
+            }
+            event = parser.next()
+        }
+        if (lines.isEmpty()) return null
+        val synced = lines.all { it.timeMs >= 0 } && lines.any { it.timeMs > 0 }
+        return if (synced) LyricsResult(lines.sortedBy { it.timeMs }, synced = true)
+        else LyricsResult(lines.map { LyricLine(0, it.text) }, synced = false)
+    }
+
+    private fun attr(parser: XmlPullParser, localName: String): String? =
+        (0 until parser.attributeCount).firstOrNull { parser.getAttributeName(it) == localName }
+            ?.let { parser.getAttributeValue(it) }
+
+    /** TTML times: `1:23.456`, `1:02:03.4`, `83.456s`, `250ms` or a bare number of seconds. */
+    private fun ttmlMs(raw: String): Long? {
+        val t = raw.trim()
+        val seconds = when {
+            ':' in t -> t.split(':').fold(0.0) { acc, part -> acc * 60 + (part.toDoubleOrNull() ?: return null) }
+            t.endsWith("ms") -> (t.dropLast(2).toDoubleOrNull() ?: return null) / 1000
+            t.endsWith("s") -> t.dropLast(1).toDoubleOrNull() ?: return null
+            t.endsWith("m") -> (t.dropLast(1).toDoubleOrNull() ?: return null) * 60
+            t.endsWith("h") -> (t.dropLast(1).toDoubleOrNull() ?: return null) * 3600
+            else -> t.toDoubleOrNull() ?: return null
+        }
+        return (seconds * 1000).toLong()
+    }
+
+    // --- LRCLIB ---
+
     private fun exact(title: String, artist: String, album: String, durationMs: Long): LyricsResult? {
         if (artist.isBlank()) return null
         val query = buildString {
@@ -111,6 +227,73 @@ object Lyrics {
         return LyricsResult(plain.lines().map { LyricLine(0, it) }, synced = false)
     }
 
+    // --- KuGou ---
+
+    /** Songs within this many seconds of the playing one count as the same recording. */
+    private const val KUGOU_DURATION_SLACK = 8
+    private val KUGOU_TIMED = Regex("""\[(\d\d):(\d\d)\.(\d{2,3})].*""")
+    /** A credit line such as `[00:01.00]作词：…` or `[00:02.00]Composer: …`. */
+    private val KUGOU_CREDIT = Regex(""".+].+[:：].+""")
+    private const val KUGOU_CREDIT_LINES = 30
+
+    private fun kuGou(title: String, artist: String, album: String, seconds: Int): LyricsResult? {
+        val keyword = buildString {
+            append(kuGouTitle(title)).append(" - ").append(kuGouArtist(artist))
+            if (album.isNotBlank()) append(' ').append(album)
+        }
+        val encoded = URLEncoder.encode(keyword, "UTF-8").replace("+", "%20")
+        // First the song itself, matched by length, then its lyrics by the song's hash.
+        val songs = get(
+            "https://mobileservice.kugou.com/api/v3/search/song?version=9108&plat=0&pagesize=8&showtype=0&keyword=$encoded",
+        )?.let { JSONObject(it).optJSONObject("data")?.optJSONArray("info") }
+        if (songs != null) for (i in 0 until songs.length()) {
+            val song = songs.getJSONObject(i)
+            if (seconds > 0 && abs(song.optInt("duration") - seconds) > KUGOU_DURATION_SLACK) continue
+            val hash = song.optString("hash").takeIf { it.isNotBlank() } ?: continue
+            kuGouCandidate("hash=" + enc(hash))?.let { return it }
+        }
+        // Then a plain lyrics search by name.
+        val byName = "keyword=$encoded" + if (seconds > 0) "&duration=${seconds * 1000}" else ""
+        return kuGouCandidate(byName)
+    }
+
+    private fun kuGouCandidate(query: String): LyricsResult? {
+        val body = get("https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&$query") ?: return null
+        val candidate = JSONObject(body).optJSONArray("candidates")?.optJSONObject(0) ?: return null
+        val id = candidate.optLong("id").takeIf { it != 0L } ?: return null
+        val accessKey = candidate.optString("accesskey").takeIf { it.isNotBlank() } ?: return null
+        val download = get(
+            "https://lyrics.kugou.com/download?fmt=lrc&charset=utf8&client=pc&ver=1&id=$id&accesskey=${enc(accessKey)}",
+        ) ?: return null
+        val content = JSONObject(download).optString("content").takeIf { it.isNotBlank() } ?: return null
+        val lrc = String(Base64.decode(content, Base64.DEFAULT), Charsets.UTF_8)
+        val lines = parseLrc(kuGouTrim(lrc).joinToString("\n")).filter { it.text.isNotEmpty() }
+        return if (lines.isEmpty()) null else LyricsResult(lines, synced = true)
+    }
+
+    /** Keeps the timed lines and drops the songwriter and producer credits KuGou puts at either end. */
+    private fun kuGouTrim(lrc: String): List<String> {
+        val timed = lrc.lines().filter { it.matches(KUGOU_TIMED) }
+        if (timed.isEmpty()) return timed
+        val headLimit = minOf(KUGOU_CREDIT_LINES, timed.lastIndex)
+        val head = (headLimit downTo 0).firstOrNull { timed[it].matches(KUGOU_CREDIT) }?.plus(1) ?: 0
+        val rest = timed.drop(head)
+        if (rest.isEmpty()) return rest
+        val tailLimit = minOf(KUGOU_CREDIT_LINES, rest.lastIndex)
+        val tail = (tailLimit downTo 0).firstOrNull { rest[rest.lastIndex - it].matches(KUGOU_CREDIT) }?.plus(1) ?: 0
+        return rest.dropLast(tail)
+    }
+
+    /** KuGou's titles leave out bracketed extras such as "(feat. …)" or "（Live）". */
+    private fun kuGouTitle(title: String) = listOf("\\(.*\\)", "（.*）", "「.*」", "『.*』", "<.*>", "《.*》", "〈.*〉", "＜.*＞")
+        .fold(title) { acc, pattern -> acc.replace(Regex(pattern), "") }.trim()
+
+    /** KuGou joins several artists with "、". */
+    private fun kuGouArtist(artist: String) = artist.replace(", ", "、").replace(" & ", "、").replace(".", "")
+        .replace(Regex("\\(.*\\)"), "").replace(Regex("（.*）"), "").trim()
+
+    // --- shared ---
+
     /** `[01:23.45] words` - a line may carry several stamps when a chorus repeats. */
     private fun parseLrc(text: String): List<LyricLine> {
         val stamp = Regex("""\[(\d+):(\d+(?:\.\d+)?)]""")
@@ -129,6 +312,7 @@ object Lyrics {
             connectTimeout = 5_000
             readTimeout = 8_000
             setRequestProperty("User-Agent", "Gearslip (car media host)")
+            setRequestProperty("Accept", "application/json")
         }
         return try {
             if (connection.responseCode != 200) null else connection.inputStream.bufferedReader().readText()

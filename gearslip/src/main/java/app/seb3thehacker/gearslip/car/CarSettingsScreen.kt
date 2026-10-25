@@ -65,6 +65,7 @@ fun CarSettingsScreen() {
     val autoplay by CarSettings.autoplay.collectAsState()
     val playerTitle by CarSettings.playerTitle.collectAsState()
     val playerLeft by CarSettings.playerLeft.collectAsState()
+    val moreLyrics by CarSettings.moreLyrics.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
@@ -193,6 +194,14 @@ fun CarSettingsScreen() {
                 listOf(false to "Off", true to "On"),
                 autoplay,
             ) { CarSettings.setAutoplay(it) }
+        }
+
+        item {
+            ChoiceRow(
+                "Lyrics from",
+                listOf(false to "LRCLIB", true to "More sources"),
+                moreLyrics,
+            ) { CarSettings.setMoreLyrics(it) }
         }
 
         item { Group("Sound and voice") }

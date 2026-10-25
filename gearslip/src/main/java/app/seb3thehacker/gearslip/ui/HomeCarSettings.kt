@@ -152,6 +152,7 @@ private fun GroupRows(group: CarGroup) {
     val autoplay by CarSettings.autoplay.collectAsState()
     val playerTitle by CarSettings.playerTitle.collectAsState()
     val playerLeft by CarSettings.playerLeft.collectAsState()
+    val moreLyrics by CarSettings.moreLyrics.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
 
@@ -177,6 +178,13 @@ private fun GroupRows(group: CarGroup) {
             Choice("Player beside the map", listOf(false to "Right", true to "Left"), playerLeft, CarSettings::setPlayerLeft)
             SettingsDivider()
             Toggle("Autoplay on connect", autoplay, CarSettings::setAutoplay)
+            SettingsDivider()
+            Toggle(
+                "More lyrics sources",
+                moreLyrics,
+                CarSettings::setMoreLyrics,
+                note = "Also asks BetterLyrics and KuGou, which then get the song's name and artist. Off asks LRCLIB only.",
+            )
         }
         CarGroup.SOUND -> {
             Choice("Car audio", listOf(false to "Bluetooth", true to "USB"), pipeAudio, CarSettings::setPipeAudio)
