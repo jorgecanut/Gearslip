@@ -264,7 +264,7 @@
     <string name="help_aa_off">Turn off Android Auto.</string>
     <string name="help_aa_off_detail">Disable or uninstall the Android Auto app, so the car talks to Gearslip instead.</string>
     <string name="help_cert">Load a certificate.</string>
-    <string name="help_cert_detail">In Settings, download one or import your own.</string>
+    <string name="help_cert_detail">In Settings, download the aasdk certificate, which most cars accept. If your car rejects it, import your own instead.</string>
     <string name="help_mic">Allow the microphone.</string>
     <string name="help_mic_detail">Android won\'t let an app pass music to the car without it. Gearslip listens only when you tap the mic or press the talk button on your wheel.</string>
     <string name="help_plug_in">Plug in, or connect wirelessly.</string>
@@ -277,7 +277,7 @@
     <string name="help_prompt_detail">Connect the phone to a computer with USB debugging on, and run this once. Skip it and you tap Start each time you set off.</string>
     <string name="help_readable">Keep notifications readable.</string>
     <string name="help_readable_detail">Android hides what notifications say while it shares audio. Run this too, and Gearslip lifts that only while music goes to the car.</string>
-    <string name="help_which_cars_body">Most cars work. Starting around 2020, some cars added newer security standards that reject Gearslip\'s certificate, and Gearslip can\'t run in those cars.</string>
+    <string name="help_which_cars_body">Most cars accept the aasdk certificate. Starting around 2020, some cars added newer security checks that reject it, and in those cars Gearslip needs a certificate of your own.</string>
 
     <!-- Updates -->
     <string name="update_downloaded_ask">Downloaded. Android asks before it installs.</string>
