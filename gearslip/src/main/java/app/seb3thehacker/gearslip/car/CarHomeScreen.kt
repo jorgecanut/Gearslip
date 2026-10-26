@@ -212,9 +212,10 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
     val scheme = MaterialTheme.colorScheme
     val art by produceState(now.art, now.art, now.artUri) { value = now.art ?: MediaArt.load(context, now.artUri) }
 
-    // The theme's surface rather than the art's colour: a slab of album colour beside the map
-    // fought it for attention, and the art says the same thing in less space.
+    // The theme's surface, with a faint wash of the cover's colours behind the top of it. A solid
+    // slab of album colour beside the map fought it for attention; this only hints at the song.
     Surface(modifier = modifier.gsPanelShadow(CARD_SHAPE), shape = CARD_SHAPE, color = scheme.surfaceContainer) {
+        AlbumGlow(art, Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize().padding(12.dp)) {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 // The cover gets everything the controls leave, as big a square as fits, sitting
@@ -266,6 +267,46 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
             )
         }
     }
+}
+
+/**
+ * Three soft pools of the cover's colours: top left, top right and the middle, read off a 3x3
+ * shrink of it. Still, and redrawn only while a new song's colours fade in, so it costs the video
+ * stream nothing between songs. Fainter on a light card, where colour shows more.
+ */
+@Composable
+private fun AlbumGlow(art: android.graphics.Bitmap?, modifier: Modifier) {
+    val spots by produceState<List<Color>>(emptyList(), art) {
+        value = art?.let { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { glowColours(it) } }.orEmpty()
+    }
+    val strength = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) 0.30f else 0.18f
+    val fade = tween<Color>(600)
+    val first by androidx.compose.animation.animateColorAsState(spots.getOrNull(0)?.copy(alpha = strength) ?: Color.Transparent, fade, label = "glow")
+    val second by androidx.compose.animation.animateColorAsState(spots.getOrNull(1)?.copy(alpha = strength) ?: Color.Transparent, fade, label = "glow")
+    val third by androidx.compose.animation.animateColorAsState(spots.getOrNull(2)?.copy(alpha = strength * 0.8f) ?: Color.Transparent, fade, label = "glow")
+    androidx.compose.foundation.Canvas(modifier) {
+        fun pool(colour: Color, x: Float, y: Float, reach: Float) {
+            if (colour.alpha <= 0f) return
+            drawRect(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    listOf(colour, Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * x, size.height * y),
+                    radius = size.width * reach,
+                ),
+            )
+        }
+        pool(third, 0.5f, 0.5f, 0.85f)
+        pool(first, 0.2f, 0.1f, 0.9f)
+        pool(second, 0.85f, 0.22f, 0.8f)
+    }
+}
+
+/** The cover's colours at its top left, top right and middle. */
+private fun glowColours(art: android.graphics.Bitmap): List<Color> {
+    // A hardware bitmap can't be scaled or read on the CPU, so copy it out first.
+    val readable = if (art.config == android.graphics.Bitmap.Config.HARDWARE) art.copy(android.graphics.Bitmap.Config.ARGB_8888, false) else art
+    val small = android.graphics.Bitmap.createScaledBitmap(readable ?: return emptyList(), 3, 3, true)
+    return listOf(small.getPixel(0, 0), small.getPixel(2, 0), small.getPixel(1, 1)).map { Color(it).copy(alpha = 1f) }
 }
 
 /**

@@ -62,6 +62,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.animation.animateContentSize
 import android.media.session.PlaybackState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -275,30 +277,46 @@ fun CarUi() {
                 // Every other screen, and everything that pops up, in a layer over Home rather
                 // than inside its area: full screen grows this layer over the nav bar's row while
                 // Home, and the map's surface in it, keeps its size.
+                // Each new screen fades in while rising a little, once, over a fifth of a second.
+                // Coming from Home the backdrop fades in with it, over the map; between two other
+                // screens it stays put, so the map never flashes through.
+                val lastScreen = remember { arrayOf<CarScreen>(CarScreen.Home) }
+                val fromHome = remember(screen) { lastScreen[0] == CarScreen.Home }
+                SideEffect { lastScreen[0] = screen }
+                val enter = remember(screen) { androidx.compose.animation.core.Animatable(0f) }
+                LaunchedEffect(screen) { enter.animateTo(1f, androidx.compose.animation.core.tween(180)) }
                 if (safetyWarningSeen) {
                     Box(Modifier.fillMaxSize()) {
                         if (screen != CarScreen.Home) {
                             Box(
                                 Modifier
                                     .fillMaxSize()
+                                    .graphicsLayer { if (fromHome) alpha = enter.value }
                                     .background(MaterialTheme.colorScheme.background)
                                     // The bar never hides here, so keep the screen clear of it.
                                     .padding(bottom = if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
-                                when (screen) {
-                                    CarScreen.Home -> Unit
-                                    CarScreen.Apps -> CarLauncher()
-                                    CarScreen.Media -> mediaApp?.let { MediaScreen(it) { navigator.back() } }
-                                    CarScreen.Browse -> BrowseAppScreen(navigator)
-                                    CarScreen.Settings -> CarSettingsScreen()
-                                    CarScreen.Dashboard -> CarDashboardScreen()
-                                    CarScreen.Weather -> WeatherScreen()
-                                    CarScreen.VehicleData -> VehicleDataScreen()
-                                    is CarScreen.Notifications -> NotificationsScreen(screen.replyTo)
-                                    is CarScreen.Messages -> MessagesScreen(screen.packageName)
-                                    is CarScreen.App -> CarApps.find(screen.id)?.content?.invoke()
+                                Box(
+                                    Modifier.fillMaxSize().graphicsLayer {
+                                        if (!fromHome) alpha = enter.value
+                                        translationY = (1f - enter.value) * 16.dp.toPx()
+                                    },
+                                ) {
+                                    when (screen) {
+                                        CarScreen.Home -> Unit
+                                        CarScreen.Apps -> CarLauncher()
+                                        CarScreen.Media -> mediaApp?.let { MediaScreen(it) { navigator.back() } }
+                                        CarScreen.Browse -> BrowseAppScreen(navigator)
+                                        CarScreen.Settings -> CarSettingsScreen()
+                                        CarScreen.Dashboard -> CarDashboardScreen()
+                                        CarScreen.Weather -> WeatherScreen()
+                                        CarScreen.VehicleData -> VehicleDataScreen()
+                                        is CarScreen.Notifications -> NotificationsScreen(screen.replyTo)
+                                        is CarScreen.Messages -> MessagesScreen(screen.packageName)
+                                        is CarScreen.App -> CarApps.find(screen.id)?.content?.invoke()
+                                    }
                                 }
                             }
                         }

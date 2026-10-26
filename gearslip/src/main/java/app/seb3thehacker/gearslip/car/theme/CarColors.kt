@@ -60,6 +60,8 @@ private fun ColorScheme.withDarkStyle(style: DarkStyle): ColorScheme {
         }
     }
     return copy(
+        // Grey text that read fine on grey looks dim on black, so it moves a little towards white.
+        onSurfaceVariant = lerp(onSurfaceVariant, onSurface, 0.3f),
         background = at(background, 0),
         surface = at(surface, 0),
         surfaceDim = at(surfaceDim, 0),
