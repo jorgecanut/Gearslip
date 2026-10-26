@@ -558,6 +558,7 @@ class GearslipRunner(
         if (media.codecType != ServiceDiscovery.CODEC_PCM) {
             log.w("the car offers no PCM media sink, only ${media.codecName}; music goes as AAC")
         }
+        if (wireless) app.seb3thehacker.gearslip.wireless.WirelessLink.carTakesOnlyAac(media.codecType != ServiceDiscovery.CODEC_PCM)
         val first = media.configs.firstOrNull()
         SessionReport.audio(
             "MEDIA sink on channel ${media.serviceId}, ${media.codecName}, " +
