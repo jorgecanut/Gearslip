@@ -6,6 +6,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.Image
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -162,48 +165,88 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
             return@Surface
         }
 
-        // Two columns, split the same way on every tab so nothing jumps when switching: the app
-        // and the art (or, beside a list, the compact player) on the left; the tabs across the
-        // top of the right column, over whatever the tab shows.
-        Row(
-            Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            Column(Modifier.weight(0.8f).fillMaxHeight()) {
-                AppIdentity(app, onExit)
-                Spacer(Modifier.height(12.dp))
-                if (tab == Tab.NOW_PLAYING) {
-                    CoverArt(art, Modifier.weight(1f).fillMaxWidth())
-                } else {
-                    CompactPlayer(now, media, art, Modifier.weight(1f).fillMaxWidth())
+        val tabs: @Composable (Modifier) -> Unit = { tabModifier ->
+            MediaTab(stringResource(R.string.media_now_playing), tab == Tab.NOW_PLAYING, tabModifier) { tab = Tab.NOW_PLAYING }
+            MediaTab(stringResource(R.string.media_up_next), tab == Tab.QUEUE, tabModifier) { tab = Tab.QUEUE }
+            MediaTab(stringResource(R.string.media_browse), tab == Tab.BROWSE, tabModifier) { tab = Tab.BROWSE }
+            MediaTab(stringResource(R.string.storage_lyrics), tab == Tab.LYRICS, tabModifier) { tab = Tab.LYRICS }
+        }
+        val searchButton: @Composable () -> Unit = {
+            if (now.canSearch || media.canSearchLibrary) {
+                GsIconButton(
+                    Icons.Filled.Search,
+                    stringResource(R.string.media_search, app.label),
+                    { searching = true },
+                    colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.onSurface),
+                    size = 44.dp,
+                    shape = MaterialTheme.shapes.large,
+                )
+            }
+        }
+        val tabContent: @Composable (Modifier) -> Unit = { contentModifier ->
+            Box(contentModifier) {
+                when (tab) {
+                    Tab.NOW_PLAYING -> StageControls(now, media, Modifier.fillMaxSize())
+                    Tab.BROWSE -> BrowsePanel(browse, media, app.label, Modifier.fillMaxSize())
+                    Tab.QUEUE -> QueuePanel(queue, now, media, Modifier.fillMaxSize())
+                    Tab.LYRICS -> LyricsPanel(now, Modifier.fillMaxSize())
                 }
             }
-            Column(Modifier.weight(1.2f).fillMaxHeight()) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MediaTab(stringResource(R.string.media_now_playing), tab == Tab.NOW_PLAYING, Modifier.weight(1f)) { tab = Tab.NOW_PLAYING }
-                    MediaTab(stringResource(R.string.media_up_next), tab == Tab.QUEUE, Modifier.weight(1f)) { tab = Tab.QUEUE }
-                    MediaTab(stringResource(R.string.media_browse), tab == Tab.BROWSE, Modifier.weight(1f)) { tab = Tab.BROWSE }
-                    MediaTab(stringResource(R.string.storage_lyrics), tab == Tab.LYRICS, Modifier.weight(1f)) { tab = Tab.LYRICS }
-                    if (now.canSearch || media.canSearchLibrary) {
-                        GsIconButton(
-                            Icons.Filled.Search,
-                            stringResource(R.string.media_search, app.label),
-                            { searching = true },
-                            colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.onSurface),
-                            size = 44.dp,
-                            shape = MaterialTheme.shapes.large,
-                        )
+        }
+
+        BoxWithConstraints(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp)) {
+            // A small screen, or a big one at Extra large size, has no room for two columns: the
+            // app and the tabs share one bar, and a list takes the whole width. The nav bar keeps
+            // the controls, so nothing is lost.
+            if (maxWidth < NARROW_WIDTH || maxHeight < NARROW_HEIGHT) {
+                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AppIdentity(app, onExit, Modifier.widthIn(max = 180.dp))
+                        Row(
+                            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        ) { tabs(Modifier) }
+                        searchButton()
+                    }
+                    search?.let { SearchStatus(it, app.label, media::dismissSearch) }
+                    if (tab == Tab.NOW_PLAYING) NowPlayingPage(now, media, Modifier.weight(1f).fillMaxWidth(), padded = false)
+                    else tabContent(Modifier.weight(1f).fillMaxWidth())
+                }
+                return@BoxWithConstraints
+            }
+
+            // Two columns, split the same way on every tab so nothing jumps when switching: the app
+            // and the art (or, beside a list, the compact player) on the left; the tabs across the
+            // top of the right column, over whatever the tab shows.
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Column(Modifier.weight(0.8f).fillMaxHeight()) {
+                    AppIdentity(app, onExit)
+                    Spacer(Modifier.height(12.dp))
+                    if (tab == Tab.NOW_PLAYING) {
+                        CoverArt(art, Modifier.weight(1f).fillMaxWidth())
+                    } else {
+                        CompactPlayer(now, media, art, Modifier.weight(1f).fillMaxWidth())
                     }
                 }
-                search?.let { SearchStatus(it, app.label, media::dismissSearch) }
-                Spacer(Modifier.height(12.dp))
-                Box(Modifier.weight(1f).fillMaxWidth()) {
-                    when (tab) {
-                        Tab.NOW_PLAYING -> StageControls(now, media, Modifier.fillMaxSize())
-                        Tab.BROWSE -> BrowsePanel(browse, media, app.label, Modifier.fillMaxSize())
-                        Tab.QUEUE -> QueuePanel(queue, now, media, Modifier.fillMaxSize())
-                        Tab.LYRICS -> LyricsPanel(now, Modifier.fillMaxSize())
+                Column(Modifier.weight(1.2f).fillMaxHeight()) {
+                    // Each tab takes a share of the row, but a long word (a translation, a big
+                    // text size) can still scroll the row rather than be cut off.
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(Modifier.weight(1f, fill = false), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            tabs(Modifier.widthIn(min = 96.dp))
+                        }
+                        searchButton()
                     }
+                    search?.let { SearchStatus(it, app.label, media::dismissSearch) }
+                    Spacer(Modifier.height(12.dp))
+                    tabContent(Modifier.weight(1f).fillMaxWidth())
                 }
             }
         }
@@ -382,6 +425,7 @@ private fun MediaTab(label: String, selected: Boolean, modifier: Modifier, onCli
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp),
         )
     }
 }
@@ -587,17 +631,27 @@ internal fun Notice(title: String, detail: String?, action: Pair<String, () -> U
 // --- now playing -----------------------------------------------------------------------------
 
 /**
- * The now-playing view on its own, for places with no tabs around it (an app's own
- * now-playing template): the cover on the left, [NowPlayingControls] on the right.
+ * The now-playing view on its own: an app's own now-playing template, or the Now playing tab on a
+ * small screen. The cover on the left and [NowPlayingControls] on the right where there's room;
+ * narrower, the cover sits above the controls, and only when they still fit under it.
  */
 @Composable
-internal fun NowPlayingPage(now: NowPlaying, media: CarMedia, modifier: Modifier) {
-    Row(
-        modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
-        CoverArt(rememberArt(now), Modifier.weight(0.8f).fillMaxHeight())
-        NowPlayingControls(now, media, Modifier.weight(1.2f).fillMaxHeight())
+internal fun NowPlayingPage(now: NowPlaying, media: CarMedia, modifier: Modifier, padded: Boolean = true) {
+    BoxWithConstraints(if (padded) modifier.padding(horizontal = 24.dp, vertical = 8.dp) else modifier) {
+        val art = rememberArt(now)
+        if (maxWidth >= 520.dp && maxHeight >= 260.dp) {
+            val artWidth = minOf(maxHeight, (maxWidth - 24.dp) * 0.4f)
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                CoverArt(art, Modifier.width(artWidth).fillMaxHeight())
+                NowPlayingControls(now, media, Modifier.weight(1f).fillMaxHeight())
+            }
+        } else {
+            val artHeight = if (maxHeight >= 400.dp) minOf(maxHeight * 0.25f, 160.dp) else 0.dp
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (artHeight > 0.dp) CoverArt(art, Modifier.fillMaxWidth().height(artHeight))
+                NowPlayingControls(now, media, Modifier.weight(1f).fillMaxWidth())
+            }
+        }
     }
 }
 
@@ -632,16 +686,21 @@ private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier, alignmen
 private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) {
     BoxWithConstraints(modifier) {
         val oneRow = maxWidth >= 820.dp
+        // Short of height (a small screen, or Extra large size), everything steps down a size.
+        val compact = maxHeight < 360.dp
+        val showTimes = maxHeight >= 260.dp
+        val gap = if (compact) 8.dp else 16.dp
         Column(
-            // At least as tall as the space, so the controls sit at its bottom; scrolls if they don't fit.
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Bottom),
+            Modifier.fillMaxSize().padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(gap, Alignment.Bottom),
         ) {
-            Column {
+            // The title gives up its height first and scrolls, so the controls never leave the screen.
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
                 Text(
                     now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
                     style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 22.sp, maxFontSize = MaterialTheme.typography.displaySmall.fontSize, stepSize = 2.sp),
                 )
                 Text(
                     listOf(now.artist, now.album).filter { it.isNotEmpty() }.joinToString(" · "),
@@ -657,15 +716,17 @@ private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) 
                     )
                 }
             }
-            PlayerProgress(now, media, Modifier.fillMaxWidth())
+            PlayerProgress(now, media, Modifier.fillMaxWidth(), showTimes = showTimes)
+            val skip = if (compact) 48.dp else 64.dp
+            val mode = if (compact) 46.dp else 54.dp
             if (oneRow) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TransportRow(now, media, skip = 66.dp, modifier = Modifier.weight(1f))
-                    PlayModeRow(now, media, size = 54.dp, modifier = Modifier.weight(1f), maxOther = 2)
+                    TransportRow(now, media, skip = if (compact) skip else 66.dp, modifier = Modifier.weight(1f))
+                    PlayModeRow(now, media, size = mode, modifier = Modifier.weight(1f), maxOther = 2)
                 }
             } else {
-                TransportRow(now, media, skip = 64.dp, modifier = Modifier.fillMaxWidth())
-                PlayModeRow(now, media, size = 54.dp, modifier = Modifier.fillMaxWidth(), maxOther = 2)
+                TransportRow(now, media, skip = skip, modifier = Modifier.fillMaxWidth())
+                PlayModeRow(now, media, size = mode, modifier = Modifier.fillMaxWidth(), maxOther = 2)
             }
         }
     }
@@ -677,34 +738,43 @@ private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) 
  */
 @Composable
 private fun NowPlayingControls(now: NowPlaying, media: CarMedia, modifier: Modifier) {
-    Column(
-        modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
-    ) {
-        Column {
-            Text(
-                now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
-                style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
-                maxLines = 2, overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                listOf(now.artist, now.album).filter { it.isNotEmpty() }.joinToString(" - "),
-                style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            now.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, maxLines = 2) }
-            if (now.title.isEmpty() && now.error == null) {
+    BoxWithConstraints(modifier) {
+        val compact = maxHeight < 360.dp || maxWidth < 420.dp
+        val showTimes = maxHeight >= 260.dp
+        Column(
+            Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 14.dp, Alignment.CenterVertically),
+        ) {
+            // The title gives up its height first and scrolls, so the controls never leave the screen.
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
                 Text(
-                    stringResource(R.string.media_press_play),
-                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
+                    style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
+                Text(
+                    listOf(now.artist, now.album).filter { it.isNotEmpty() }.joinToString(" - "),
+                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
+                now.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, maxLines = 2) }
+                if (now.title.isEmpty() && now.error == null) {
+                    Text(
+                        stringResource(R.string.media_press_play),
+                        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            PlayerProgress(now, media, Modifier.fillMaxWidth(), showTimes = showTimes)
+            TransportRow(now, media, skip = if (compact) 48.dp else 60.dp, modifier = Modifier.fillMaxWidth())
+            PlayModeRow(now, media, size = if (compact) 46.dp else 56.dp, modifier = Modifier.fillMaxWidth(), maxOther = 2)
         }
-        PlayerProgress(now, media, Modifier.fillMaxWidth())
-        TransportRow(now, media, skip = 60.dp, modifier = Modifier.fillMaxWidth())
-        PlayModeRow(now, media, size = 56.dp, modifier = Modifier.fillMaxWidth(), maxOther = 2)
     }
 }
+
+/** Below these, the media app drops to one column: see [MediaScreen]. */
+private val NARROW_WIDTH = 600.dp
+private val NARROW_HEIGHT = 300.dp
 
 /**
  * The player beside the browse list, the queue and the lyrics: the cover as big as the controls
