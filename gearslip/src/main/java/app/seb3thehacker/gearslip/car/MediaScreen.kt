@@ -175,14 +175,14 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                 if (tab == Tab.NOW_PLAYING) {
                     CoverArt(art, Modifier.weight(1f).fillMaxWidth())
                 } else {
-                    CompactPlayer(now, media, Modifier.weight(1f).fillMaxWidth())
+                    CompactPlayer(now, media, art, Modifier.weight(1f).fillMaxWidth())
                 }
             }
             Column(Modifier.weight(1.2f).fillMaxHeight()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MediaTab("Now playing", tab == Tab.NOW_PLAYING, Modifier.weight(1f)) { tab = Tab.NOW_PLAYING }
-                    MediaTab("Browse", tab == Tab.BROWSE, Modifier.weight(1f)) { tab = Tab.BROWSE }
                     MediaTab("Up next", tab == Tab.QUEUE, Modifier.weight(1f)) { tab = Tab.QUEUE }
+                    MediaTab("Browse", tab == Tab.BROWSE, Modifier.weight(1f)) { tab = Tab.BROWSE }
                     MediaTab("Lyrics", tab == Tab.LYRICS, Modifier.weight(1f)) { tab = Tab.LYRICS }
                     if (now.canSearch || media.canSearchLibrary) {
                         GsIconButton(
@@ -603,8 +603,8 @@ internal fun NowPlayingPage(now: NowPlaying, media: CarMedia, modifier: Modifier
 
 /** The cover, as big a square as its space allows, centred in it. */
 @Composable
-private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier) {
-    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier, alignment: Alignment = Alignment.Center) {
+    BoxWithConstraints(modifier, contentAlignment = alignment) {
         val shape = RoundedCornerShape(22.dp)
         Surface(
             shape = shape,
@@ -707,30 +707,33 @@ private fun NowPlayingControls(now: NowPlaying, media: CarMedia, modifier: Modif
 }
 
 /**
- * The player beside the browse list, the queue and the lyrics: no art, which the list needs the
- * room for, just what's playing, the seek bar and the controls.
+ * The player beside the browse list, the queue and the lyrics: the same card as beside the map on
+ * Home, the cover taking whatever the title and controls leave, so every tab keeps the song in
+ * sight and the controls in one place.
  */
 @Composable
-private fun CompactPlayer(now: NowPlaying, media: CarMedia, modifier: Modifier) {
-    Column(
-        modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Column {
+private fun CompactPlayer(now: NowPlaying, media: CarMedia, art: android.graphics.Bitmap?, modifier: Modifier) {
+    val shape = RoundedCornerShape(24.dp)
+    Surface(modifier.gsPanelShadow(shape), shape = shape, color = MaterialTheme.colorScheme.surfaceContainer) {
+        AlbumGlow(art, Modifier.fillMaxSize())
+        Column(Modifier.fillMaxSize().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            CoverArt(art, Modifier.weight(1f).fillMaxWidth(), Alignment.BottomCenter)
+            Spacer(Modifier.height(10.dp))
             Text(
                 now.title.ifEmpty { "Nothing playing" },
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                maxLines = 2, overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
             Text(
                 now.artist,
-                style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
+            PlayerProgress(now, media, Modifier.fillMaxWidth().padding(vertical = 2.dp), showTimes = false)
+            TransportRow(now, media, skip = 52.dp, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            PlayModeRow(now, media, size = 46.dp, modifier = Modifier.fillMaxWidth())
         }
-        PlayerProgress(now, media, Modifier.fillMaxWidth())
-        TransportRow(now, media, skip = 52.dp, modifier = Modifier.fillMaxWidth())
-        PlayModeRow(now, media, size = 48.dp, modifier = Modifier.fillMaxWidth())
     }
 }
 

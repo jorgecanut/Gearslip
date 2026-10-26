@@ -84,14 +84,15 @@ internal fun BrowsePanel(browse: app.seb3thehacker.gearslip.media.BrowseState, m
         // row could say that the app's name in the top-left corner hasn't already - showing it
         // again here (as "Browse", or as the app's own name) was just the same label twice.
         if (media.canGoUp || browse.trail.isNotEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (media.canGoUp) {
-                    GsIconButton(Icons.Filled.ArrowBack, "Up", media::up)
+                    GsIconButton(Icons.Filled.ArrowBack, "Up", media::up, size = 44.dp, shape = CircleShape)
+                    Spacer(Modifier.width(14.dp))
                 }
                 browse.trail.lastOrNull()?.let {
                     Text(
                         it,
-                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -251,9 +252,9 @@ private fun QueueRow(track: QueueTrack, media: CarMedia) {
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             RowArt(icon, MediaIcons.MusicNote)
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                 Text(track.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (track.subtitle.isNotEmpty()) {
                     Text(track.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -276,9 +277,9 @@ internal fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = 
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             RowArt(icon, if (entry.browsable) MediaIcons.Folder else MediaIcons.MusicNote)
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                 Text(entry.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (entry.subtitle.isNotEmpty()) {
                     Text(entry.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -296,7 +297,7 @@ internal fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = 
 @Composable
 private fun RowArt(icon: android.graphics.Bitmap?, fallback: ImageVector) {
     Box(
-        Modifier.size(62.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) Image(icon.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
