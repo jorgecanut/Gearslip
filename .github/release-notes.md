@@ -4,6 +4,7 @@ Gearslip 0.3.12 plus a Spanish voice assistant and fixes for head units whose mu
 - Music plays on head units that only take raw AAC: the AAC codec config goes out right after Start, before the first frame. Before, the head unit reset the connection half a second into the first song.
 - The phone stays silent while music goes to the car. Pressing volume up no longer brings the phone's speaker back for good.
 - Connecting by itself waits for a head unit that is still starting up: Gearslip keeps calling the car for up to a minute instead of giving up on the first try.
+- When the car hangs up on its own (switched off, or wireless dropped), the music pauses and the phone stops sending audio, as when you unplug the cable. Before, it kept playing until the next connection.
 - The voice assistant speaks Spanish: choose Español under Settings, Voice: language. Spanish downloads Kroko's Spanish model (149 MB) and uses Canary for the final words.
 - Ask "what's on my calendar" (or "¿qué tengo hoy?") to hear your next event.
 
