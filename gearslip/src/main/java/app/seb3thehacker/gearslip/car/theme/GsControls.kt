@@ -9,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -180,7 +181,16 @@ fun Modifier.gsSurface(
 fun Modifier.gsPanelShadow(shape: Shape): Modifier {
     val look = gsLook()
     if (look.panelShadow <= 0.dp || look.panelShadowAlpha <= 0f) return this
-    return drawBehind { drawSoftShadow(shape, look.panelShadow.toPx(), look.panelShadowAlpha, 1f) }
+    // A real blur, as soft as the nav bar's gradient and as strong: stacked outlines showed as
+    // rings around a card this big.
+    return dropShadow(
+        shape,
+        androidx.compose.ui.graphics.shadow.Shadow(
+            radius = look.panelShadow * 3,
+            color = Color.Black.copy(alpha = look.panelShadowAlpha * 0.6f),
+            offset = androidx.compose.ui.unit.DpOffset(0.dp, look.panelShadow / 2),
+        ),
+    )
 }
 
 /** The same shadow cast upwards from the top edge of a bar along the bottom of the screen. */
