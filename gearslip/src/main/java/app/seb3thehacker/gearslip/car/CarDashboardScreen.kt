@@ -151,17 +151,24 @@ private fun EventRow(event: AgendaEvent) {
 
 /** "Today" events show just a time; later days get a weekday so a week's list stays readable. */
 private fun eventWhen(event: AgendaEvent): String {
-    val zone = if (event.allDay) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
-    val start = Calendar.getInstance(zone).apply { timeInMillis = event.startMillis }
+    val time = if (event.allDay) "All day" else DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(event.startMillis))
+    if (isToday(event)) return time
+    return SimpleDateFormat("EEE", Locale.getDefault()).apply { timeZone = eventZone(event) }.format(Date(event.startMillis)) + " " + time
+}
+
+/** All-day events are stored at UTC midnight, so their day is read in UTC. */
+internal fun eventZone(event: AgendaEvent): TimeZone = if (event.allDay) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
+
+/** Starts today, or is an all-day one that began earlier and is still on. */
+internal fun isToday(event: AgendaEvent): Boolean {
+    val start = Calendar.getInstance(eventZone(event)).apply { timeInMillis = event.startMillis }
     val today = Calendar.getInstance()
     val sameDay = start.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
         start.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-    val time = if (event.allDay) "All day" else DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(event.startMillis))
-    if (sameDay || (event.allDay && start.before(today))) return time
-    return SimpleDateFormat("EEE", Locale.getDefault()).apply { timeZone = zone }.format(Date(event.startMillis)) + " " + time
+    return sameDay || (event.allDay && start.before(today))
 }
 
-private data class AgendaEvent(val title: String, val startMillis: Long, val allDay: Boolean)
+internal data class AgendaEvent(val title: String, val startMillis: Long, val allDay: Boolean)
 
 @Volatile private var cachedAgenda: List<AgendaEvent>? = null
 
@@ -176,7 +183,7 @@ fun warmDashboard(context: Context) {
  * event already under way still shows, a week ahead so tomorrow's does too, and skips ones
  * that have finished.
  */
-private fun fetchAgenda(context: Context): List<AgendaEvent> {
+internal fun fetchAgenda(context: Context): List<AgendaEvent> {
     if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
         return emptyList()
     }
