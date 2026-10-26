@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
  *   -> Setup { PCM }          <- Config { status, max_unacked, configuration_indices }
  *   -> AudioFocusRequest      <- AudioFocusResponse           (control channel)
  *   -> Start { session_id, configuration_index }
+ *   -> CodecConfig { AudioSpecificConfig }                     (raw AAC-LC sinks only)
  *   -> Data { 8-byte timestamp, PCM }...   <- Ack { session_id, ack }
  *   -> Stop
  *

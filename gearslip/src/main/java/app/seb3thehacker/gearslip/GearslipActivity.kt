@@ -374,7 +374,7 @@ class GearslipActivity : ComponentActivity(), Projection {
             return
         }
         GearslipLog.i("auto-connect: connecting")
-        app.seb3thehacker.gearslip.wireless.WirelessLink.start(this, device)
+        app.seb3thehacker.gearslip.wireless.WirelessLink.start(this, device, automatic = true)
     }
 
     private fun start(accessory: UsbAccessory) {
