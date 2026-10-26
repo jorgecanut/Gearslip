@@ -202,6 +202,7 @@ private fun GroupRows(group: CarGroup) {
     val experimental by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
     val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
+    val clusterVideo by CarSettings.clusterVideoEnabled.collectAsState()
 
     when (group) {
         CarGroup.SCREEN -> {
@@ -277,6 +278,13 @@ private fun GroupRows(group: CarGroup) {
                     adaptiveVideo,
                     CarSettings::setAdaptiveVideoEnabled,
                     note = stringResource(R.string.car_adaptive_video_note),
+                )
+                SettingsDivider()
+                Toggle(
+                    stringResource(R.string.car_cluster_video),
+                    clusterVideo,
+                    CarSettings::setClusterVideoEnabled,
+                    note = stringResource(R.string.car_cluster_video_note),
                 )
             }
         }

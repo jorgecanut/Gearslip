@@ -51,8 +51,17 @@ object ServiceDiscovery {
             "$resolutionName @ $frameRateName, density=$density, margin=${widthMargin}x$heightMargin"
     }
 
-    /** [displayId] is MediaSinkService field 6: 0, the default, is the main screen. */
-    class VideoService(val serviceId: Int, val codecType: Int, val configs: List<VideoConfig>, val displayId: Int = 0) {
+    /**
+     * [displayId] is MediaSinkService field 6: 0, the default, is the main screen. [displayType]
+     * is field 7 (0 main, 1 instrument cluster, 2 auxiliary), or null when the car leaves it out.
+     */
+    class VideoService(
+        val serviceId: Int,
+        val codecType: Int,
+        val configs: List<VideoConfig>,
+        val displayId: Int = 0,
+        val displayType: Int? = null,
+    ) {
         val codecName: String get() = CODECS[codecType] ?: "unknown($codecType)"
     }
 
@@ -283,6 +292,19 @@ object ServiceDiscovery {
         return sinks.firstOrNull { it.displayId == 0 } ?: sinks.firstOrNull()
     }
 
+    /**
+     * The instrument cluster's video sink: one marked as a cluster, or, from a car that marks
+     * none, a second sink beside the main screen's. Null when the car has no cluster screen.
+     */
+    fun findClusterVideoService(response: ByteArray): VideoService? {
+        val sinks = videoServices(response)
+        val main = findVideoService(response) ?: return null
+        return sinks.firstOrNull { it.displayType == DISPLAY_TYPE_CLUSTER && it.serviceId != main.serviceId }
+            ?: sinks.firstOrNull { it.displayType == null && it.serviceId != main.serviceId && it.displayId != main.displayId }
+    }
+
+    private const val DISPLAY_TYPE_CLUSTER = 1
+
     private fun videoServices(response: ByteArray): List<VideoService> = buildList {
         for (channel in Wire.allBytes(Wire.fields(response), 1)) {
             val service = Wire.fields(channel)
@@ -304,7 +326,7 @@ object ServiceDiscovery {
                     heightMargin = Wire.varint(f, 4)?.toInt() ?: 0,
                 )
             }
-            add(VideoService(id, codecType, configs, Wire.varint(sinkFields, 6)?.toInt() ?: 0))
+            add(VideoService(id, codecType, configs, Wire.varint(sinkFields, 6)?.toInt() ?: 0, Wire.varint(sinkFields, 7)?.toInt()))
         }
     }
 

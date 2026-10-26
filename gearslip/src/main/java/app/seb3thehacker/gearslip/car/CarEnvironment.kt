@@ -64,7 +64,9 @@ object CarEnvironment {
     }
 
     @Volatile private var sensorNight: Boolean? = null
-    private var appContext: Context? = null
+    /** Set once the car UI starts; the cluster screen draws with it too. */
+    var appContext: Context? = null
+        private set
     private var running = false
 
     private val handler = Handler(Looper.getMainLooper())

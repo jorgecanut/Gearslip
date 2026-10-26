@@ -78,6 +78,7 @@ fun CarSettingsScreen() {
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
     val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
+    val clusterVideo by CarSettings.clusterVideoEnabled.collectAsState()
     val systemSpeech by CarSettings.systemSpeech.collectAsState()
     val display by CarEnvironment.display.collectAsState()
     val vehicle by CarEnvironment.vehicle.collectAsState()
@@ -313,7 +314,7 @@ fun CarSettingsScreen() {
             }
 
             if (section == chosen && experimentalFeatures) item {
-                ExperimentalFeaturesList(carSensors, adaptiveVideo)
+                ExperimentalFeaturesList(carSensors, adaptiveVideo, clusterVideo)
             }
 
             if (section == chosen) item {
@@ -445,7 +446,7 @@ private fun <T> ChoiceButtons(options: List<Pair<T, String>>, selected: T, onSel
  * so the list reads fine whether there's one entry or several.
  */
 @Composable
-private fun ExperimentalFeaturesList(carSensors: Boolean, adaptiveVideo: Boolean) {
+private fun ExperimentalFeaturesList(carSensors: Boolean, adaptiveVideo: Boolean, clusterVideo: Boolean) {
     Column(
         Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -460,6 +461,11 @@ private fun ExperimentalFeaturesList(carSensors: Boolean, adaptiveVideo: Boolean
             description = stringResource(R.string.carset_adaptive_note),
             checked = adaptiveVideo,
         ) { CarSettings.setAdaptiveVideoEnabled(it) }
+        ExperimentalFeatureRow(
+            title = stringResource(R.string.car_cluster_video),
+            description = stringResource(R.string.car_cluster_video_note),
+            checked = clusterVideo,
+        ) { CarSettings.setClusterVideoEnabled(it) }
     }
 }
 

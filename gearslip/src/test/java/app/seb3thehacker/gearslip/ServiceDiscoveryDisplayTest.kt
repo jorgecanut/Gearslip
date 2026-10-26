@@ -1,6 +1,7 @@
 package app.seb3thehacker.gearslip
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -47,5 +48,17 @@ class ServiceDiscoveryDisplayTest {
         assertEquals(1280, input.touchWidth)
         assertEquals(720, input.touchHeight)
         assertEquals(listOf(3, 4), input.keycodesSupported)
+    }
+
+    @Test
+    fun picksTheClustersVideo() {
+        val cluster = ServiceDiscovery.findClusterVideoService(liviResponse())!!
+        assertEquals(19, cluster.serviceId)
+        assertEquals(1, cluster.displayType)
+    }
+
+    @Test
+    fun aCarWithOneScreenHasNoCluster() {
+        assertNull(ServiceDiscovery.findClusterVideoService(videoSink(3, null)))
     }
 }

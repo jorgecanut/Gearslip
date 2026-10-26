@@ -846,4 +846,8 @@
 
     <!--  -->
     <string name="cert_downloaded_footer">Car won\'t connect? Some cars from around 2020 on reject the aasdk certificate, so import your own instead. Changes take effect on the next connection.</string>
+
+    <!-- Cluster screen -->
+    <string name="car_cluster_video">Turn card on the cluster screen</string>
+    <string name="car_cluster_video_note">For a car with a second screen in the instrument cluster: Gearslip shows the next turn there. Applies on the next connection.</string>
 </resources>

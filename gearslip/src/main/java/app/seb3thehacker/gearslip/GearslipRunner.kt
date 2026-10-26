@@ -97,6 +97,7 @@ class GearslipRunner(
     @Volatile private var sensorChannelId: Int = -1
     @Volatile private var mediaStatus: CarMediaStatus? = null
     @Volatile private var phoneStatus: app.seb3thehacker.gearslip.call.CarPhoneStatus? = null
+    @Volatile private var clusterVideo: ClusterVideo? = null
     @Volatile private var clusterNav: ClusterNav? = null
     private var sensorTypes: List<Int> = emptyList()
     @Volatile private var audioLink: AudioLink? = null
@@ -194,6 +195,8 @@ class GearslipRunner(
         mediaStatus = null
         phoneStatus?.stop()
         phoneStatus = null
+        clusterVideo?.stop()
+        clusterVideo = null
         clusterNav?.stop()
         clusterNav = null
         lastSensorNight = null
@@ -243,6 +246,8 @@ class GearslipRunner(
                 mediaStatus?.onMessage(messageId, body)
             } else if (frame.channel == phoneStatus?.channelId) {
                 phoneStatus?.onMessage(messageId, body)
+            } else if (frame.channel == clusterVideo?.channelId) {
+                clusterVideo?.onMessage(messageId, body)
             } else if (frame.channel == guidanceLink?.channelId) {
                 guidanceLink?.onMessage(messageId, body)
             } else if (frame.channel == CarBluetooth.channelId) {
@@ -520,6 +525,7 @@ class GearslipRunner(
         startMicChannel(serviceDiscoveryResponse)
         startMediaStatusChannel(serviceDiscoveryResponse)
         startPhoneStatusChannel(serviceDiscoveryResponse)
+        startClusterVideo(serviceDiscoveryResponse)
         startClusterNavChannel(serviceDiscoveryResponse)
         startBluetooth(serviceDiscoveryResponse)
         startVendorChannel(serviceDiscoveryResponse)
@@ -634,6 +640,19 @@ class GearslipRunner(
         log.i("media status channel: $channel")
         mediaStatus = CarMediaStatus(channel) { id, body -> send(id, body, encrypted = true, channel = channel) }
         openChannel(channel)
+    }
+
+    /** The turn card on the instrument cluster, for a car with a cluster screen: experimental, off by default. */
+    private fun startClusterVideo(serviceDiscoveryResponse: ByteArray) {
+        val sink = ServiceDiscovery.findClusterVideoService(serviceDiscoveryResponse) ?: return
+        log.i("cluster video sink: channel=${sink.serviceId} display=${sink.displayId} type=${sink.displayType}")
+        if (!CarSettings.experimentalFeaturesEnabled.value || !CarSettings.clusterVideoEnabled.value) {
+            log.i("cluster screen is off in the car's Settings (experimental) - leaving that sink alone")
+            return
+        }
+        val context = app.seb3thehacker.gearslip.car.CarEnvironment.appContext ?: return
+        clusterVideo = ClusterVideo(context, sink) { id, body -> send(id, body, encrypted = true, channel = sink.serviceId) }
+        openChannel(sink.serviceId)
     }
 
     /** Calls, for the car's own screens: the cluster, the steering wheel display. */
@@ -1480,7 +1499,7 @@ class GearslipRunner(
         }
     }
 
-    private companion object {
+    internal companion object {
         /** The stats window adaptive bitrate reads, matching the watchdog's sleep. */
         const val ADAPT_WINDOW_MS = 5_000L
 
