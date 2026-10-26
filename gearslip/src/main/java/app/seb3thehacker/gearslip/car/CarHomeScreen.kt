@@ -27,7 +27,6 @@ import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.mutableLongStateOf
@@ -106,19 +105,11 @@ fun CarHome() {
     // The map runs edge to edge underneath; the player floats over one side of it as a card, with
     // a gap all round. The map's surface keeps its size when the card comes and goes, so the app
     // only re-centres its map instead of drawing onto a new surface.
-    val savedWidth by CarSettings.playerWidth.collectAsStateWithLifecycle()
-    // The width while the grip is being dragged; null otherwise.
-    var dragging by remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.unit.Dp?>(null) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val widest = maxWidth * PLAYER_MAX_SHARE
-        val settled = (if (savedWidth > 0f) savedWidth.dp else (maxWidth / PLAYER_SHARE).coerceAtMost(PLAYER_DEFAULT_MAX))
-            .coerceIn(PLAYER_MIN_WIDTH, widest)
-        val column = dragging ?: settled
+        val column = (maxWidth / PLAYER_SHARE).coerceIn(PLAYER_MIN_WIDTH, PLAYER_MAX_WIDTH)
         androidx.compose.runtime.CompositionLocalProvider(
             LocalCardsAtEnd provides (splitScreen && playerLeft),
-            // The settled width, not the one under the finger: the map app re-centres once, when
-            // the drag ends, rather than on every frame of it.
-            LocalSidePanelInset provides if (splitScreen) settled else 0.dp,
+            LocalSidePanelInset provides if (splitScreen) column else 0.dp,
         ) {
             MapPane(navStatus, frame)
         }
@@ -139,63 +130,17 @@ fun CarHome() {
                     top = CARD_GAP,
                     bottom = LocalNavBarInset.current + CARD_GAP,
                 )
-            Box(card) {
-                val fill = Modifier.fillMaxSize()
-                if (shown.value == SidePanel.LYRICS) SideLyrics(now, fill) else DockedPlayer(now, fill)
-                ResizeGrip(
-                    onDrag = { delta ->
-                        val grown = if (playerLeft) delta else -delta
-                        dragging = ((dragging ?: settled) + grown).coerceIn(PLAYER_MIN_WIDTH, widest)
-                    },
-                    onDone = {
-                        dragging?.let { CarSettings.setPlayerWidth(it.value) }
-                        dragging = null
-                    },
-                    modifier = Modifier.align(if (playerLeft) Alignment.CenterEnd else Alignment.CenterStart),
-                )
-            }
+            if (shown.value == SidePanel.LYRICS) SideLyrics(now, card) else DockedPlayer(now, card)
         }
     }
 }
 
-/** Until it's dragged, the player takes one part in this many of the screen's width, up to [PLAYER_DEFAULT_MAX]. */
+/** The player takes one part in this many of the screen's width. */
 private const val PLAYER_SHARE = 3.6f
 
-/** On a wide screen the default card stops growing, so the map gets the extra room. */
-private val PLAYER_DEFAULT_MAX = 340.dp
-
-/** How far the grip can take the card: narrow enough for the controls, wide enough to leave a map. */
+/** Narrow enough to leave the map most of a small screen; on a wide one the map gets the extra room. */
 private val PLAYER_MIN_WIDTH = 240.dp
-private const val PLAYER_MAX_SHARE = 0.5f
-
-/**
- * The handle along the card's edge facing the map: a short bar to show it's there, in a strip wide
- * enough for a finger. [onDrag] gets each move in dp, positive to the right.
- */
-@Composable
-private fun ResizeGrip(onDrag: (androidx.compose.ui.unit.Dp) -> Unit, onDone: () -> Unit, modifier: Modifier) {
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val state = androidx.compose.foundation.gestures.rememberDraggableState { px -> onDrag(with(density) { px.toDp() }) }
-    Box(
-        // Only the middle of the edge, so it stays clear of the close button in the corner.
-        modifier
-            .height(140.dp)
-            .width(28.dp)
-            .draggable(
-                state,
-                androidx.compose.foundation.gestures.Orientation.Horizontal,
-                onDragStopped = { onDone() },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            Modifier
-                .size(width = 5.dp, height = 44.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)),
-        )
-    }
-}
+private val PLAYER_MAX_WIDTH = 340.dp
 
 /** Between the player card and the screen's edges, and the map's own cards beside it. */
 private val CARD_GAP = 12.dp

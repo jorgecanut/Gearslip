@@ -234,8 +234,8 @@ fun CarUi() {
                 val screen = navigator.current
                 val safetyWarningSeen by CarSettings.hasSeenSafetyWarning.collectAsState()
                 val keyboardVisible by CarKeyboardVisibility.state
-                // The bar always floats, over the map and every other screen, rather than taking a
-                // row of its own: hiding it then leaves the map's surface the size it was.
+                // The bar always lies over the map and every other screen rather than taking a row
+                // of its own: hiding it then leaves the map's surface the size it was.
                 // Resizing it would hand the map app a new surface each time, and some go black on that.
                 val navBarMode by CarSettings.navBarMode.collectAsState()
                 val appTemplate by CarServices.nav.template.collectAsState()
@@ -250,7 +250,7 @@ fun CarUi() {
                 val onCall = CarCalls.state.collectAsState().value is CallUiState.Active
                 val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake || onCall)
                 // Up to the bar's top edge, so the map's cards and the player end above it.
-                val homeInset = if (barShown) NAV_BAR_HEIGHT + NAV_BAR_GAP else 0.dp
+                val homeInset = if (barShown) NAV_BAR_HEIGHT else 0.dp
                 // Only the screen that asked: going Home or anywhere else ends it.
                 val fullscreen = CarFullscreen.active && screen != CarScreen.Home
                 Box(Modifier.fillMaxSize().padding(pad)) {
@@ -281,9 +281,8 @@ fun CarUi() {
                                 Modifier
                                     .fillMaxSize()
                                     .background(MaterialTheme.colorScheme.background)
-                                    // The bar never hides here, so keep the screen clear of it, with
-                                    // the same gap above it as below.
-                                    .padding(bottom = if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT + NAV_BAR_GAP * 2 else 0.dp)
+                                    // The bar never hides here, so keep the screen clear of it.
+                                    .padding(bottom = if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
@@ -358,9 +357,6 @@ fun CarUi() {
 }
 
 internal val NAV_BAR_HEIGHT = 56.dp
-
-/** Between the floating nav bar and the screen's edges. */
-internal val NAV_BAR_GAP = 12.dp
 
 /**
  * How much of the bottom of Home the floating nav bar covers right now: its height while it shows,
