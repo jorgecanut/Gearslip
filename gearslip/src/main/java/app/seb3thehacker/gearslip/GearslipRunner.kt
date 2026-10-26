@@ -41,6 +41,11 @@ class GearslipRunner(
     private val vehicleProfileFor: (ServiceDiscovery.HeadUnitInfo) -> VehicleProfile? = { null },
     /** Over Wi-Fi rather than USB: the video is sent smaller so the link keeps up. */
     private val wireless: Boolean = false,
+    /**
+     * The car ended the session - it closed the link or the link broke - rather than the phone
+     * calling [stop]. Called once, on the reading thread, after the session report is filled in.
+     */
+    private val onCarGone: () -> Unit = {},
 ) {
     private val log = GearslipLog.tagged("PROTO")
 
@@ -130,6 +135,7 @@ class GearslipRunner(
                 if (read < 0) {
                     log.w("head unit closed the connection (EOF) while in state $state")
                     reportDisconnect()
+                    onCarGone()
                     return
                 }
                 if (read == 0) continue
@@ -144,6 +150,7 @@ class GearslipRunner(
             log.e("transport failed in state $state", t)
             SessionReport.fail(SessionReport.Category.USB, "transport failed", t, state.name)
             reportDisconnect()
+            onCarGone()
         } finally {
             running = false
             writer.shutdownNow()
