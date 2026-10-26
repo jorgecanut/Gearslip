@@ -64,6 +64,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_AUTOPLAY = "car_autoplay"
     private const val KEY_PLAYER_TITLE = "car_player_title"
     private const val KEY_PLAYER_LEFT = "car_player_left"
+    private const val KEY_PLAYER_WIDTH = "car_player_width"
     private const val KEY_MORE_LYRICS = "car_more_lyrics"
     private const val KEY_THEME = "car_app_theme"
     private const val KEY_UI_THEME = "car_ui_theme"
@@ -105,6 +106,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val autoplayFlow = MutableStateFlow(false)
     private val playerTitleFlow = MutableStateFlow(false)
     private val playerLeftFlow = MutableStateFlow(false)
+    private val playerWidthFlow = MutableStateFlow(0f)
     private val moreLyricsFlow = MutableStateFlow(true)
     private val themeFlow = MutableStateFlow(AppTheme.PHONE)
     val appTheme: StateFlow<AppTheme> = themeFlow
@@ -226,6 +228,9 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     /** The home screen's player sits left of the map instead of right of it. */
     val playerLeft: StateFlow<Boolean> = playerLeftFlow
 
+    /** The docked player's width in dp, as last dragged; 0 until it has been, for the default. */
+    val playerWidth: StateFlow<Float> = playerWidthFlow
+
     /** Lyrics from BetterLyrics and KuGou as well as LRCLIB; off sends song details to LRCLIB only. */
     val moreLyrics: StateFlow<Boolean> = moreLyricsFlow
 
@@ -321,6 +326,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         autoplayFlow.value = AppSettings.getString(app, KEY_AUTOPLAY, "false") == "true"
         playerTitleFlow.value = AppSettings.getString(app, KEY_PLAYER_TITLE, "false") == "true"
         playerLeftFlow.value = AppSettings.getString(app, KEY_PLAYER_LEFT, "false") == "true"
+        playerWidthFlow.value = AppSettings.getString(app, KEY_PLAYER_WIDTH, "0").toFloatOrNull() ?: 0f
         moreLyricsFlow.value = AppSettings.getString(app, KEY_MORE_LYRICS, "true") == "true"
         pipeAudioFlow.value = AppSettings.getString(app, KEY_PIPE_AUDIO, "true") == "true"
         // Until the driver sets it, on for USB audio and off for Bluetooth, where the map app's
@@ -397,6 +403,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     fun setPlayerLeft(on: Boolean) {
         playerLeftFlow.value = on
         AppSettings.putString(app, KEY_PLAYER_LEFT, on.toString())
+    }
+
+    fun setPlayerWidth(dp: Float) {
+        playerWidthFlow.value = dp
+        AppSettings.putString(app, KEY_PLAYER_WIDTH, dp.toString())
     }
 
     fun setMoreLyrics(on: Boolean) {
