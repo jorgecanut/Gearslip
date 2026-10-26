@@ -327,6 +327,7 @@ class CarMedia(private val context: Context) {
                     Rejection.REFUSED
                 }
                 _phase.value = Phase.REJECTED
+                watchForSession(app, manager, listener)
             }
             return
         }
@@ -334,6 +335,35 @@ class CarMedia(private val context: Context) {
         attach(session)
         _browse.value = BrowseState(loading = false, unavailable = true)
         _phase.value = Phase.READY
+    }
+
+    /** Set while waiting for a refused app to start playing; see [watchForSession]. */
+    private var sessionWatch: MediaSessionManager.OnActiveSessionsChangedListener? = null
+
+    /**
+     * An app that refused its library and wasn't playing yet - YouTube Music, before the first
+     * song - stayed refused for the rest of the drive, even once the driver started it on the
+     * phone. Its session appearing is the cue to take it over after all.
+     */
+    private fun watchForSession(app: MediaApp, manager: MediaSessionManager, listener: ComponentName) {
+        stopSessionWatch()
+        val watch = MediaSessionManager.OnActiveSessionsChangedListener { sessions ->
+            if (connecting != app || sessions.orEmpty().none { it.packageName == app.component.packageName }) {
+                return@OnActiveSessionsChangedListener
+            }
+            GearslipLog.i("media: ${app.label} started playing - taking over its controls")
+            stopSessionWatch()
+            attachToSession(app)
+        }
+        runCatching { manager.addOnActiveSessionsChangedListener(watch, listener, main) }
+            .onSuccess { sessionWatch = watch }
+            .onFailure { GearslipLog.w("media: can't watch for ${app.label} to start: ${it.message}") }
+    }
+
+    private fun stopSessionWatch() {
+        val watch = sessionWatch ?: return
+        sessionWatch = null
+        runCatching { context.getSystemService(MediaSessionManager::class.java).removeOnActiveSessionsChangedListener(watch) }
     }
 
     private fun onConnected(app: MediaApp) {
@@ -713,6 +743,7 @@ class CarMedia(private val context: Context) {
 
     fun disconnect() {
         connecting = null
+        stopSessionWatch()
         runCatching { searchBrowser?.disconnect() }
         searchBrowser = null
         searchComponent = null

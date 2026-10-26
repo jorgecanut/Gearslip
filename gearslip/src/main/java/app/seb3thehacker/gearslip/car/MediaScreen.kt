@@ -125,7 +125,8 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                         )
                         CarMedia.Rejection.REFUSED -> Notice(
                             "${app.label} would not let Gearslip browse it.",
-                            "Some media apps only accept Google's own host.",
+                            "Some media apps only accept Google's own host. Start it playing on the " +
+                                "phone and Gearslip takes over its controls.",
                         )
                     }
                     else -> Notice("Connecting to ${app.label}…", null)
