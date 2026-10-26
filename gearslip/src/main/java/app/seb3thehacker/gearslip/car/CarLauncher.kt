@@ -189,20 +189,7 @@ internal fun rememberAllEntries(): List<Entry> {
 }
 
 /** The launcher's groups, in the order they're laid out. */
-private enum class AppGroup { MAPS, MUSIC, PHONE, MESSAGING, OTHER, WEB, SCREEN_SHARING, SETTINGS, EXIT }
-
-/** The heading a group's tiles sit under; calls and messages share one, as do Gearslip's own. */
-private val AppGroup.heading: String
-    get() = when (this) {
-        AppGroup.MAPS -> "Navigation"
-        AppGroup.MUSIC -> "Media"
-        AppGroup.PHONE, AppGroup.MESSAGING -> "Calls and messages"
-        AppGroup.OTHER -> "Other apps"
-        else -> "Gearslip"
-    }
-
-/** One heading on the launcher and the tiles under it, in order. */
-internal class LauncherSection(val heading: String, val entries: List<Entry>)
+private enum class AppGroup { PHONE, MAPS, MUSIC, MESSAGING, WEB, SCREEN_SHARING, OTHER, SETTINGS, EXIT }
 
 private fun groupOf(entry: Entry, mediaPackages: Set<String>): AppGroup {
     entry.builtIn?.let {
@@ -231,28 +218,22 @@ private fun groupOf(entry: Entry, mediaPackages: Set<String>): AppGroup {
 }
 
 /**
- * The launcher's tiles under their headings: grouped by [AppGroup], alphabetical inside a group
- * with Settings last of all, then with the driver's own moves from [custom] laid over it. Moved
- * apps only trade places among themselves and inside their own heading, so an app installed later
- * still lands in its group and nothing ends up under the wrong heading.
+ * The launcher's tiles in the order they're drawn: grouped by [AppGroup], alphabetical inside a
+ * group with Settings last of all, then with the driver's own moves from [custom] laid over it.
+ * Moved apps only trade places among themselves, so an app installed later still lands in its group.
  */
-internal fun launcherSections(all: List<Entry>, showVehicleData: Boolean, custom: List<String>): List<LauncherSection> {
+internal fun launcherOrder(all: List<Entry>, showVehicleData: Boolean, custom: List<String>): List<Entry> {
     val shown = all.filter { it.builtIn !== BuiltInApps.VehicleData || showVehicleData }
     val mediaPackages = shown.mapNotNull { it.media?.component?.packageName }.toSet()
-    val sorted = shown.sortedWith(
+    val grouped = shown.sortedWith(
         compareBy<Entry>({ groupOf(it, mediaPackages) }, { it.builtIn === BuiltInApps.Settings }, { it.label.lowercase() }),
     )
+    if (custom.isEmpty()) return grouped
     val rank = custom.withIndex().associate { (i, id) -> id to i }
     fun Entry.rank() = componentId?.let { rank[it] }
-    return sorted.groupBy { groupOf(it, mediaPackages).heading }.map { (heading, entries) ->
-        val moved = entries.filter { it.rank() != null }.sortedBy { it.rank() }.iterator()
-        LauncherSection(heading, entries.map { if (it.rank() != null) moved.next() else it })
-    }
+    val moved = grouped.filter { it.rank() != null }.sortedBy { it.rank() }.iterator()
+    return grouped.map { if (it.rank() != null) moved.next() else it }
 }
-
-/** The launcher's tiles in the order they're drawn, headings aside. */
-internal fun launcherOrder(all: List<Entry>, showVehicleData: Boolean, custom: List<String>): List<Entry> =
-    launcherSections(all, showVehicleData, custom).flatMap { it.entries }
 
 /** An app by the id a pin or the running list knows it by, built-in or installed. */
 internal fun findEntry(id: String): Entry? =
@@ -306,27 +287,16 @@ fun CarLauncher() {
     }
 
     val appOrder by CarSettings.appOrder.collectAsState()
-    val sections = launcherSections(all, showVehicleData, appOrder)
+    val tiles = launcherOrder(all, showVehicleData, appOrder).map(::tileOf)
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 116.dp),
+        columns = GridCells.Adaptive(minSize = 108.dp),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        sections.forEach { section ->
-            item(span = { GridItemSpan(maxLineSpan) }, contentType = "heading") {
-                Text(
-                    section.heading,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp, top = 12.dp),
-                )
-            }
-            items(section.entries.map(::tileOf)) { AppTile(it) }
-        }
+        items(tiles) { AppTile(it) }
     }
 }
 
@@ -350,8 +320,8 @@ private fun AppTile(tile: Tile) {
     GsIconBox(
         onClick = tile.onClick,
         onLongClick = tile.onLongClick,
-        modifier = Modifier.height(120.dp).gsPanelShadow(shape),
-        colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.onSurface),
+        modifier = Modifier.height(120.dp),
+        colors = GsColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant),
         shape = shape,
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -368,7 +338,7 @@ private fun AppTile(tile: Tile) {
                         BrokenBadge(
                             22.dp,
                             Modifier.align(Alignment.BottomEnd).offset(x = 6.dp, y = 4.dp)
-                                .border(2.dp, MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
+                                .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
                         )
                     }
                 }
@@ -382,8 +352,8 @@ private fun AppTile(tile: Tile) {
 @Composable
 private fun TileIcon(tile: Tile) {
     when {
-        tile.icon != null -> Image(tile.icon, contentDescription = null, modifier = Modifier.size(56.dp))
-        tile.glyph != null -> Icon(tile.glyph, contentDescription = null, modifier = Modifier.size(56.dp))
+        tile.icon != null -> Image(tile.icon, contentDescription = null, modifier = Modifier.size(52.dp))
+        tile.glyph != null -> Icon(tile.glyph, contentDescription = null, modifier = Modifier.size(52.dp))
     }
 }
 

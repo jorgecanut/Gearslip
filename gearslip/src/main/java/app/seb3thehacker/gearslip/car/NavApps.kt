@@ -267,16 +267,13 @@ internal fun AppMenu(navigator: CarNavigator, running: Map<String, RunningSlot>)
 @Composable
 private fun MoveButtons(id: String) {
     val custom by CarSettings.appOrder.collectAsState()
-    // Only within the app's own heading: past its edge it would land under another one.
-    val sections = launcherSections(rememberAllEntries(), rememberVehicleDataShown(), custom)
-    val section = sections.find { s -> s.entries.any { it.componentId == id } } ?: return
-    val order = section.entries.mapNotNull { it.componentId }
+    val order = launcherOrder(rememberAllEntries(), rememberVehicleDataShown(), custom).mapNotNull { it.componentId }
     val index = order.indexOf(id)
     if (index < 0) return
     fun move(by: Int) {
         val next = order.toMutableList()
         java.util.Collections.swap(next, index, index + by)
-        CarSettings.setAppOrder(sections.flatMap { s -> if (s === section) next else s.entries.mapNotNull { it.componentId } })
+        CarSettings.setAppOrder(next)
     }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         GsButton(

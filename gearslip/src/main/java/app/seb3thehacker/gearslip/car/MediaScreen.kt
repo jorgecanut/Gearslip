@@ -707,33 +707,39 @@ private fun NowPlayingControls(now: NowPlaying, media: CarMedia, modifier: Modif
 }
 
 /**
- * The player beside the browse list, the queue and the lyrics: the same card as beside the map on
- * Home, the cover taking whatever the title and controls leave, so every tab keeps the song in
- * sight and the controls in one place.
+ * The player beside the browse list, the queue and the lyrics: the cover as big as the controls
+ * leave room for, with the title and artist beside it rather than under it, so the cover gets the
+ * height; then the seek bar and the controls along the bottom.
  */
 @Composable
 private fun CompactPlayer(now: NowPlaying, media: CarMedia, art: android.graphics.Bitmap?, modifier: Modifier) {
-    val shape = RoundedCornerShape(24.dp)
-    Surface(modifier.gsPanelShadow(shape), shape = shape, color = MaterialTheme.colorScheme.surfaceContainer) {
-        AlbumGlow(art, Modifier.fillMaxSize())
-        Column(Modifier.fillMaxSize().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            CoverArt(art, Modifier.weight(1f).fillMaxWidth(), Alignment.BottomCenter)
-            Spacer(Modifier.height(10.dp))
-            Text(
-                now.title.ifEmpty { "Nothing playing" },
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                now.artist,
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            PlayerProgress(now, media, Modifier.fillMaxWidth().padding(vertical = 2.dp), showTimes = false)
-            TransportRow(now, media, skip = 52.dp, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            PlayModeRow(now, media, size = 46.dp, modifier = Modifier.fillMaxWidth())
+    Column(modifier) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val cover = minOf(maxHeight, maxWidth * 0.62f).coerceAtLeast(0.dp)
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.Bottom) {
+                CoverArt(art, Modifier.size(cover))
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f).padding(bottom = 4.dp)) {
+                    Text(
+                        now.title.ifEmpty { "Nothing playing" },
+                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                        maxLines = 3, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        now.artist,
+                        style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
         }
+        Spacer(Modifier.height(10.dp))
+        PlayerProgress(now, media, Modifier.fillMaxWidth())
+        Spacer(Modifier.height(6.dp))
+        TransportRow(now, media, skip = 54.dp, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
+        PlayModeRow(now, media, size = 48.dp, modifier = Modifier.fillMaxWidth())
     }
 }
 

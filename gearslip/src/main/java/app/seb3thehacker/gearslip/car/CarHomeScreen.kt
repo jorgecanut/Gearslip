@@ -161,7 +161,7 @@ private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame
             start = if (LocalCardsAtEnd.current) LocalSidePanelInset.current else 0.dp,
             end = if (LocalCardsAtEnd.current) 0.dp else LocalSidePanelInset.current,
         ).padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val hasLast = CarSettings.lastNav.value != null
@@ -173,7 +173,8 @@ private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame
             CarAppConnection.Phase.REJECTED, CarAppConnection.Phase.FAILED -> {
                 Text("${status.app ?: "The map app"} would not start.", style = MaterialTheme.typography.titleMedium)
                 status.detail?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                GsButton(onClick = navigator::apps, tone = GsTone.Tonal) { Text("Choose another app") }
+                Spacer(Modifier.height(8.dp))
+                StatusButton("Choose another app", GsTone.Primary, navigator::apps)
             }
             else -> if (!hasNavApps) {
                 // Nothing to auto-select and nothing to pick from Car apps either - this is the
@@ -188,14 +189,31 @@ private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame
                 // IDLE with a last app on record means the driver stopped it themselves - it will
                 // not come back on its own, so the screen must offer a way to bring it back rather
                 // than sit on a "starting" message that never resolves.
-                Text("Map stopped.", style = MaterialTheme.typography.titleMedium)
-                GsButton(onClick = { scope.launch { CarServices.reconnectNav(frame) } }, tone = GsTone.Tonal) { Text("Reopen") }
-                GsButton(onClick = { navigator.apps() }, tone = GsTone.Tonal) { Text("Car apps") }
+                Text("Map stopped", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "It stays closed until you open it again.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                // Side by side, the same size, the likely one lit: one clear choice, not a stack.
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    StatusButton("Reopen the map", GsTone.Primary) { scope.launch { CarServices.reconnectNav(frame) } }
+                    StatusButton("Car apps", GsTone.Tonal) { navigator.apps() }
+                }
             } else {
                 // Autostart is still picking one - a navigation app is installed, so this resolves
                 // to a "Starting..." state itself, in the next frame or two.
             }
         }
+    }
+}
+
+/** A big, even button for the map pane's few choices. */
+@Composable
+private fun StatusButton(label: String, tone: GsTone, onClick: () -> Unit) {
+    GsButton(onClick = onClick, tone = tone, modifier = Modifier.width(220.dp).height(64.dp)) {
+        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
