@@ -96,6 +96,7 @@ class GearslipRunner(
     @Volatile private var inputKeycodes: List<Int> = emptyList()
     @Volatile private var sensorChannelId: Int = -1
     @Volatile private var mediaStatus: CarMediaStatus? = null
+    @Volatile private var phoneStatus: app.seb3thehacker.gearslip.call.CarPhoneStatus? = null
     @Volatile private var clusterNav: ClusterNav? = null
     private var sensorTypes: List<Int> = emptyList()
     @Volatile private var audioLink: AudioLink? = null
@@ -190,6 +191,8 @@ class GearslipRunner(
         LocationCheck.onCarDisconnected()
         mediaStatus?.stop()
         mediaStatus = null
+        phoneStatus?.stop()
+        phoneStatus = null
         clusterNav?.stop()
         clusterNav = null
         lastSensorNight = null
@@ -237,6 +240,8 @@ class GearslipRunner(
                 clusterNav?.onMessage(messageId, body)
             } else if (frame.channel == mediaStatus?.channelId) {
                 mediaStatus?.onMessage(messageId, body)
+            } else if (frame.channel == phoneStatus?.channelId) {
+                phoneStatus?.onMessage(messageId, body)
             } else if (frame.channel == guidanceLink?.channelId) {
                 guidanceLink?.onMessage(messageId, body)
             } else if (frame.channel == CarBluetooth.channelId) {
@@ -512,6 +517,7 @@ class GearslipRunner(
         startSensorChannel(serviceDiscoveryResponse)
         startMicChannel(serviceDiscoveryResponse)
         startMediaStatusChannel(serviceDiscoveryResponse)
+        startPhoneStatusChannel(serviceDiscoveryResponse)
         startClusterNavChannel(serviceDiscoveryResponse)
         startBluetooth(serviceDiscoveryResponse)
         startVendorChannel(serviceDiscoveryResponse)
@@ -625,6 +631,19 @@ class GearslipRunner(
         }
         log.i("media status channel: $channel")
         mediaStatus = CarMediaStatus(channel) { id, body -> send(id, body, encrypted = true, channel = channel) }
+        openChannel(channel)
+    }
+
+    /** Calls, for the car's own screens: the cluster, the steering wheel display. */
+    private fun startPhoneStatusChannel(serviceDiscoveryResponse: ByteArray) {
+        val channel = ServiceDiscovery.findPhoneStatusChannel(serviceDiscoveryResponse) ?: run {
+            log.i("no phone status channel - the car's own screens won't show calls")
+            return
+        }
+        log.i("phone status channel: $channel")
+        phoneStatus = app.seb3thehacker.gearslip.call.CarPhoneStatus(channel) { id, body ->
+            send(id, body, encrypted = true, channel = channel)
+        }
         openChannel(channel)
     }
 
