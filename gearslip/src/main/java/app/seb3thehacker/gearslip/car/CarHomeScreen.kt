@@ -233,8 +233,8 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
 
 /**
  * Lyrics alone beside the map, big enough to read at a glance. The header is slim, since the
- * player goes back to the nav bar meanwhile and names the song there; its dock button swaps these
- * back out for the controls.
+ * player goes back to the nav bar meanwhile and names the song there. Its note button swaps the
+ * lyrics back for the player; the X closes the panel.
  */
 @Composable
 private fun SideLyrics(now: NowPlaying, modifier: Modifier) {
@@ -256,6 +256,9 @@ private fun SideLyrics(now: NowPlaying, modifier: Modifier) {
                     color = scheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
+                // The way back to the player, as the player's own Lyrics button is the way here.
+                GsIconButton(MediaIcons.MusicNote, "Show the player", navigator::showSidePlayer, size = 36.dp, iconSize = 20.dp)
+                Spacer(Modifier.size(6.dp))
                 GsIconButton(Icons.Filled.Close, "Hide lyrics", navigator::closeSidePanel, size = 36.dp, iconSize = 20.dp)
             }
             LyricsPanel(now, Modifier.weight(1f).fillMaxWidth(), lineStyle = MaterialTheme.typography.headlineSmall)

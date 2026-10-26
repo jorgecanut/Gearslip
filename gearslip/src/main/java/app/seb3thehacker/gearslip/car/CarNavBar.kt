@@ -528,7 +528,7 @@ private fun nowPlayingLabel(title: String, artist: String): String =
  * The player in the nav bar, on every screen. Art and title open the full media screen;
  * play/pause and skip work right here. The dock button moves the player into the column beside
  * the map on Home (see [CarHome]), and the pill steps aside there while it's docked - unless the
- * column is showing lyrics instead, when the pill stays and its dock button swaps them back.
+ * column is showing lyrics instead, when the pill stays and its dock button closes them.
  */
 @Composable
 private fun NavNowPlaying(navigator: CarNavigator, selected: Boolean, modifier: Modifier = Modifier) {
@@ -620,8 +620,18 @@ private fun NavNowPlaying(navigator: CarNavigator, selected: Boolean, modifier: 
                         enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_NEXT), size = 36.dp, iconSize = 22.dp,
                     )
                 }
+                // Drawn on the side the panel opens on, and filled in while it's open.
+                val playerLeft by CarSettings.playerLeft.collectAsState()
+                val docked = navigator.current == CarScreen.Home && navigator.sidePanel != SidePanel.NONE
                 GsIconButton(
-                    MediaIcons.DockRight, "Move the player beside the map", navigator::togglePlayerDock,
+                    when {
+                        playerLeft && docked -> MediaIcons.DockLeftOpen
+                        playerLeft -> MediaIcons.DockLeft
+                        docked -> MediaIcons.DockRightOpen
+                        else -> MediaIcons.DockRight
+                    },
+                    if (docked) "Close the side panel" else "Move the player beside the map",
+                    navigator::togglePlayerDock,
                     size = 36.dp, iconSize = 22.dp,
                 )
             }

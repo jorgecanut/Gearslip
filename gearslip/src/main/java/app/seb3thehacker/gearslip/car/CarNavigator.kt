@@ -90,8 +90,9 @@ class CarNavigator(startId: String) {
         private set
 
     /**
-     * The pill's dock button: moves the player beside the map, going Home first if need be. With
-     * lyrics already there it swaps them for the controls; with the controls there it closes.
+     * The pill's dock button, an open/close switch for the panel: moves the player beside the map,
+     * going Home first if need be, or closes the panel when something is already there. Switching
+     * between the player and lyrics is done inside the panel itself.
      */
     fun togglePlayerDock() {
         if (current != CarScreen.Home) {
@@ -99,8 +100,10 @@ class CarNavigator(startId: String) {
             home()
             return
         }
-        sidePanel = if (sidePanel == SidePanel.CONTROLS) SidePanel.NONE else SidePanel.CONTROLS
+        sidePanel = if (sidePanel == SidePanel.NONE) SidePanel.CONTROLS else SidePanel.NONE
     }
+
+    fun showSidePlayer() { sidePanel = SidePanel.CONTROLS }
 
     fun showSideLyrics() { sidePanel = SidePanel.LYRICS }
 

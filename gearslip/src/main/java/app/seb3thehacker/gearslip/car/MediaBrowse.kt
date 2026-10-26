@@ -217,8 +217,14 @@ internal object MediaIcons {
     val Shuffle = icon("Shuffle", "M10.59,9.17L5.41,4 4,5.41l5.17,5.17 1.42,-1.41zM14.5,4l2.04,2.04L4,18.59 5.41,20 17.96,7.46 20,9.5L20,4h-5.5zM14.83,13.41l-1.41,1.41 3.13,3.13L14.5,20L20,20v-5.5l-2.04,2.04 -3.13,-3.13z")
     val Repeat = icon("Repeat", "M7,7h10v3l4,-4 -4,-4v3L5,5v6h2L7,7zM17,17L7,17v-3l-4,4 4,4v-3h12v-6h-2v4z")
     val RepeatOne = icon("RepeatOne", "M7,7h10v3l4,-4 -4,-4v3L5,5v6h2L7,7zM17,17L7,17v-3l-4,4 4,4v-3h12v-6h-2v4zM13,15L13,9h-1l-2,1v1h1.5v4L13,15z")
-    /** A screen with a filled right-hand panel: "put the player beside the map". */
-    val DockRight = icon("DockRight", "M2,4h20v16H2zM4,6h10v12H4z", PathFillType.EvenOdd)
+    /**
+     * A screen split into the map and a side panel: outlined while the panel is closed ("put the
+     * player beside the map"), filled in while it's open ("close it"), on the side it opens on.
+     */
+    val DockRight = icon("DockRight", "M2,4h20v16H2zM4,6h10v12H4zM16,6h4v12h-4z", PathFillType.EvenOdd)
+    val DockRightOpen = icon("DockRightOpen", "M2,4h20v16H2zM4,6h10v12H4z", PathFillType.EvenOdd)
+    val DockLeft = icon("DockLeft", "M2,4h20v16H2zM4,6h4v12H4zM10,6h10v12H10z", PathFillType.EvenOdd)
+    val DockLeftOpen = icon("DockLeftOpen", "M2,4h20v16H2zM10,6h10v12H10z", PathFillType.EvenOdd)
     val Fullscreen = icon("Fullscreen", "M7,14L5,14v5h5v-2L7,17v-3zM5,10h2L7,7h3L10,5L5,5v5zM17,17h-3v2h5v-5h-2v3zM14,5v2h3v3h2L19,5h-5z")
     val FullscreenExit = icon("FullscreenExit", "M5,16h3v3h2v-5L5,14v2zM8,8L5,8v2h5L10,5L8,5v3zM14,19h2v-3h3v-2h-5v5zM16,8L16,5h-2v5h5L19,8h-3z")
 
