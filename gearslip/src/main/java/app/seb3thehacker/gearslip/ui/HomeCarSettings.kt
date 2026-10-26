@@ -2,6 +2,7 @@ package app.seb3thehacker.gearslip.ui
 
 import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ enum class CarGroup(val title: String) {
     NAV_BAR("Nav bar and player"),
     SOUND("Sound and voice"),
     WARNINGS("Warnings"),
+    MORE("More"),
 }
 
 private val sizeChoices = listOf(1f to "Normal", 1.25f to "Large", 1.5f to "Extra large")
@@ -78,6 +80,7 @@ internal fun HomeCarSettings(onOpen: (CarGroup) -> Unit, modifier: Modifier = Mo
     val locationWarning by CarSettings.locationWarning.collectAsState()
     val playerLeft by CarSettings.playerLeft.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
+    val experimental by CarSettings.experimentalFeaturesEnabled.collectAsState()
 
     fun summary(group: CarGroup) = when (group) {
         CarGroup.SCREEN -> listOf(openChoices().label(open), sizeChoices.label(scale), themeChoices.label(theme))
@@ -87,6 +90,7 @@ internal fun HomeCarSettings(onOpen: (CarGroup) -> Unit, modifier: Modifier = Mo
             "Bluetooth ${if (bluetoothWarning && !pipeAudio) "on" else "off"}",
             "Location ${if (locationWarning) "on" else "off"}",
         )
+        CarGroup.MORE -> listOf("Web page", "Experimental features ${if (experimental) "shown" else "hidden"}")
     }.filter { it.isNotEmpty() }.joinToString(" · ")
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -134,6 +138,16 @@ internal fun CarGroupScreen(group: CarGroup, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SettingsCard { GroupRows(group) }
+            // The bigger pieces each keep their own card: the car screen's size and the preview's,
+            // and the two voice models with their downloads.
+            when (group) {
+                CarGroup.SCREEN -> CarScreenSection()
+                CarGroup.SOUND -> {
+                    CarAudioSection()
+                    VoiceModelSection()
+                }
+                else -> Unit
+            }
             Text(
                 "These are the same settings as Settings in the car. A change here shows there too.",
                 style = MaterialTheme.typography.bodySmall,
@@ -163,6 +177,9 @@ private fun GroupRows(group: CarGroup) {
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
     val darkStyle by CarSettings.darkStyle.collectAsState()
+    val experimental by CarSettings.experimentalFeaturesEnabled.collectAsState()
+    val carSensors by CarSettings.carSensorsEnabled.collectAsState()
+    val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
 
     when (group) {
         CarGroup.SCREEN -> {
@@ -199,8 +216,6 @@ private fun GroupRows(group: CarGroup) {
             )
         }
         CarGroup.SOUND -> {
-            Choice("Car audio", listOf(false to "Bluetooth", true to "USB"), pipeAudio, CarSettings::setPipeAudio)
-            SettingsDivider()
             Toggle(
                 "Spoken directions",
                 speakDirections,
@@ -221,6 +236,27 @@ private fun GroupRows(group: CarGroup) {
                 SettingsDivider()
             }
             Toggle("Warn when location is off", locationWarning, CarSettings::setLocationWarning)
+        }
+        CarGroup.MORE -> {
+            WebPageRow()
+            SettingsDivider()
+            Toggle("Experimental features", experimental, CarSettings::setExperimentalFeaturesEnabled)
+            if (experimental) {
+                SettingsDivider()
+                Toggle(
+                    "Vehicle data",
+                    carSensors,
+                    CarSettings::setCarSensorsEnabled,
+                    note = "Adds a Vehicle data tile: a live dump of the car's sensors. The field names are guesses until you've watched one change.",
+                )
+                SettingsDivider()
+                Toggle(
+                    "Adaptive video quality",
+                    adaptiveVideo,
+                    CarSettings::setAdaptiveVideoEnabled,
+                    note = "Lowers the picture's quality when the car or its Wi-Fi can't keep up, and raises it again once it can. Applies on the next connection.",
+                )
+            }
         }
     }
 }
@@ -262,4 +298,55 @@ private fun Toggle(title: String, on: Boolean, onChange: (Boolean) -> Unit, note
         subtitle = note,
         trailing = { Switch(checked = on, onCheckedChange = null) },
     )
+}
+
+/** The page the car's Browser app opens, typed here instead of on the car's keyboard. */
+@Composable
+private fun WebPageRow() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var url by remember { mutableStateOf(app.seb3thehacker.gearslip.AppSettings.startupUrl(context)) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        androidx.compose.material3.OutlinedTextField(
+            url,
+            {
+                url = it
+                app.seb3thehacker.gearslip.AppSettings.setStartupUrl(context, it)
+            },
+            label = { Text("Web page") },
+            placeholder = { Text("DuckDuckGo") },
+            singleLine = true,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            "Shown by the Browser app in the car. Empty opens DuckDuckGo. Applies on the next connection.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+/** How music reaches the car: by Bluetooth as usual, or through Gearslip over USB. Same choice as setup. */
+@Composable
+internal fun CarAudioSection() {
+    val usb by CarSettings.pipeAudio.collectAsState()
+    SettingsSection(
+        "Car audio",
+        footer = if (usb) "Run the command in Help once, and USB stops asking." else "Calls go over Bluetooth either way.",
+    ) {
+        SettingsRow(
+            "Bluetooth (Recommended)",
+            Modifier.selectable(!usb, role = androidx.compose.ui.semantics.Role.RadioButton) { CarSettings.setPipeAudio(false) },
+            subtitle = "No prompt each drive, and your map app's voice reaches the car",
+            trailing = { androidx.compose.material3.RadioButton(selected = !usb, onClick = null) },
+        )
+        SettingsDivider()
+        SettingsRow(
+            "USB",
+            Modifier.selectable(usb, role = androidx.compose.ui.semantics.Role.RadioButton) { CarSettings.setPipeAudio(true) },
+            subtitle = "Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound",
+            trailing = { androidx.compose.material3.RadioButton(selected = usb, onClick = null) },
+        )
+    }
 }

@@ -140,9 +140,6 @@ fun SettingsScreen(
                 footer = "Gearslip is free, with no ads and no tracking. Your support keeps it going.",
             ) { DonateRows() }
             if (ready(2)) ConnectionSection()
-            if (ready(3)) CarAudioSection()
-            if (ready(4)) CarScreenSection()
-            if (ready(5)) VoiceModelSection()
             if (SHOW_RECOMMENDED_APPS && ready(6)) AppsSection(onOpenRecommendedApps)
             if (ready(7)) SettingsSection(
                 "Usage notes",
@@ -221,30 +218,6 @@ private fun DebugSection() {
             Modifier.clickable { CarSettings.setDebugBadge(!badge) },
             subtitle = "Turn it off for screenshots",
             trailing = { Switch(checked = badge, onCheckedChange = null) },
-        )
-    }
-}
-
-/** How music reaches the car: by Bluetooth as usual, or through Gearslip over USB. Same choice as setup. */
-@Composable
-private fun CarAudioSection() {
-    val usb by CarSettings.pipeAudio.collectAsState()
-    SettingsSection(
-        "Car audio",
-        footer = if (usb) "Run the command in Help once, and USB stops asking." else "Calls go over Bluetooth either way.",
-    ) {
-        SettingsRow(
-            "Bluetooth (Recommended)",
-            Modifier.selectable(!usb, role = Role.RadioButton) { CarSettings.setPipeAudio(false) },
-            subtitle = "No prompt each drive, and your map app's voice reaches the car",
-            trailing = { RadioButton(selected = !usb, onClick = null) },
-        )
-        SettingsDivider()
-        SettingsRow(
-            "USB",
-            Modifier.selectable(usb, role = Role.RadioButton) { CarSettings.setPipeAudio(true) },
-            subtitle = "Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound",
-            trailing = { RadioButton(selected = usb, onClick = null) },
         )
     }
 }
