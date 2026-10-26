@@ -192,6 +192,13 @@ class GearslipActivity : ComponentActivity(), Projection {
                         onDismiss = { micBlockedNotice.value = false },
                     )
                 }
+                val vpnCar by app.seb3thehacker.gearslip.wireless.WirelessLink.vpnWarning.collectAsState()
+                vpnCar?.let { car ->
+                    app.seb3thehacker.gearslip.ui.VpnDialog(
+                        car,
+                        onDismiss = app.seb3thehacker.gearslip.wireless.WirelessLink::dismissVpnWarning,
+                    )
+                }
             }
         }
 

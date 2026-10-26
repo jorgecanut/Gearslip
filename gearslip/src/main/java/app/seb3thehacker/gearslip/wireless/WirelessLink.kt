@@ -26,6 +26,8 @@ import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 import java.net.Socket
 import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Wireless Android Auto, phone side: the start-up that hands Gearslip a socket instead of a USB
@@ -170,6 +172,14 @@ object WirelessLink {
 
     private fun takesOnlyAac(context: Context, address: String) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(address, false)
+
+    /** Set to the car's name when a VPN kept the phone from reaching it; the phone app shows a dialog. */
+    val vpnWarning: StateFlow<String?> get() = _vpnWarning
+    private val _vpnWarning = MutableStateFlow<String?>(null)
+
+    fun dismissVpnWarning() {
+        _vpnWarning.value = null
+    }
 
     /** A stable id for this phone as this app sees it, standing in for the serial a real phone sends. */
     @SuppressLint("HardwareIds")
@@ -553,6 +563,7 @@ object WirelessLink {
         }
         log.e("TCP: gave up on $ip:$port", last)
         if (vpnActive(context)) {
+            _vpnWarning.value = name
             SessionStatus.failed(
                 "A VPN is blocking the car",
                 "Gearslip joined $name's network, but a VPN on this phone won't let it reach the car. " +
