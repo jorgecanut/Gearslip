@@ -73,6 +73,11 @@ object WirelessLink {
     private const val LISTEN_MS = 120_000 // time to reconnect the phone from the car's Bluetooth menu
     private const val TCP_TRIES = 12 // about a minute: a car's projection listener can start well after its Wi-Fi
     private const val WIFI_WAIT_MS = 60_000
+    /** How long an automatic start keeps calling a car whose Android Auto isn't up yet. */
+    private const val AUTO_CALL_MS = 60_000L
+    private const val AUTO_CALL_GAP_MS = 3_000L
+    /** Per car, by Bluetooth address: true when its music channel takes only AAC. */
+    private const val PREFS = "gearslip_wireless_cars"
 
     /** Set by the activity: starts a session on the car's socket. */
     @Volatile var onConnected: ((Socket) -> Unit)? = null
@@ -82,6 +87,9 @@ object WirelessLink {
     @Volatile private var tcp: Socket? = null
     @Volatile private var network: ConnectivityManager.NetworkCallback? = null
     @Volatile private var worker: Thread? = null
+    /** The car of the latest start, so what its session learns is kept for it. */
+    @Volatile private var carAddress: String? = null
+    @Volatile private var appContext: Context? = null
 
     /** A start-up or a session's Bluetooth channel is under way. */
     val busy: Boolean get() = worker?.isAlive == true
@@ -103,13 +111,22 @@ object WirelessLink {
     @SuppressLint("MissingPermission")
     fun name(device: BluetoothDevice): String = device.name ?: device.address
 
-    fun start(context: Context, device: BluetoothDevice) {
+    /**
+     * [automatic] is a start from [WirelessAuto]: the phone has only just reached the car over
+     * Bluetooth, and a head unit that is still booting brings Android Auto up some seconds after
+     * its Bluetooth. Most cars call the phone once they're up, so they get one call and are then
+     * waited for. A car whose music channel takes only AAC is called again for a while instead:
+     * the one such car seen so far, an AHU (GalReceiver 2014), never calls the phone itself.
+     */
+    fun start(context: Context, device: BluetoothDevice, automatic: Boolean = false) {
         stop(context)
         val app = context.applicationContext
+        appContext = app
+        carAddress = device.address
         worker = Thread({
             // A test feature: anything unexpected ends the attempt, not the app.
             try {
-                run(app, device)
+                run(app, device, automatic)
             } catch (e: Exception) {
                 log.e("wireless start-up failed", e)
                 SessionStatus.failed("Wireless start-up failed", "${e.javaClass.simpleName}: ${e.message}")
@@ -141,21 +158,36 @@ object WirelessLink {
         }
     }
 
+    /**
+     * From the session, once the car has listed its audio sinks: whether its music channel takes
+     * only AAC. Kept per car for the next automatic start; see [start].
+     */
+    fun carTakesOnlyAac(onlyAac: Boolean) {
+        val context = appContext ?: return
+        val address = carAddress ?: return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(address, onlyAac).apply()
+    }
+
+    private fun takesOnlyAac(context: Context, address: String) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(address, false)
+
     /** A stable id for this phone as this app sees it, standing in for the serial a real phone sends. */
     @SuppressLint("HardwareIds")
     private fun deviceId(context: Context): String =
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "gearslip"
 
     @SuppressLint("MissingPermission")
-    private fun run(context: Context, device: BluetoothDevice) {
+    private fun run(context: Context, device: BluetoothDevice, automatic: Boolean) {
         val name = name(device)
         log.i("--- wireless start-up with $name (${device.address}) ---")
         SessionStatus.connecting("Bluetooth: reaching $name")
+        val keepCalling = automatic && takesOnlyAac(context, device.address)
+        if (automatic && !keepCalling) log.i("Bluetooth: $name isn't known to take only AAC - calling once, then waiting for it")
         val socket = try {
             // A running scan slows the connect, but stopping one needs BLUETOOTH_SCAN on Android
             // 12+, which Gearslip doesn't ask for. Gearslip never scans, so skipping it is fine.
             runCatching { context.getSystemService(BluetoothManager::class.java)?.adapter?.cancelDiscovery() }
-            device.createRfcommSocketToServiceRecord(AA_UUID).also { it.connect() }
+            if (keepCalling) callUntilUp(device, name) else device.createRfcommSocketToServiceRecord(AA_UUID).also { it.connect() }
         } catch (e: SecurityException) {
             log.e("Bluetooth: permission refused while opening the channel on $name", e)
             SessionStatus.failed(
@@ -256,6 +288,38 @@ object WirelessLink {
             }
         } catch (e: IOException) {
             if (rfcomm != null) log.w("Bluetooth: channel closed (${e.message})")
+        }
+    }
+
+    /**
+     * Calls the car's Android Auto service until it answers or [AUTO_CALL_MS] runs out, then
+     * throws the last failure like a single call would.
+     */
+    @SuppressLint("MissingPermission")
+    private fun callUntilUp(device: BluetoothDevice, name: String): BluetoothSocket {
+        val until = System.currentTimeMillis() + AUTO_CALL_MS
+        var tries = 0
+        while (true) {
+            tries++
+            try {
+                return device.createRfcommSocketToServiceRecord(AA_UUID).also {
+                    rfcomm = it
+                    it.connect()
+                    if (tries > 1) log.i("Bluetooth: $name answered on try $tries")
+                }
+            } catch (e: IOException) {
+                rfcomm = null
+                if (Thread.currentThread().isInterrupted || System.currentTimeMillis() + AUTO_CALL_GAP_MS > until) throw e
+                if (tries == 1) {
+                    log.i("Bluetooth: $name didn't answer yet (${e.message}); trying again for ${AUTO_CALL_MS / 1000}s while it starts up")
+                    SessionStatus.connecting("Bluetooth: waiting for $name to start up")
+                }
+                try {
+                    Thread.sleep(AUTO_CALL_GAP_MS)
+                } catch (_: InterruptedException) {
+                    throw e
+                }
+            }
         }
     }
 
