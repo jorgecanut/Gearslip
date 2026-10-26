@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -81,253 +84,264 @@ fun CarSettingsScreen() {
         value = withContext(Dispatchers.Default) { CertSummary.read(context) }
     }
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        // Built as it scrolls into view rather than all at once: every row here is a set of
-        // buttons, and building the whole screen made opening Settings visibly slow.
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        item {
-            ScreenHeader("Settings")
-        }
+    // A rail of the groups down the left, and the chosen group's settings beside it: five short
+    // lists instead of one long scroll.
+    var chosen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(chosen) { listState.scrollToItem(0) }
+    Row(Modifier.fillMaxSize().padding(start = 16.dp, top = 12.dp, bottom = 12.dp)) {
+    SettingsRail(listOf("Screen", "Nav bar and player", "Sound and voice", "Warnings", "More"), chosen) { chosen = it }
+        LazyColumn(
+            Modifier.weight(1f).fillMaxHeight(),
+            state = listState,
+            // Built as it scrolls into view rather than all at once: every row here is a set of
+            // buttons, and building the whole screen made opening Settings visibly slow.
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            var section: Int
+            section = 0
+            if (section == chosen) item { Group("Screen") }
 
-        item { Group("Screen") }
-
-        item {
-            ChoiceRow(
-                "Open on connect",
-                listOf(CarSettings.HOME to "Home") + CarApps.all.filter { it.id != "settings" }.map { it.id to it.label },
-                open,
-            ) { CarSettings.setOpenOnConnect(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Size",
-                listOf(1f to "Normal", 1.25f to "Large", 1.5f to "Extra large"),
-                scale,
-            ) { CarSettings.setScale(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "App theme",
-                listOf(AppTheme.PHONE to "Follow phone", AppTheme.LIGHT to "Light", AppTheme.DARK to "Dark"),
-                theme,
-            ) { CarSettings.setAppTheme(it) }
-        }
-
-        if (theme != AppTheme.LIGHT) item {
-            ChoiceRow(
-                "Dark mode",
-                listOf(
-                    DarkStyle.BLACK to "Black",
-                    DarkStyle.BLACK_COLOUR to "Black and colour",
-                    DarkStyle.DEEP_COLOUR to "Deep colour",
-                    DarkStyle.GREY to "Grey",
-                ),
-                darkStyle,
-            ) { CarSettings.setDarkStyle(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Theme",
-                GsThemes.builtIn.map { it.id to it.name },
-                uiTheme,
-            ) { CarSettings.setUiTheme(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Map day/night",
-                listOf(NightMode.AUTO to "Auto", NightMode.DAY to "Day", NightMode.NIGHT to "Night"),
-                night,
-            ) { CarSettings.setNightMode(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Units",
-                listOf(Units.AUTO to "Auto", Units.IMPERIAL to "Imperial (mi, ft, °F)", Units.METRIC to "Metric (km, m, °C)"),
-                units,
-            ) { CarSettings.setUnits(it) }
-        }
-
-        // For a head unit that reports the wrong size and stretches the picture (issue #12).
-        item {
-            ChoiceRow(
-                "Screen size (next connection)",
-                listOf<ScreenSize?>(null).plus(SCREEN_PRESETS).plus(screenSize).distinct()
-                    .map { it to (it?.toString() ?: "From the car") },
-                screenSize,
-            ) { CarSettings.setScreenSize(it) }
-        }
-
-        if (screenSize != null) item {
-            ChoiceRow(
-                "Fit to the screen",
-                listOf(ScreenFit.CROP to "Crop the edges", ScreenFit.SQUASH to "Squash to fit"),
-                screenFit,
-            ) { CarSettings.setScreenFit(it) }
-        }
-
-        item { Group("Nav bar and player") }
-
-        item {
-            ChoiceRow(
-                "Nav bar",
-                listOf(
-                    NavBarMode.SHOW to "Always show",
-                    NavBarMode.HIDE_NAVIGATING to "Hide while navigating",
-                    NavBarMode.HIDE to "Hide until tapped",
-                ),
-                navBar,
-            ) { CarSettings.setNavBarMode(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Player in the nav bar",
-                listOf(false to "Skip buttons", true to "Song title"),
-                playerTitle,
-            ) { CarSettings.setPlayerTitle(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Player beside the map",
-                listOf(false to "Right", true to "Left"),
-                playerLeft,
-            ) { CarSettings.setPlayerLeft(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Autoplay on connect",
-                listOf(false to "Off", true to "On"),
-                autoplay,
-            ) { CarSettings.setAutoplay(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Lyrics from",
-                listOf(false to "LRCLIB", true to "More sources"),
-                moreLyrics,
-            ) { CarSettings.setMoreLyrics(it) }
-        }
-
-        item { Group("Sound and voice") }
-
-        item {
-            ChoiceRow(
-                "Car audio",
-                listOf(false to "Bluetooth", true to "USB"),
-                pipeAudio,
-            ) { CarSettings.setPipeAudio(it) }
-        }
-
-        item {
-            Text(
-                "USB sends the phone's sound through Gearslip. Android asks to share your screen each " +
-                    "drive, and a few apps block it. Bluetooth plays as the phone normally would, and " +
-                    "Android never asks.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        item { Group("Warnings") }
-
-        if (!pipeAudio) item {
-            ChoiceRow(
-                "Warn when Bluetooth isn't connected",
-                listOf(false to "Off", true to "On"),
-                bluetoothWarning,
-            ) { CarSettings.setBluetoothWarning(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Warn when location is off",
-                listOf(false to "Off", true to "On"),
-                locationWarning,
-            ) { CarSettings.setLocationWarning(it) }
-        }
-
-        item {
-            ChoiceRow(
-                "Spoken directions",
-                listOf(false to "Off", true to "On"),
-                speakDirections,
-            ) { CarSettings.setSpeakDirections(it) }
-        }
-
-        item {
-            Text(
-                "Gearslip reads each turn aloud through the car's speakers, and the music dips while it " +
-                    "speaks. Turn it off if your map app's own voice already plays in the car.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        item {
-            ExperimentalFeatureRow(
-                title = "Use the phone's speech recognition",
-                description = "Listens through the phone's own speech service instead of Gearslip's. On " +
-                    "most phones that's Google's, which may send your voice to Google. GrapheneOS has " +
-                    "none, so Gearslip keeps using its own.",
-                checked = systemSpeech,
-            ) { CarSettings.setSystemSpeech(it) }
-        }
-
-        item { Group("More") }
-
-        item {
-            WebPageSetting()
-        }
-
-        item {
-            ScreenFit(vehicle)
-        }
-
-        item {
-            ChoiceRow(
-                "Experimental features",
-                listOf(false to "Hide", true to "Show"),
-                experimentalFeatures,
-            ) { CarSettings.setExperimentalFeaturesEnabled(it) }
-        }
-
-        if (experimentalFeatures) item {
-            ExperimentalFeaturesList(carSensors, adaptiveVideo)
-        }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Connection", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Info("Phone", "${Build.MANUFACTURER} ${Build.MODEL}")
-                Info("Vehicle", vehicle.ifEmpty { "-" })
-                Info("Video", display.ifEmpty { "-" })
-                Info("Certificate", cert?.headline ?: "Checking…")
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Open on connect",
+                    listOf(CarSettings.HOME to "Home") + CarApps.all.filter { it.id != "settings" }.map { it.id to it.label },
+                    open,
+                ) { CarSettings.setOpenOnConnect(it) }
             }
-        }
 
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Info("Version", app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME)
-                Info("Build", app.seb3thehacker.gearslip.BuildConfig.VERSION_CODE.toString())
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Size",
+                    listOf(1f to "Normal", 1.25f to "Large", 1.5f to "Extra large"),
+                    scale,
+                ) { CarSettings.setScale(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "App theme",
+                    listOf(AppTheme.PHONE to "Follow phone", AppTheme.LIGHT to "Light", AppTheme.DARK to "Dark"),
+                    theme,
+                ) { CarSettings.setAppTheme(it) }
+            }
+
+            if (section == chosen && theme != AppTheme.LIGHT) item {
+                ChoiceRow(
+                    "Dark mode",
+                    listOf(
+                        DarkStyle.BLACK to "Black",
+                        DarkStyle.BLACK_COLOUR to "Black and colour",
+                        DarkStyle.DEEP_COLOUR to "Deep colour",
+                        DarkStyle.GREY to "Grey",
+                    ),
+                    darkStyle,
+                ) { CarSettings.setDarkStyle(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Theme",
+                    GsThemes.builtIn.map { it.id to it.name },
+                    uiTheme,
+                ) { CarSettings.setUiTheme(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Map day/night",
+                    listOf(NightMode.AUTO to "Auto", NightMode.DAY to "Day", NightMode.NIGHT to "Night"),
+                    night,
+                ) { CarSettings.setNightMode(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Units",
+                    listOf(Units.AUTO to "Auto", Units.IMPERIAL to "Imperial (mi, ft, °F)", Units.METRIC to "Metric (km, m, °C)"),
+                    units,
+                ) { CarSettings.setUnits(it) }
+            }
+
+            // For a head unit that reports the wrong size and stretches the picture (issue #12).
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Screen size (next connection)",
+                    listOf<ScreenSize?>(null).plus(SCREEN_PRESETS).plus(screenSize).distinct()
+                        .map { it to (it?.toString() ?: "From the car") },
+                    screenSize,
+                ) { CarSettings.setScreenSize(it) }
+            }
+
+            if (section == chosen && screenSize != null) item {
+                ChoiceRow(
+                    "Fit to the screen",
+                    listOf(ScreenFit.CROP to "Crop the edges", ScreenFit.SQUASH to "Squash to fit"),
+                    screenFit,
+                ) { CarSettings.setScreenFit(it) }
+            }
+
+            section = 1
+            if (section == chosen) item { Group("Nav bar and player") }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Nav bar",
+                    listOf(
+                        NavBarMode.SHOW to "Always show",
+                        NavBarMode.HIDE_NAVIGATING to "Hide while navigating",
+                        NavBarMode.HIDE to "Hide until tapped",
+                    ),
+                    navBar,
+                ) { CarSettings.setNavBarMode(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Player in the nav bar",
+                    listOf(false to "Skip buttons", true to "Song title"),
+                    playerTitle,
+                ) { CarSettings.setPlayerTitle(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Player beside the map",
+                    listOf(false to "Right", true to "Left"),
+                    playerLeft,
+                ) { CarSettings.setPlayerLeft(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Autoplay on connect",
+                    listOf(false to "Off", true to "On"),
+                    autoplay,
+                ) { CarSettings.setAutoplay(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Lyrics from",
+                    listOf(false to "LRCLIB", true to "More sources"),
+                    moreLyrics,
+                ) { CarSettings.setMoreLyrics(it) }
+            }
+
+            section = 2
+            if (section == chosen) item { Group("Sound and voice") }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Car audio",
+                    listOf(false to "Bluetooth", true to "USB"),
+                    pipeAudio,
+                ) { CarSettings.setPipeAudio(it) }
+            }
+
+            if (section == chosen) item {
+                Text(
+                    "USB sends the phone's sound through Gearslip. Android asks to share your screen each " +
+                        "drive, and a few apps block it. Bluetooth plays as the phone normally would, and " +
+                        "Android never asks.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            section = 3
+            if (section == chosen) item { Group("Warnings") }
+
+            if (section == chosen && !pipeAudio) item {
+                ChoiceRow(
+                    "Warn when Bluetooth isn't connected",
+                    listOf(false to "Off", true to "On"),
+                    bluetoothWarning,
+                ) { CarSettings.setBluetoothWarning(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Warn when location is off",
+                    listOf(false to "Off", true to "On"),
+                    locationWarning,
+                ) { CarSettings.setLocationWarning(it) }
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Spoken directions",
+                    listOf(false to "Off", true to "On"),
+                    speakDirections,
+                ) { CarSettings.setSpeakDirections(it) }
+            }
+
+            if (section == chosen) item {
+                Text(
+                    "Gearslip reads each turn aloud through the car's speakers, and the music dips while it " +
+                        "speaks. Turn it off if your map app's own voice already plays in the car.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (section == chosen) item {
                 ExperimentalFeatureRow(
-                    "What's new after updates",
-                    "Show the list of changes once, the first time the car connects after an update.",
-                    whatsNew,
-                ) { CarSettings.setWhatsNewAfterUpdates(it) }
-                GsButton(onClick = CarSettings::openWhatsNew, tone = GsTone.Tonal, modifier = Modifier.height(56.dp)) {
-                    Text("What's new", style = MaterialTheme.typography.titleMedium)
+                    title = "Use the phone's speech recognition",
+                    description = "Listens through the phone's own speech service instead of Gearslip's. On " +
+                        "most phones that's Google's, which may send your voice to Google. GrapheneOS has " +
+                        "none, so Gearslip keeps using its own.",
+                    checked = systemSpeech,
+                ) { CarSettings.setSystemSpeech(it) }
+            }
+
+            section = 4
+            if (section == chosen) item { Group("More") }
+
+            if (section == chosen) item {
+                WebPageSetting()
+            }
+
+            if (section == chosen) item {
+                ScreenFit(vehicle)
+            }
+
+            if (section == chosen) item {
+                ChoiceRow(
+                    "Experimental features",
+                    listOf(false to "Hide", true to "Show"),
+                    experimentalFeatures,
+                ) { CarSettings.setExperimentalFeaturesEnabled(it) }
+            }
+
+            if (section == chosen && experimentalFeatures) item {
+                ExperimentalFeaturesList(carSensors, adaptiveVideo)
+            }
+
+            if (section == chosen) item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Connection", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Info("Phone", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    Info("Vehicle", vehicle.ifEmpty { "-" })
+                    Info("Video", display.ifEmpty { "-" })
+                    Info("Certificate", cert?.headline ?: "Checking…")
+                }
+            }
+
+            if (section == chosen) item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Info("Version", app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME)
+                    Info("Build", app.seb3thehacker.gearslip.BuildConfig.VERSION_CODE.toString())
+                    ExperimentalFeatureRow(
+                        "What's new after updates",
+                        "Show the list of changes once, the first time the car connects after an update.",
+                        whatsNew,
+                    ) { CarSettings.setWhatsNewAfterUpdates(it) }
+                    GsButton(onClick = CarSettings::openWhatsNew, tone = GsTone.Tonal, modifier = Modifier.height(56.dp)) {
+                        Text("What's new", style = MaterialTheme.typography.titleMedium)
+                    }
                 }
             }
         }
@@ -347,6 +361,47 @@ private fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selecte
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 ChoiceButtons(options, selected, onSelect)
+            }
+        }
+    }
+}
+
+/** The groups, with the chosen one lit: a card down the left of Settings. */
+@Composable
+private fun SettingsRail(groups: List<String>, chosen: Int, onChoose: (Int) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(24.dp)
+    Surface(
+        Modifier.width(250.dp).fillMaxHeight().gsPanelShadow(shape),
+        shape = shape,
+        color = scheme.surfaceContainer,
+    ) {
+        Column(
+            Modifier.padding(10.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                "Settings",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 14.dp, top = 6.dp, bottom = 10.dp),
+            )
+            groups.forEachIndexed { i, name ->
+                val on = i == chosen
+                GsIconBox(
+                    onClick = { onChoose(i) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = if (on) GsColors(scheme.primaryContainer, scheme.onPrimaryContainer)
+                    else GsColors(Color.Transparent, scheme.onSurface),
+                    latched = on,
+                ) {
+                    Text(
+                        name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    )
+                }
             }
         }
     }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -100,8 +101,9 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
 
     val art = rememberArt(now)
 
-    // The art's colour behind everything, header included; the buttons keep their own.
-    Surface(Modifier.fillMaxSize(), color = rememberArtColor(art, MaterialTheme.colorScheme.background, darkLightness = 0.15f, lightLightness = 0.9f)) {
+    // The theme's background, with the cover's colours glowing faintly behind the cover on the left.
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        if (phase == CarMedia.Phase.READY && !searching) AlbumGlow(art, Modifier.fillMaxSize(), wide = true)
         if (phase != CarMedia.Phase.READY) {
             Column(Modifier.fillMaxSize()) {
                 AppIdentity(app, onExit, Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
@@ -197,7 +199,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        Tab.NOW_PLAYING -> NowPlayingControls(now, media, Modifier.fillMaxSize())
+                        Tab.NOW_PLAYING -> StageControls(now, media, Modifier.fillMaxSize())
                         Tab.BROWSE -> BrowsePanel(browse, media, app.label, Modifier.fillMaxSize())
                         Tab.QUEUE -> QueuePanel(queue, now, media, Modifier.fillMaxSize())
                         Tab.LYRICS -> LyricsPanel(now, Modifier.fillMaxSize())
@@ -603,11 +605,11 @@ internal fun NowPlayingPage(now: NowPlaying, media: CarMedia, modifier: Modifier
 @Composable
 private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val shape = RoundedCornerShape(22.dp)
         Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shadowElevation = 6.dp,
-            modifier = Modifier.size(minOf(maxWidth, maxHeight)),
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.size(minOf(maxWidth, maxHeight)).gsPanelShadow(shape),
         ) {
             if (art != null) {
                 Image(art.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -616,6 +618,54 @@ private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(MediaIcons.MusicNote, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxSize(0.35f))
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Now playing beside the big cover: the title in large type, then the seek bar and every control,
+ * all settled at the bottom. On a wide screen the transport and like, shuffle and repeat share
+ * one row; narrower, they take a row each.
+ */
+@Composable
+private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) {
+    BoxWithConstraints(modifier) {
+        val oneRow = maxWidth >= 820.dp
+        Column(
+            // At least as tall as the space, so the controls sit at its bottom; scrolls if they don't fit.
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Bottom),
+        ) {
+            Column {
+                Text(
+                    now.title.ifEmpty { "Nothing playing" },
+                    style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    listOf(now.artist, now.album).filter { it.isNotEmpty() }.joinToString(" · "),
+                    style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                now.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, maxLines = 2) }
+                if (now.title.isEmpty() && now.error == null) {
+                    Text(
+                        "Press play to pick up where you left off, or find something in Browse.",
+                        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            PlayerProgress(now, media, Modifier.fillMaxWidth())
+            if (oneRow) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TransportRow(now, media, skip = 66.dp, modifier = Modifier.weight(1f))
+                    PlayModeRow(now, media, size = 54.dp, modifier = Modifier.weight(1f), maxOther = 2)
+                }
+            } else {
+                TransportRow(now, media, skip = 64.dp, modifier = Modifier.fillMaxWidth())
+                PlayModeRow(now, media, size = 54.dp, modifier = Modifier.fillMaxWidth(), maxOther = 2)
             }
         }
     }

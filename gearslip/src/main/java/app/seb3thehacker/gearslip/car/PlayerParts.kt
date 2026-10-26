@@ -229,26 +229,48 @@ internal fun rememberArt(now: NowPlaying): android.graphics.Bitmap? {
 }
 
 /**
- * A background taken from the album art's main colour, in place of [fallback]. Only the hue and a
- * capped amount of its saturation come from the art; the lightness stays close to the theme's
- * own ([darkLightness] or [lightLightness]), so text drawn in the theme's colours reads the same
- * on any cover. Art with no real colour in it keeps [fallback]. Fades between songs rather than
- * jumping.
+ * Three soft pools of the cover's colours: top left, top right and the middle, read off a 3x3
+ * shrink of it. Still, and redrawn only while a new song's colours fade in, so it costs the video
+ * stream nothing between songs. Fainter on a light card, where colour shows more. [wide] is for
+ * a whole screen: the pools gather on its left, behind the cover, and reach less far across it.
  */
 @Composable
-internal fun rememberArtColor(
-    art: android.graphics.Bitmap?,
-    fallback: Color,
-    darkLightness: Float = 0.2f,
-    lightLightness: Float = 0.86f,
-): Color {
-    val dark = fallback.luminance() < 0.5f
-    val tint by produceState<ArtColor.Tint?>(null, art) {
-        value = art?.let { withContext(Dispatchers.Default) { runCatching { ArtColor.of(it) }.getOrNull() } }
+internal fun AlbumGlow(art: android.graphics.Bitmap?, modifier: Modifier, wide: Boolean = false) {
+    val spots by produceState<List<Color>>(emptyList(), art) {
+        value = art?.let { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { glowColours(it) } }.orEmpty()
     }
-    val target = tint?.let {
-        if (dark) Color.hsl(it.hue, it.saturation.coerceIn(0.3f, 0.5f), darkLightness)
-        else Color.hsl(it.hue, it.saturation.coerceIn(0.35f, 0.55f), lightLightness)
-    } ?: fallback
-    return animateColorAsState(target, tween(600), label = "art colour").value
+    val strength = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) 0.30f else 0.18f
+    val fade = tween<Color>(600)
+    val first by androidx.compose.animation.animateColorAsState(spots.getOrNull(0)?.copy(alpha = strength) ?: Color.Transparent, fade, label = "glow")
+    val second by androidx.compose.animation.animateColorAsState(spots.getOrNull(1)?.copy(alpha = strength) ?: Color.Transparent, fade, label = "glow")
+    val third by androidx.compose.animation.animateColorAsState(spots.getOrNull(2)?.copy(alpha = strength * 0.8f) ?: Color.Transparent, fade, label = "glow")
+    androidx.compose.foundation.Canvas(modifier) {
+        fun pool(colour: Color, x: Float, y: Float, reach: Float) {
+            if (colour.alpha <= 0f) return
+            drawRect(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    listOf(colour, Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * x, size.height * y),
+                    radius = size.width * reach,
+                ),
+            )
+        }
+        if (wide) {
+            pool(third, 0.22f, 0.8f, 0.35f)
+            pool(first, 0.1f, 0.25f, 0.42f)
+            pool(second, 0.3f, 0.45f, 0.38f)
+        } else {
+            pool(third, 0.5f, 0.5f, 0.85f)
+            pool(first, 0.2f, 0.1f, 0.9f)
+            pool(second, 0.85f, 0.22f, 0.8f)
+        }
+    }
+}
+
+/** The cover's colours at its top left, top right and middle. */
+private fun glowColours(art: android.graphics.Bitmap): List<Color> {
+    // A hardware bitmap can't be scaled or read on the CPU, so copy it out first.
+    val readable = if (art.config == android.graphics.Bitmap.Config.HARDWARE) art.copy(android.graphics.Bitmap.Config.ARGB_8888, false) else art
+    val small = android.graphics.Bitmap.createScaledBitmap(readable ?: return emptyList(), 3, 3, true)
+    return listOf(small.getPixel(0, 0), small.getPixel(2, 0), small.getPixel(1, 1)).map { Color(it).copy(alpha = 1f) }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import android.provider.Settings
 import android.content.Intent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -104,9 +105,108 @@ internal fun BrowsePanel(browse: app.seb3thehacker.gearslip.media.BrowseState, m
             )
             browse.failed -> Notice("Could not load this list.", null)
             browse.entries.isEmpty() -> Notice("Nothing here.", null)
-            else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(browse.entries, key = { it.id }) { entry -> EntryRow(entry, media) }
+            else -> BrowseList(browse.entries, media)
+        }
+    }
+}
+
+/**
+ * A list laid out the way the app asked: under its section headings, covers where it asked for a
+ * grid and rows everywhere else. A grid section among others is a shelf that scrolls sideways; a
+ * list that is one grid and nothing else wraps into rows of covers instead.
+ */
+@Composable
+private fun BrowseList(entries: List<MediaEntry>, media: CarMedia) {
+    val sections = remember(entries) { browseSections(entries) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val onlyGrid = sections.size == 1 && sections[0].grid && sections[0].heading == null
+        val columns = ((maxWidth + SHELF_GAP) / (SHELF_COVER + SHELF_GAP)).toInt().coerceAtLeast(2)
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            sections.forEachIndexed { i, section ->
+                val heading = section.heading
+                if (heading != null && sections.getOrNull(i - 1)?.heading != heading) {
+                    item(key = "heading $i") {
+                        Text(
+                            heading,
+                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = if (i == 0) 0.dp else 8.dp),
+                        )
+                    }
+                }
+                when {
+                    !section.grid -> items(section.entries, key = { it.id }) { entry -> EntryRow(entry, media) }
+                    onlyGrid -> items(section.entries.chunked(columns)) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(SHELF_GAP)) {
+                            row.forEach { CoverTile(it, media, Modifier.weight(1f)) }
+                            repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                    else -> item(key = "shelf $i") {
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(SHELF_GAP)) {
+                            items(section.entries, key = { it.id }) { CoverTile(it, media, Modifier.width(SHELF_COVER)) }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+private val SHELF_COVER = 132.dp
+private val SHELF_GAP = 14.dp
+
+/** A run of entries under one heading that are all covers or all rows. */
+private class BrowseSection(val heading: String?, val grid: Boolean, val entries: List<MediaEntry>)
+
+private fun browseSections(entries: List<MediaEntry>): List<BrowseSection> {
+    val out = mutableListOf<BrowseSection>()
+    var run = mutableListOf<MediaEntry>()
+    for (entry in entries) {
+        val last = run.lastOrNull()
+        if (last != null && (last.group != entry.group || last.grid != entry.grid)) {
+            out += BrowseSection(last.group, last.grid, run)
+            run = mutableListOf()
+        }
+        run += entry
+    }
+    run.lastOrNull()?.let { out += BrowseSection(it.group, it.grid, run) }
+    return out
+}
+
+/** One entry as a cover with its name under it: what the app's grids are made of. */
+@Composable
+private fun CoverTile(entry: MediaEntry, media: CarMedia, modifier: Modifier) {
+    val context = LocalContext.current
+    val icon by produceState(entry.iconBitmap, entry.iconUri) {
+        value = entry.iconBitmap ?: MediaArt.load(context, entry.iconUri)
+    }
+    val shape = RoundedCornerShape(16.dp)
+    Column(modifier.clip(shape).clickable { media.select(entry) }) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .gsPanelShadow(shape)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                ?: Icon(
+                    if (entry.browsable) MediaIcons.Folder else MediaIcons.MusicNote, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxSize(0.35f),
+                )
+        }
+        Text(
+            entry.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp, start = 2.dp),
+        )
+        if (entry.subtitle.isNotEmpty()) {
+            Text(
+                entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
+            )
         }
     }
 }
@@ -148,15 +248,15 @@ private fun QueueRow(track: QueueTrack, media: CarMedia) {
     Surface(
         onClick = { media.playQueueItem(track) },
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             RowArt(icon, MediaIcons.MusicNote)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(track.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(track.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (track.subtitle.isNotEmpty()) {
-                    Text(track.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(track.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Icon(Icons.Filled.PlayArrow, "Play", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -173,15 +273,15 @@ internal fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = 
     Surface(
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             RowArt(icon, if (entry.browsable) MediaIcons.Folder else MediaIcons.MusicNote)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(entry.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(entry.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (entry.subtitle.isNotEmpty()) {
-                    Text(entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(entry.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (entry.browsable && entry.playable) {
