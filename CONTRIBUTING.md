@@ -38,6 +38,19 @@ branch on `experimental`, and open your pull request against it.
 - Gearslip asks for no adb, root, or Shizuku. A feature must work with ordinary Android
   permissions and on-device consent dialogs.
 
+## Translating
+
+Translations happen on [Weblate](https://hosted.weblate.org/engage/gearslip/), not in pull
+requests. Pick your language, or start a new one, and translate in the browser. Weblate
+sends the finished work to this repository as a pull request.
+
+Keep the tone of the English: short, plain, and friendly. Leave placeholders such as `%1$s`
+and `%1$d` in place; Gearslip fills them with names and numbers. Untranslated strings show
+in English, so a partial translation is still useful.
+
+Before your first translation, Weblate asks you to accept the
+[Contributor License Agreement](CLA.md). That counts as signing it.
+
 ## Writing
 
 Text that users read, such as screens, release notes, and docs, follows Strunk's

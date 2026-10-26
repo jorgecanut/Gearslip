@@ -9,6 +9,8 @@ An Android Auto alternative built for everyone.
 
 [<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/twinksoftware/gearslip)
 
+[![Translation status](https://hosted.weblate.org/widget/gearslip/app/svg-badge.svg)](https://hosted.weblate.org/engage/gearslip/)
+
 Questions, ideas?
 [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5KqKpc9FfX_wHp1jFCcwAtPrndIn_oGIyMk?via=matrix.org).
 
@@ -152,6 +154,9 @@ and years as possible. If something breaks, that's on me, so please open an issu
 Bug reports from real cars help most, and pull requests are welcome.
 [CONTRIBUTING.md](CONTRIBUTING.md) explains what to put in a report, which branch to work
 on, and the one-time agreement you sign before your first pull request merges.
+
+To help translate Gearslip into your language, join
+[Gearslip on Weblate](https://hosted.weblate.org/engage/gearslip/). No coding needed.
 
 ## Building
 

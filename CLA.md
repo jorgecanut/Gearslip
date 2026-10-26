@@ -88,6 +88,9 @@ We are not required to use or include any Contribution.
 Most contributors sign on GitHub: the CLA Assistant bot comments on your first pull request,
 and you sign there with one click. Your GitHub account then serves as your signature.
 
+Translators sign on Weblate: it shows this agreement before your first translation, and
+accepting it there serves as your signature.
+
 To sign by hand instead, fill in the following and send it to us on Matrix. The address is
 on the [Seb3thehacker GitHub profile](https://github.com/Seb3thehacker).
 
