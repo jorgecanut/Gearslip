@@ -5,6 +5,7 @@ Gearslip 0.3.12 plus a Spanish voice assistant and fixes for head units whose mu
 - The phone stays silent while music goes to the car. Pressing volume up no longer brings the phone's speaker back for good.
 - Connecting by itself waits for a head unit that is still starting up, if its music channel takes only AAC: Gearslip keeps calling it for up to a minute. Other cars get one call, then Gearslip waits for the car to call back. Gearslip learns which kind your car is the first time it connects.
 - When a VPN keeps the phone from reaching the car over Wi-Fi, a popup says so, with a shortcut to the VPN settings.
+- Media apps that won't let Gearslip browse them, like YouTube Music, no longer stay stuck on "would not let Gearslip browse it": start one playing on the phone and the car takes over its controls.
 - When the car hangs up on its own (switched off, or wireless dropped), the music pauses and the phone stops sending audio, as when you unplug the cable. Before, it kept playing until the next connection.
 - The voice assistant speaks Spanish: choose Español under Settings, Voice: language. Spanish downloads Kroko's Spanish model (149 MB) and uses Canary for the final words.
 - Ask "what's on my calendar" (or "¿qué tengo hoy?") to hear your next event.
