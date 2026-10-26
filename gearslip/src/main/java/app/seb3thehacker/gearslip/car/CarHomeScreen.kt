@@ -64,7 +64,9 @@ import app.seb3thehacker.gearslip.media.NowPlaying
 import kotlinx.coroutines.launch
 
 /**
- * The home screen: the map on the left, the docked player on the right when asked for.
+ * The home screen: the map, with the docked player beside it when asked for. With the player on
+ * the left, the map app's cards move to the map's far edge, so the player, the map and the cards
+ * each keep their own space.
  *
  * The map is whatever navigation app was used last, brought back on its own. The player sits in
  * the nav bar's pill until its dock button moves it here; the column closes itself back to a
@@ -106,7 +108,9 @@ fun CarHome() {
                 .weight(if (splitScreen) 2.1f else 1f)
                 .fillMaxHeight(),
         ) {
-            MapPane(navStatus, frame)
+            androidx.compose.runtime.CompositionLocalProvider(LocalCardsAtEnd provides (splitScreen && playerLeft)) {
+                MapPane(navStatus, frame)
+            }
         }
         if (splitScreen && !playerLeft) {
             if (panel == SidePanel.LYRICS) SideLyrics(now, side) else DockedPlayer(now, side)
@@ -175,7 +179,9 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
     val scheme = MaterialTheme.colorScheme
     val art by produceState(now.art, now.art, now.artUri) { value = now.art ?: MediaArt.load(context, now.artUri) }
 
-    Surface(modifier = modifier, color = rememberArtColor(art, MaterialTheme.colorScheme.surfaceVariant)) {
+    // The theme's surface rather than the art's colour: a slab of album colour beside the map
+    // fought it for attention, and the art says the same thing in less space.
+    Surface(modifier = modifier, color = scheme.surfaceContainer) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(12.dp)) {
             // Whatever height the controls below leave over, so the art grows on a taller
             // screen and shrinks rather than pushing the buttons off a short one.
@@ -226,32 +232,32 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
 }
 
 /**
- * Lyrics alone beside the map, big enough to read at a glance. No art: that space goes to a
- * larger title and artist instead. The player goes back to the nav bar meanwhile, whose dock
- * button swaps these back out for the controls.
+ * Lyrics alone beside the map, big enough to read at a glance. The header is slim, since the
+ * player goes back to the nav bar meanwhile and names the song there; its dock button swaps these
+ * back out for the controls.
  */
 @Composable
 private fun SideLyrics(now: NowPlaying, modifier: Modifier) {
     val navigator = LocalCarNavigator.current
     val context = LocalContext.current
+    val scheme = MaterialTheme.colorScheme
     val art by produceState(now.art, now.art, now.artUri) { value = now.art ?: MediaArt.load(context, now.artUri) }
-    Surface(modifier = modifier, color = rememberArtColor(art, MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        now.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        now.artist, style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
+    Surface(modifier = modifier, color = scheme.surfaceContainer) {
+        Column(Modifier.fillMaxSize().padding(start = 18.dp, end = 12.dp, top = 12.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(scheme.surface)) {
+                    art?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                 }
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    listOf(now.title, now.artist).filter { it.isNotEmpty() }.joinToString(" · "),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
                 GsIconButton(Icons.Filled.Close, "Hide lyrics", navigator::closeSidePanel, size = 36.dp, iconSize = 20.dp)
             }
-            Spacer(Modifier.height(12.dp))
             LyricsPanel(now, Modifier.weight(1f).fillMaxWidth(), lineStyle = MaterialTheme.typography.headlineSmall)
         }
     }

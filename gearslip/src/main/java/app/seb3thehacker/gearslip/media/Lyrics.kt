@@ -21,7 +21,14 @@ import java.net.URLEncoder
 import java.security.MessageDigest
 import kotlin.math.abs
 
-class LyricLine(val timeMs: Long, val text: String)
+/**
+ * One line. [words] is filled only for word-timed lyrics, and joined back together it reads as
+ * [text]; each word carries the space after it, if any, so a word split into syllables stays whole.
+ */
+class LyricLine(val timeMs: Long, val text: String, val words: List<LyricWord> = emptyList())
+
+/** A word, or a syllable of one, sung from [startMs] to [endMs]. */
+class LyricWord(val startMs: Long, val endMs: Long, val text: String)
 
 /**
  * [synced] means every line carries a time, so the current one can be followed along. [source]
@@ -64,7 +71,7 @@ object Lyrics {
     private fun quality(result: LyricsResult?): Int = when {
         result == null -> 0
         !result.synced -> 1
-        result.source == "BetterLyrics" -> BEST
+        result.lines.any { it.words.isNotEmpty() } -> BEST
         else -> 2
     }
 
@@ -158,10 +165,20 @@ object Lyrics {
         val lines = json.getJSONArray("lines").let { arr ->
             (0 until arr.length()).map { i ->
                 val line = arr.getJSONObject(i)
-                LyricLine(line.getLong("t"), line.getString("x"))
+                val words = line.optJSONArray("w")?.let { w ->
+                    (0 until w.length()).map { j ->
+                        val word = w.getJSONArray(j)
+                        LyricWord(word.getLong(0), word.getLong(1), word.getString(2))
+                    }
+                }.orEmpty()
+                LyricLine(line.getLong("t"), line.getString("x"), words)
             }
         }
-        LyricsResult(lines, json.getBoolean("synced"), json.optString("source"))
+        val source = json.optString("source")
+        // Saved before word timings were kept: fetch again rather than wait a day for an upgrade
+        // that skips the source it came from.
+        if (source == "BetterLyrics" && lines.none { it.words.isNotEmpty() }) return null
+        LyricsResult(lines, json.getBoolean("synced"), source)
     }.getOrNull()
 
     /** When the song's sources were last asked; 0 for entries from before the date was kept. */
@@ -172,7 +189,11 @@ object Lyrics {
         runCatching {
             val lines = JSONArray()
             result.lines.forEach { line ->
-                lines.put(JSONObject().put("t", line.timeMs).put("x", line.text))
+                val entry = JSONObject().put("t", line.timeMs).put("x", line.text)
+                if (line.words.isNotEmpty()) {
+                    entry.put("w", JSONArray(line.words.map { JSONArray().put(it.startMs).put(it.endMs).put(it.text) }))
+                }
+                lines.put(entry)
             }
             val json = JSONObject().put("synced", result.synced).put("source", result.source)
                 .put("checked", checked).put("lines", lines)
@@ -201,8 +222,9 @@ object Lyrics {
     }
 
     /**
-     * Apple-style TTML: one `<p begin=…>` per line, its words in `<span>`s with spaces between.
-     * Background vocals, translations and romanisations are left out, so a line reads as sung.
+     * Apple-style TTML: one `<p begin=…>` per line, its words in `<span begin=… end=…>`s with
+     * spaces between; a word sung in syllables is several spans with no space. Background vocals,
+     * translations and romanisations are left out, so a line reads as sung.
      */
     private fun parseTtml(ttml: String): LyricsResult? {
         val parser = Xml.newPullParser().apply {
@@ -215,28 +237,50 @@ object Lyrics {
         var firstSpanBegin: Long? = null
         var skipDepth = 0
         val text = StringBuilder()
+        // The span being read, and the words of the line so far, each with the space after it.
+        var spanBegin: Long? = null
+        var spanEnd: Long? = null
+        val words = mutableListOf<Triple<Long, Long, StringBuilder>>()
         var event = parser.eventType
         while (event != XmlPullParser.END_DOCUMENT) {
             when (event) {
                 XmlPullParser.START_TAG -> when {
                     parser.name == "p" -> {
-                        inP = true; text.clear(); firstSpanBegin = null
+                        inP = true; text.clear(); firstSpanBegin = null; words.clear()
                         lineBegin = attr(parser, "begin")?.let(::ttmlMs)
                     }
                     inP && skipDepth > 0 -> skipDepth++
                     inP && parser.name == "span" -> {
                         val role = attr(parser, "role")
                         if (role == "x-bg" || role == "x-translation" || role == "x-roman") skipDepth = 1
-                        else if (firstSpanBegin == null) firstSpanBegin = attr(parser, "begin")?.let(::ttmlMs)
+                        else {
+                            spanBegin = attr(parser, "begin")?.let(::ttmlMs)
+                            spanEnd = attr(parser, "end")?.let(::ttmlMs)
+                            if (firstSpanBegin == null) firstSpanBegin = spanBegin
+                        }
                     }
                 }
-                XmlPullParser.TEXT -> if (inP && skipDepth == 0) text.append(parser.text)
+                XmlPullParser.TEXT -> if (inP && skipDepth == 0) {
+                    val raw = parser.text
+                    text.append(raw)
+                    val begin = spanBegin
+                    val end = spanEnd
+                    if (begin != null && end != null && raw.isNotBlank()) {
+                        val word = raw.replace(Regex("\\s+"), " ").trimStart()
+                        words.add(Triple(begin, end, StringBuilder(word)))
+                    } else if (raw.isNotEmpty() && raw.isBlank() && words.isNotEmpty() && !words.last().third.endsWith(" ")) {
+                        words.last().third.append(' ')
+                    }
+                }
                 XmlPullParser.END_TAG -> when {
                     inP && skipDepth > 0 -> skipDepth--
+                    inP && parser.name == "span" -> { spanBegin = null; spanEnd = null }
                     parser.name == "p" -> {
                         inP = false
-                        val words = text.toString().replace(Regex("\\s+"), " ").trim()
-                        if (words.isNotEmpty()) lines.add(LyricLine(lineBegin ?: firstSpanBegin ?: -1, words))
+                        val timed = words.map { (b, e, w) -> LyricWord(b, e, w.toString()) }
+                        val line = if (timed.isNotEmpty()) timed.joinToString("") { it.text }.trim()
+                        else text.toString().replace(Regex("\\s+"), " ").trim()
+                        if (line.isNotEmpty()) lines.add(LyricLine(lineBegin ?: firstSpanBegin ?: -1, line, timed))
                     }
                 }
             }

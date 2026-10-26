@@ -228,6 +228,8 @@ internal fun RightEdgeControls(
     modifier: Modifier = Modifier,
     /** For the stack of map buttons alone, without the row of the app's own above it. */
     mapActionsModifier: Modifier = Modifier,
+    /** End normally; Start when the app's cards have moved to the far edge and these to the near one. */
+    alignment: Alignment.Horizontal = Alignment.End,
 ) {
     val connection = LocalCarAppConnection.current
     val actions = actionStrip?.actions.orEmpty().filter { it.isDrawable() }
@@ -262,7 +264,7 @@ internal fun RightEdgeControls(
                     }
                 }
             },
-        horizontalAlignment = Alignment.End,
+        horizontalAlignment = alignment,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (actions.isNotEmpty()) {
@@ -273,7 +275,7 @@ internal fun RightEdgeControls(
         if (mapActions.isNotEmpty()) {
             Column(
                 mapActionsModifier,
-                horizontalAlignment = Alignment.End,
+                horizontalAlignment = alignment,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 mapActions.forEach { ActionButton(it) }

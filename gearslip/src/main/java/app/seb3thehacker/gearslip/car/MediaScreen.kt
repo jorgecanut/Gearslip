@@ -49,6 +49,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.layout.widthIn
@@ -382,8 +385,10 @@ private fun MediaTab(label: String, selected: Boolean, modifier: Modifier, onCli
 }
 
 /**
- * The song's lyrics, fetched when this tab opens. Synced lyrics follow the playback position with
- * the current line in the accent colour; unsynced ones are plain scrolling text.
+ * The song's lyrics, fetched when this tab opens. Synced lyrics follow playback: the line being
+ * sung sits a little above the middle in bold, lines already sung dim, and the list fades out at
+ * both edges instead of cutting a line in half. Word-timed lyrics also light up each word as it's
+ * sung. Unsynced ones are plain scrolling text.
  */
 @Composable
 internal fun LyricsPanel(
@@ -402,16 +407,6 @@ internal fun LyricsPanel(
                 ?.let { value = LyricsState.Found(it) }
         }
     }
-    val list = rememberLazyListState()
-
-    // Ticks with playback so the highlighted line moves; only synced lyrics need it.
-    var position by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(now) {
-        while (true) {
-            position = now.currentPosition()
-            kotlinx.coroutines.delay(300)
-        }
-    }
 
     when (val state = lyrics) {
         LyricsState.Loading -> Notice("Looking for lyrics…", null)
@@ -419,39 +414,146 @@ internal fun LyricsPanel(
             if (now.title.isEmpty()) "Nothing playing." else "No lyrics found for this track.",
             null,
         )
-        is LyricsState.Found -> {
-            val lines = state.result.lines
-            val current = if (state.result.synced) lines.indexOfLast { it.timeMs <= position } else -1
-            LaunchedEffect(current) {
-                val offset = if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) 1 else 0
-                if (current >= 0) list.animateScrollToItem((current - 1 + offset).coerceAtLeast(0))
-            }
-            LazyColumn(modifier, state = list, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Debug builds name the service the lyrics came from, to see which one answers.
-                if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) item {
-                    val from = state.result.source.ifEmpty { "an older cache" }
-                    Text(
-                        "From $from · ${if (state.result.synced) "synced" else "plain"}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
+        is LyricsState.Found -> Column(modifier) {
+            if (state.result.synced) SyncedLyrics(now, state.result, lineStyle, Modifier.weight(1f).fillMaxWidth())
+            else PlainLyrics(state.result, lineStyle, Modifier.weight(1f).fillMaxWidth())
+            // Debug builds name the service the lyrics came from, to see which one answers.
+            if (app.seb3thehacker.gearslip.BuildConfig.DEBUG) {
+                val from = state.result.source.ifEmpty { "an older cache" }
+                val kind = when {
+                    state.result.lines.any { it.words.isNotEmpty() } -> "word-timed"
+                    state.result.synced -> "synced"
+                    else -> "plain"
                 }
-                itemsIndexed(lines) { index, line ->
+                Text(
+                    "From $from · $kind",
+                    Modifier.padding(top = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SyncedLyrics(
+    now: NowPlaying,
+    result: LyricsResult,
+    lineStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier,
+) {
+    val lines = result.lines
+    val wordTimed = lines.any { it.words.isNotEmpty() }
+    // Every frame while words are filling in, so a word doesn't light up in steps; otherwise a
+    // few times a second is enough to move the line along.
+    var position by remember { mutableLongStateOf(now.currentPosition()) }
+    LaunchedEffect(now, wordTimed) {
+        while (true) {
+            position = now.currentPosition()
+            if (wordTimed && now.state == PlaybackState.STATE_PLAYING) androidx.compose.runtime.withFrameMillis { }
+            else delay(300)
+        }
+    }
+    // Only the line changing recomposes the list; the moving position is read by the one line.
+    val current by remember(lines) {
+        androidx.compose.runtime.derivedStateOf { lines.indexOfLast { it.timeMs <= position } }
+    }
+    val list = rememberLazyListState()
+    LaunchedEffect(current) {
+        if (current >= 0) list.animateScrollToItem(current)
+    }
+
+    val scheme = MaterialTheme.colorScheme
+    val sung = scheme.onSurfaceVariant.copy(alpha = 0.55f)
+    BoxWithConstraints(modifier.fadingEdges()) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            state = list,
+            // The padding lets the first line start, and the last line end, near the middle.
+            contentPadding = PaddingValues(top = maxHeight * 0.32f, bottom = maxHeight * 0.6f),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            itemsIndexed(lines) { index, line ->
+                if (index == current) {
+                    CurrentLine(line, { position }, lineStyle)
+                } else {
                     Text(
                         line.text.ifEmpty { " " },
                         style = lineStyle,
-                        fontWeight = if (index == current) FontWeight.Bold else FontWeight.Normal,
-                        color = when {
-                            !state.result.synced -> MaterialTheme.colorScheme.onSurface
-                            index == current -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        color = if (index < current) sung else scheme.onSurfaceVariant,
                     )
                 }
             }
         }
     }
 }
+
+/**
+ * The line being sung, in bold and a size up. With word timings, words already sung are in the
+ * accent colour, the one being sung fills in letter by letter, and the rest wait dimmed.
+ */
+@Composable
+private fun CurrentLine(line: app.seb3thehacker.gearslip.media.LyricLine, position: () -> Long, lineStyle: androidx.compose.ui.text.TextStyle) {
+    val scheme = MaterialTheme.colorScheme
+    val style = lineStyle.copy(fontWeight = FontWeight.Bold, fontSize = lineStyle.fontSize * 1.15f)
+    if (line.words.isEmpty()) {
+        Text(line.text.ifEmpty { " " }, style = style, color = scheme.primary)
+        return
+    }
+    val lit = scheme.primary
+    val waiting = scheme.onSurfaceVariant.copy(alpha = 0.7f)
+    val now = position()
+    val text = androidx.compose.ui.text.buildAnnotatedString {
+        line.words.forEachIndexed { i, word ->
+            // The line's first word has no leading space to trim, the last no trailing one.
+            val shown = if (i == line.words.lastIndex) word.text.trimEnd() else word.text
+            val progress = when {
+                now >= word.endMs -> 1f
+                now <= word.startMs -> 0f
+                else -> (now - word.startMs).toFloat() / (word.endMs - word.startMs).coerceAtLeast(1)
+            }
+            val letters = shown.trimEnd().length
+            val filled = progress * letters
+            shown.forEachIndexed { c, ch ->
+                val amount = (filled - c).coerceIn(0f, 1f)
+                withStyle(androidx.compose.ui.text.SpanStyle(color = androidx.compose.ui.graphics.lerp(waiting, lit, amount))) {
+                    append(ch)
+                }
+            }
+        }
+    }
+    Text(text, style = style)
+}
+
+@Composable
+private fun PlainLyrics(result: LyricsResult, lineStyle: androidx.compose.ui.text.TextStyle, modifier: Modifier) {
+    LazyColumn(
+        modifier.fadingEdges(),
+        contentPadding = PaddingValues(vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(result.lines) { line ->
+            Text(line.text.ifEmpty { " " }, style = lineStyle, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+/** Fades the top and bottom edges out, so a line scrolling past doesn't end in a hard cut. */
+private fun Modifier.fadingEdges(): Modifier = this
+    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        drawRect(
+            androidx.compose.ui.graphics.Brush.verticalGradient(
+                0f to androidx.compose.ui.graphics.Color.Transparent,
+                0.14f to androidx.compose.ui.graphics.Color.Black,
+                0.86f to androidx.compose.ui.graphics.Color.Black,
+                1f to androidx.compose.ui.graphics.Color.Transparent,
+            ),
+            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+        )
+    }
 
 private sealed interface LyricsState {
     data object Loading : LyricsState
