@@ -110,6 +110,7 @@ fun CarUi() {
     val phoneDark by CarEnvironment.phoneDark.collectAsState()
     val appTheme by CarSettings.appTheme.collectAsState()
     val uiThemeId by CarSettings.uiTheme.collectAsState()
+    val darkStyle by CarSettings.darkStyle.collectAsState()
     val mediaApp by CarServices.mediaApp.collectAsState()
     val darkOutside by CarEnvironment.darkOutside.collectAsState()
     val appContext = LocalContext.current.applicationContext
@@ -118,7 +119,7 @@ fun CarUi() {
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
     }
-    val colors = (if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)).withTintedSurfaces(dark)
+    val colors = (if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)).withTintedSurfaces(dark, darkStyle)
     val base = LocalDensity.current
     val insets by CarEnvironment.insets.collectAsState()
     val navigator = remember { CarNavigator(CarSettings.openOnConnect.value) }

@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import android.content.Context
 import app.seb3thehacker.gearslip.AppSettings
 import app.seb3thehacker.gearslip.audio.CarAudio
@@ -67,6 +68,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_MORE_LYRICS = "car_more_lyrics"
     private const val KEY_THEME = "car_app_theme"
     private const val KEY_UI_THEME = "car_ui_theme"
+    private const val KEY_DARK_STYLE = "car_dark_style"
     private const val KEY_PINNED = "car_pinned_apps"
     private const val KEY_APP_ORDER = "car_app_order"
     private const val KEY_EXPERIMENTAL_FEATURES = "car_experimental_features"
@@ -108,6 +110,10 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val moreLyricsFlow = MutableStateFlow(true)
     private val themeFlow = MutableStateFlow(AppTheme.PHONE)
     val appTheme: StateFlow<AppTheme> = themeFlow
+    private val darkStyleFlow = MutableStateFlow(DarkStyle.BLACK)
+
+    /** How dark the car's dark mode goes; black until the driver picks another. */
+    val darkStyle: StateFlow<DarkStyle> = darkStyleFlow
     private val uiThemeFlow = MutableStateFlow(GsThemes.default.id)
 
     /** Id of the [GsTheme] controls are drawn in; an unknown id falls back to the default. */
@@ -317,6 +323,9 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         themeFlow.value = runCatching {
             AppTheme.valueOf(AppSettings.getString(app, KEY_THEME, AppTheme.PHONE.name))
         }.getOrDefault(AppTheme.PHONE)
+        darkStyleFlow.value = runCatching {
+            DarkStyle.valueOf(AppSettings.getString(app, KEY_DARK_STYLE, DarkStyle.BLACK.name))
+        }.getOrDefault(DarkStyle.BLACK)
         uiThemeFlow.value = AppSettings.getString(app, KEY_UI_THEME, GsThemes.default.id)
         autoplayFlow.value = AppSettings.getString(app, KEY_AUTOPLAY, "false") == "true"
         playerTitleFlow.value = AppSettings.getString(app, KEY_PLAYER_TITLE, "false") == "true"
@@ -382,6 +391,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     fun setAppTheme(theme: AppTheme) {
         themeFlow.value = theme
         AppSettings.putString(app, KEY_THEME, theme.name)
+    }
+
+    fun setDarkStyle(style: DarkStyle) {
+        darkStyleFlow.value = style
+        AppSettings.putString(app, KEY_DARK_STYLE, style.name)
     }
 
     fun setUiTheme(id: String) {

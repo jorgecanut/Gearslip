@@ -1,6 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
 
+import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import app.seb3thehacker.gearslip.car.theme.*
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
@@ -68,6 +69,7 @@ fun CarSettingsScreen() {
     val moreLyrics by CarSettings.moreLyrics.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
+    val darkStyle by CarSettings.darkStyle.collectAsState()
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
     val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
@@ -114,6 +116,19 @@ fun CarSettingsScreen() {
                 listOf(AppTheme.PHONE to "Follow phone", AppTheme.LIGHT to "Light", AppTheme.DARK to "Dark"),
                 theme,
             ) { CarSettings.setAppTheme(it) }
+        }
+
+        if (theme != AppTheme.LIGHT) item {
+            ChoiceRow(
+                "Dark mode",
+                listOf(
+                    DarkStyle.BLACK to "Black",
+                    DarkStyle.BLACK_COLOUR to "Black and colour",
+                    DarkStyle.DEEP_COLOUR to "Deep colour",
+                    DarkStyle.GREY to "Grey",
+                ),
+                darkStyle,
+            ) { CarSettings.setDarkStyle(it) }
         }
 
         item {

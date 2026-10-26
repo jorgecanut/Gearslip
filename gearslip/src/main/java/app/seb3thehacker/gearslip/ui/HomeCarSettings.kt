@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.ui
 
+import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,12 @@ enum class CarGroup(val title: String) {
 
 private val sizeChoices = listOf(1f to "Normal", 1.25f to "Large", 1.5f to "Extra large")
 private val themeChoices = listOf(AppTheme.PHONE to "Follow phone", AppTheme.LIGHT to "Light", AppTheme.DARK to "Dark")
+private val darkChoices = listOf(
+    DarkStyle.BLACK to "Black",
+    DarkStyle.BLACK_COLOUR to "Black and colour",
+    DarkStyle.DEEP_COLOUR to "Deep colour",
+    DarkStyle.GREY to "Grey",
+)
 private val nightChoices = listOf(NightMode.AUTO to "Auto", NightMode.DAY to "Day", NightMode.NIGHT to "Night")
 private val unitChoices = listOf(Units.AUTO to "Auto", Units.IMPERIAL to "Imperial", Units.METRIC to "Metric")
 private val navBarChoices = listOf(
@@ -155,6 +162,7 @@ private fun GroupRows(group: CarGroup) {
     val moreLyrics by CarSettings.moreLyrics.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
+    val darkStyle by CarSettings.darkStyle.collectAsState()
 
     when (group) {
         CarGroup.SCREEN -> {
@@ -164,6 +172,10 @@ private fun GroupRows(group: CarGroup) {
             SettingsDivider()
             Choice("App theme", themeChoices, theme, CarSettings::setAppTheme)
             SettingsDivider()
+            if (theme != AppTheme.LIGHT) {
+                Choice("Dark mode", darkChoices, darkStyle, CarSettings::setDarkStyle)
+                SettingsDivider()
+            }
             Choice("Buttons", GsThemes.builtIn.map { it.id to it.name }, uiTheme, CarSettings::setUiTheme)
             SettingsDivider()
             Choice("Map day/night", nightChoices, night, CarSettings::setNightMode)
