@@ -26,6 +26,8 @@ import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 import java.net.Socket
 import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Wireless Android Auto, phone side: the start-up that hands Gearslip a socket instead of a USB
@@ -171,6 +173,14 @@ object WirelessLink {
     private fun takesOnlyAac(context: Context, address: String) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(address, false)
 
+    /** Set when a wireless start-up begins with a VPN on, to the car's name; the phone app shows a dialog. */
+    val vpnWarning: StateFlow<String?> get() = _vpnWarning
+    private val _vpnWarning = MutableStateFlow<String?>(null)
+
+    fun dismissVpnWarning() {
+        _vpnWarning.value = null
+    }
+
     /** A stable id for this phone as this app sees it, standing in for the serial a real phone sends. */
     @SuppressLint("HardwareIds")
     private fun deviceId(context: Context): String =
@@ -180,6 +190,11 @@ object WirelessLink {
     private fun run(context: Context, device: BluetoothDevice, automatic: Boolean) {
         val name = name(device)
         log.i("--- wireless start-up with $name (${device.address}) ---")
+        if (vpnActive(context)) {
+            // Not a stop: VPNs that let local traffic past still reach the car.
+            log.w("a VPN is on - it may keep the phone from reaching $name")
+            _vpnWarning.value = name
+        }
         SessionStatus.connecting("Bluetooth: reaching $name")
         val keepCalling = automatic && takesOnlyAac(context, device.address)
         if (automatic && !keepCalling) log.i("Bluetooth: $name isn't known to take only AAC - calling once, then waiting for it")
