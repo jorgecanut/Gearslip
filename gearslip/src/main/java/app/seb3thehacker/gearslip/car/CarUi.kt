@@ -234,12 +234,11 @@ fun CarUi() {
                 val screen = navigator.current
                 val safetyWarningSeen by CarSettings.hasSeenSafetyWarning.collectAsState()
                 val keyboardVisible by CarKeyboardVisibility.state
-                // Off "Always show", the bar floats over the map rather than taking a row of its
-                // own: hiding it then leaves the map's surface the size it was. Resizing it would
-                // hand the map app a new surface each time, and some go black on that.
+                // The bar always floats, over the map and every other screen, rather than taking a
+                // row of its own: hiding it then leaves the map's surface the size it was.
+                // Resizing it would hand the map app a new surface each time, and some go black on that.
                 val navBarMode by CarSettings.navBarMode.collectAsState()
                 val appTemplate by CarServices.nav.template.collectAsState()
-                val floatingBar = navBarMode != NavBarMode.SHOW
                 val barMayHide = screen == CarScreen.Home && when (navBarMode) {
                     NavBarMode.SHOW -> false
                     NavBarMode.HIDE_NAVIGATING -> appTemplate is androidx.car.app.navigation.model.NavigationTemplate
@@ -250,7 +249,8 @@ fun CarUi() {
                 // A call keeps the bar up whatever the setting: End and Mute live on it.
                 val onCall = CarCalls.state.collectAsState().value is CallUiState.Active
                 val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake || onCall)
-                val homeInset = if (floatingBar && barShown) NAV_BAR_HEIGHT else 0.dp
+                // Up to the bar's top edge, so the map's cards and the player end above it.
+                val homeInset = if (barShown) NAV_BAR_HEIGHT + NAV_BAR_GAP else 0.dp
                 // Only the screen that asked: going Home or anywhere else ends it.
                 val fullscreen = CarFullscreen.active && screen != CarScreen.Home
                 Box(Modifier.fillMaxSize().padding(pad)) {
@@ -270,24 +270,20 @@ fun CarUi() {
                     // The keyboard takes the nav bar's row instead of squeezing in above it -
                     // nothing on the nav bar is useful mid-type, and the screen is too small to
                     // show both.
-                    if (!floatingBar && !keyboardVisible) CarNavBar(navigator)
                 }
                 // Every other screen, and everything that pops up, in a layer over Home rather
                 // than inside its area: full screen grows this layer over the nav bar's row while
                 // Home, and the map's surface in it, keeps its size.
                 if (safetyWarningSeen) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(bottom = if (!floatingBar && !keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp),
-                    ) {
+                    Box(Modifier.fillMaxSize()) {
                         if (screen != CarScreen.Home) {
                             Box(
                                 Modifier
                                     .fillMaxSize()
                                     .background(MaterialTheme.colorScheme.background)
-                                    // The floating bar never hides here, so keep the screen clear of it.
-                                    .padding(bottom = if (floatingBar && !keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp)
+                                    // The bar never hides here, so keep the screen clear of it, with
+                                    // the same gap above it as below.
+                                    .padding(bottom = if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT + NAV_BAR_GAP * 2 else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
@@ -327,7 +323,7 @@ fun CarUi() {
                             // whatever the screen drew there.
                             DebugBuildBadge(Modifier.align(Alignment.BottomEnd).padding(bottom = homeInset))
                         }
-                        if (floatingBar || fullscreen) {
+                        run {
                             androidx.compose.animation.AnimatedVisibility(
                                 if (fullscreen) CarFullscreen.revealed || onCall else barShown,
                                 Modifier.align(Alignment.BottomCenter),
@@ -362,6 +358,9 @@ fun CarUi() {
 }
 
 internal val NAV_BAR_HEIGHT = 56.dp
+
+/** Between the floating nav bar and the screen's edges. */
+internal val NAV_BAR_GAP = 12.dp
 
 /**
  * How much of the bottom of Home the floating nav bar covers right now: its height while it shows,

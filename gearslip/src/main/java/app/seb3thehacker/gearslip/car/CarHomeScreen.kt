@@ -106,7 +106,7 @@ fun CarHome() {
     // a gap all round. The map's surface keeps its size when the card comes and goes, so the app
     // only re-centres its map instead of drawing onto a new surface.
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val column = maxWidth / PLAYER_SHARE
+        val column = (maxWidth / PLAYER_SHARE).coerceAtMost(PLAYER_MAX_WIDTH)
         androidx.compose.runtime.CompositionLocalProvider(
             LocalCardsAtEnd provides (splitScreen && playerLeft),
             LocalSidePanelInset provides if (splitScreen) column else 0.dp,
@@ -135,8 +135,11 @@ fun CarHome() {
     }
 }
 
-/** The player takes one part in this many of the screen's width, as it did beside the map. */
-private const val PLAYER_SHARE = 3.1f
+/** The player takes one part in this many of the screen's width, up to [PLAYER_MAX_WIDTH]. */
+private const val PLAYER_SHARE = 3.6f
+
+/** On a wide screen the card stops growing, so the map gets the extra room. */
+private val PLAYER_MAX_WIDTH = 340.dp
 
 /** Between the player card and the screen's edges, and the map's own cards beside it. */
 private val CARD_GAP = 12.dp
@@ -214,7 +217,7 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(12.dp)) {
             // Whatever height the controls below leave over, so the art grows on a taller
             // screen and shrinks rather than pushing the buttons off a short one.
-            val artSize = minOf(maxWidth - 44.dp, maxHeight - 250.dp).coerceIn(56.dp, 200.dp)
+            val artSize = minOf(maxWidth - 44.dp, maxHeight - 290.dp).coerceIn(56.dp, 200.dp)
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.fillMaxWidth()) {
                     // Art opens the full media screen, same as on the pill.
@@ -252,12 +255,12 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
                 } else {
                     Spacer(Modifier.height(10.dp))
                 }
-                TransportRow(now, media, skip = 48.dp, modifier = Modifier.fillMaxWidth())
+                TransportRow(now, media, skip = 56.dp, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(10.dp))
-                PlayModeRow(now, media, size = 42.dp, modifier = Modifier.fillMaxWidth()) {
+                PlayModeRow(now, media, size = 50.dp, modifier = Modifier.fillMaxWidth()) {
                     GsIconButton(
                         ImageVector.vectorResource(R.drawable.lyrics_24), "Lyrics", navigator::showSideLyrics,
-                        size = 42.dp, iconSize = 22.dp,
+                        size = 50.dp, iconSize = 26.dp,
                     )
                 }
             }
