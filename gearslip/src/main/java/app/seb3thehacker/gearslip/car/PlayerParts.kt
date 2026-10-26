@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.media.session.PlaybackState
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.compose.foundation.layout.Arrangement
@@ -100,17 +102,17 @@ internal fun TransportRow(now: NowPlaying, media: CarMedia, skip: Dp, modifier: 
     val play = skip * 1.25f
     Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         GsIconButton(
-            MediaIcons.Previous, "Previous", media::previous,
+            MediaIcons.Previous, stringResource(R.string.player_previous), media::previous,
             enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_PREVIOUS), size = skip, iconSize = skip * 0.58f, shape = CircleShape,
         )
         GsIconButton(
             if (now.playing) MediaIcons.Pause else Icons.Filled.PlayArrow,
-            if (now.playing) "Pause" else "Play",
+            stringResource(if (now.playing) R.string.player_pause else R.string.media_play),
             media::togglePlay,
             tone = GsTone.Primary, size = play, iconSize = play * 0.58f, shape = CircleShape,
         )
         GsIconButton(
-            MediaIcons.Next, "Next", media::next,
+            MediaIcons.Next, stringResource(R.string.player_next), media::next,
             enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_NEXT), size = skip, iconSize = skip * 0.58f, shape = CircleShape,
         )
     }
@@ -147,7 +149,7 @@ internal fun PlayModeRow(
         } else {
             GsIconButton(
                 if (liked == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                if (liked == true) "Unlike" else "Like",
+                stringResource(if (liked == true) R.string.player_unlike else R.string.player_like),
                 media::toggleLike,
                 enabled = liked != null,
                 tone = if (liked == true) GsTone.Primary else GsTone.Neutral,
@@ -159,7 +161,7 @@ internal fun PlayModeRow(
             CustomActionButton(shuffleAction, media, size, toggle = true)
         } else {
             GsIconButton(
-                MediaIcons.Shuffle, if (shuffleOn) "Shuffle off" else "Shuffle on",
+                MediaIcons.Shuffle, stringResource(if (shuffleOn) R.string.player_shuffle_off else R.string.player_shuffle_on),
                 media::toggleShuffle,
                 enabled = shuffleKnown,
                 tone = if (shuffleOn) GsTone.Primary else GsTone.Neutral,
@@ -172,7 +174,7 @@ internal fun PlayModeRow(
         } else {
             GsIconButton(
                 if (modes.repeat == PlaybackStateCompat.REPEAT_MODE_ONE) MediaIcons.RepeatOne else MediaIcons.Repeat,
-                "Repeat",
+                stringResource(R.string.player_repeat),
                 media::cycleRepeat,
                 enabled = repeatKnown,
                 tone = if (repeatOn) GsTone.Primary else GsTone.Neutral,

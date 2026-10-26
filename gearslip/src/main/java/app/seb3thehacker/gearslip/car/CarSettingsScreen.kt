@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 
 import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import app.seb3thehacker.gearslip.car.theme.*
@@ -90,7 +92,7 @@ fun CarSettingsScreen() {
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     androidx.compose.runtime.LaunchedEffect(chosen) { listState.scrollToItem(0) }
     Row(Modifier.fillMaxSize().padding(start = 16.dp, top = 12.dp, bottom = 12.dp)) {
-    SettingsRail(listOf("Screen", "Nav bar and player", "Sound and voice", "Warnings", "More"), chosen) { chosen = it }
+    SettingsRail(listOf(stringResource(R.string.car_group_screen), stringResource(R.string.car_group_nav_bar), stringResource(R.string.car_group_sound), stringResource(R.string.car_group_warnings), stringResource(R.string.car_group_more)), chosen) { chosen = it }
         LazyColumn(
             Modifier.weight(1f).fillMaxHeight(),
             state = listState,
@@ -101,40 +103,40 @@ fun CarSettingsScreen() {
         ) {
             var section: Int
             section = 0
-            if (section == chosen) item { Group("Screen") }
+            if (section == chosen) item { Group(stringResource(R.string.car_group_screen)) }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Open on connect",
-                    listOf(CarSettings.HOME to "Home") + CarApps.all.filter { it.id != "settings" }.map { it.id to it.label },
+                    stringResource(R.string.car_open_on_connect),
+                    listOf(CarSettings.HOME to stringResource(R.string.choice_open_home)) + CarApps.all.filter { it.id != "settings" }.map { it.id to stringResource(it.labelRes) },
                     open,
                 ) { CarSettings.setOpenOnConnect(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Size",
-                    listOf(1f to "Normal", 1.25f to "Large", 1.5f to "Extra large"),
+                    stringResource(R.string.car_size),
+                    listOf(1f to stringResource(R.string.choice_size_normal), 1.25f to stringResource(R.string.choice_size_large), 1.5f to stringResource(R.string.choice_size_xlarge)),
                     scale,
                 ) { CarSettings.setScale(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "App theme",
-                    listOf(AppTheme.PHONE to "Follow phone", AppTheme.LIGHT to "Light", AppTheme.DARK to "Dark"),
+                    stringResource(R.string.car_app_theme),
+                    listOf(AppTheme.PHONE to stringResource(R.string.choice_theme_phone), AppTheme.LIGHT to stringResource(R.string.choice_theme_light), AppTheme.DARK to stringResource(R.string.choice_theme_dark)),
                     theme,
                 ) { CarSettings.setAppTheme(it) }
             }
 
             if (section == chosen && theme != AppTheme.LIGHT) item {
                 ChoiceRow(
-                    "Dark mode",
+                    stringResource(R.string.car_dark_mode),
                     listOf(
-                        DarkStyle.BLACK to "Black",
-                        DarkStyle.BLACK_COLOUR to "Black and colour",
-                        DarkStyle.DEEP_COLOUR to "Deep colour",
-                        DarkStyle.GREY to "Grey",
+                        DarkStyle.BLACK to stringResource(R.string.choice_dark_black),
+                        DarkStyle.BLACK_COLOUR to stringResource(R.string.choice_dark_black_colour),
+                        DarkStyle.DEEP_COLOUR to stringResource(R.string.choice_dark_deep_colour),
+                        DarkStyle.GREY to stringResource(R.string.choice_dark_grey),
                     ),
                     darkStyle,
                 ) { CarSettings.setDarkStyle(it) }
@@ -142,7 +144,7 @@ fun CarSettingsScreen() {
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Theme",
+                    stringResource(R.string.carset_theme),
                     GsThemes.builtIn.map { it.id to it.name },
                     uiTheme,
                 ) { CarSettings.setUiTheme(it) }
@@ -150,16 +152,16 @@ fun CarSettingsScreen() {
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Map day/night",
-                    listOf(NightMode.AUTO to "Auto", NightMode.DAY to "Day", NightMode.NIGHT to "Night"),
+                    stringResource(R.string.car_map_day_night),
+                    listOf(NightMode.AUTO to stringResource(R.string.choice_auto), NightMode.DAY to stringResource(R.string.choice_night_day), NightMode.NIGHT to stringResource(R.string.choice_night_night)),
                     night,
                 ) { CarSettings.setNightMode(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Units",
-                    listOf(Units.AUTO to "Auto", Units.IMPERIAL to "Imperial (mi, ft, °F)", Units.METRIC to "Metric (km, m, °C)"),
+                    stringResource(R.string.car_units),
+                    listOf(Units.AUTO to stringResource(R.string.choice_auto), Units.IMPERIAL to stringResource(R.string.carset_imperial), Units.METRIC to stringResource(R.string.carset_metric)),
                     units,
                 ) { CarSettings.setUnits(it) }
             }
@@ -167,31 +169,31 @@ fun CarSettingsScreen() {
             // For a head unit that reports the wrong size and stretches the picture (issue #12).
             if (section == chosen) item {
                 ChoiceRow(
-                    "Screen size (next connection)",
+                    stringResource(R.string.carset_screen_size),
                     listOf<ScreenSize?>(null).plus(SCREEN_PRESETS).plus(screenSize).distinct()
-                        .map { it to (it?.toString() ?: "From the car") },
+                        .map { it to (it?.toString() ?: stringResource(R.string.screen_from_car)) },
                     screenSize,
                 ) { CarSettings.setScreenSize(it) }
             }
 
             if (section == chosen && screenSize != null) item {
                 ChoiceRow(
-                    "Fit to the screen",
-                    listOf(ScreenFit.CROP to "Crop the edges", ScreenFit.SQUASH to "Squash to fit"),
+                    stringResource(R.string.carset_fit),
+                    listOf(ScreenFit.CROP to stringResource(R.string.screen_crop), ScreenFit.SQUASH to stringResource(R.string.screen_squash)),
                     screenFit,
                 ) { CarSettings.setScreenFit(it) }
             }
 
             section = 1
-            if (section == chosen) item { Group("Nav bar and player") }
+            if (section == chosen) item { Group(stringResource(R.string.car_group_nav_bar)) }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Nav bar",
+                    stringResource(R.string.car_nav_bar),
                     listOf(
-                        NavBarMode.SHOW to "Always show",
-                        NavBarMode.HIDE_NAVIGATING to "Hide while navigating",
-                        NavBarMode.HIDE to "Hide until tapped",
+                        NavBarMode.SHOW to stringResource(R.string.choice_nav_show),
+                        NavBarMode.HIDE_NAVIGATING to stringResource(R.string.choice_nav_hide_navigating),
+                        NavBarMode.HIDE to stringResource(R.string.choice_nav_hide),
                     ),
                     navBar,
                 ) { CarSettings.setNavBarMode(it) }
@@ -199,88 +201,85 @@ fun CarSettingsScreen() {
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Player in the nav bar",
-                    listOf(false to "Skip buttons", true to "Song title"),
+                    stringResource(R.string.car_player_nav_bar),
+                    listOf(false to stringResource(R.string.car_skip_buttons), true to stringResource(R.string.car_song_title)),
                     playerTitle,
                 ) { CarSettings.setPlayerTitle(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Player beside the map",
-                    listOf(false to "Right", true to "Left"),
+                    stringResource(R.string.car_player_beside_map),
+                    listOf(false to stringResource(R.string.car_right), true to stringResource(R.string.car_left)),
                     playerLeft,
                 ) { CarSettings.setPlayerLeft(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Autoplay on connect",
-                    listOf(false to "Off", true to "On"),
+                    stringResource(R.string.car_autoplay),
+                    listOf(false to stringResource(R.string.off), true to stringResource(R.string.on)),
                     autoplay,
                 ) { CarSettings.setAutoplay(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Lyrics from",
-                    listOf(false to "LRCLIB", true to "More sources"),
+                    stringResource(R.string.carset_lyrics_from),
+                    listOf(false to "LRCLIB", true to stringResource(R.string.carset_more_sources)),
                     moreLyrics,
                 ) { CarSettings.setMoreLyrics(it) }
             }
 
             section = 2
-            if (section == chosen) item { Group("Sound and voice") }
+            if (section == chosen) item { Group(stringResource(R.string.car_group_sound)) }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Car audio",
-                    listOf(false to "Bluetooth", true to "USB"),
+                    stringResource(R.string.car_audio),
+                    listOf(false to stringResource(R.string.guide_audio_bluetooth), true to stringResource(R.string.guide_audio_usb)),
                     pipeAudio,
                 ) { CarSettings.setPipeAudio(it) }
             }
 
             if (section == chosen) item {
                 Text(
-                    "USB sends the phone's sound through Gearslip. Android asks to share your screen each " +
-                        "drive, and a few apps block it. Bluetooth plays as the phone normally would, and " +
-                        "Android never asks.",
+                    stringResource(R.string.carset_audio_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             section = 3
-            if (section == chosen) item { Group("Warnings") }
+            if (section == chosen) item { Group(stringResource(R.string.car_group_warnings)) }
 
             if (section == chosen && !pipeAudio) item {
                 ChoiceRow(
-                    "Warn when Bluetooth isn't connected",
-                    listOf(false to "Off", true to "On"),
+                    stringResource(R.string.car_warn_bluetooth),
+                    listOf(false to stringResource(R.string.off), true to stringResource(R.string.on)),
                     bluetoothWarning,
                 ) { CarSettings.setBluetoothWarning(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Warn when location is off",
-                    listOf(false to "Off", true to "On"),
+                    stringResource(R.string.car_warn_location),
+                    listOf(false to stringResource(R.string.off), true to stringResource(R.string.on)),
                     locationWarning,
                 ) { CarSettings.setLocationWarning(it) }
             }
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Spoken directions",
-                    listOf(false to "Off", true to "On"),
+                    stringResource(R.string.car_spoken_directions),
+                    listOf(false to stringResource(R.string.off), true to stringResource(R.string.on)),
                     speakDirections,
                 ) { CarSettings.setSpeakDirections(it) }
             }
 
             if (section == chosen) item {
                 Text(
-                    "Gearslip reads each turn aloud through the car's speakers, and the music dips while it " +
-                        "speaks. Turn it off if your map app's own voice already plays in the car.",
+                    stringResource(R.string.carset_directions_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -288,16 +287,14 @@ fun CarSettingsScreen() {
 
             if (section == chosen) item {
                 ExperimentalFeatureRow(
-                    title = "Use the phone's speech recognition",
-                    description = "Listens through the phone's own speech service instead of Gearslip's. On " +
-                        "most phones that's Google's, which may send your voice to Google. GrapheneOS has " +
-                        "none, so Gearslip keeps using its own.",
+                    title = stringResource(R.string.car_phone_speech),
+                    description = stringResource(R.string.carset_phone_speech_note),
                     checked = systemSpeech,
                 ) { CarSettings.setSystemSpeech(it) }
             }
 
             section = 4
-            if (section == chosen) item { Group("More") }
+            if (section == chosen) item { Group(stringResource(R.string.car_group_more)) }
 
             if (section == chosen) item {
                 WebPageSetting()
@@ -309,8 +306,8 @@ fun CarSettingsScreen() {
 
             if (section == chosen) item {
                 ChoiceRow(
-                    "Experimental features",
-                    listOf(false to "Hide", true to "Show"),
+                    stringResource(R.string.car_experimental),
+                    listOf(false to stringResource(R.string.carset_hide), true to stringResource(R.string.carset_show)),
                     experimentalFeatures,
                 ) { CarSettings.setExperimentalFeaturesEnabled(it) }
             }
@@ -321,26 +318,26 @@ fun CarSettingsScreen() {
 
             if (section == chosen) item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Connection", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    Info("Phone", "${Build.MANUFACTURER} ${Build.MODEL}")
-                    Info("Vehicle", vehicle.ifEmpty { "-" })
-                    Info("Video", display.ifEmpty { "-" })
-                    Info("Certificate", cert?.headline ?: "Checking…")
+                    Text(stringResource(R.string.settings_connection), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Info(stringResource(R.string.carset_phone), "${Build.MANUFACTURER} ${Build.MODEL}")
+                    Info(stringResource(R.string.carset_vehicle), vehicle.ifEmpty { "-" })
+                    Info(stringResource(R.string.carset_video), display.ifEmpty { "-" })
+                    Info(stringResource(R.string.settings_certificate), cert?.headline ?: stringResource(R.string.cert_checking))
                 }
             }
 
             if (section == chosen) item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    Info("Version", app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME)
-                    Info("Build", app.seb3thehacker.gearslip.BuildConfig.VERSION_CODE.toString())
+                    Text(stringResource(R.string.settings_about), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Info(stringResource(R.string.carset_version), app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME)
+                    Info(stringResource(R.string.carset_build), app.seb3thehacker.gearslip.BuildConfig.VERSION_CODE.toString())
                     ExperimentalFeatureRow(
-                        "What's new after updates",
-                        "Show the list of changes once, the first time the car connects after an update.",
+                        stringResource(R.string.carset_whats_new_after),
+                        stringResource(R.string.carset_whats_new_after_sub),
                         whatsNew,
                     ) { CarSettings.setWhatsNewAfterUpdates(it) }
                     GsButton(onClick = CarSettings::openWhatsNew, tone = GsTone.Tonal, modifier = Modifier.height(56.dp)) {
-                        Text("What's new", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_whats_new), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -381,7 +378,7 @@ private fun SettingsRail(groups: List<String>, chosen: Int, onChoose: (Int) -> U
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                "Settings",
+                stringResource(R.string.settings_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 14.dp, top = 6.dp, bottom = 10.dp),
@@ -454,17 +451,13 @@ private fun ExperimentalFeaturesList(carSensors: Boolean, adaptiveVideo: Boolean
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         ExperimentalFeatureRow(
-            title = "Vehicle data",
-            description = "Adds a Vehicle data tile: a live, raw dump of the head unit's sensor " +
-                "channel. Field labels (speed, RPM, fuel...) are carried over from other " +
-                "reverse-engineering projects and unverified against this car - treat them as a " +
-                "guess, not a fact, until you've watched one change for yourself.",
+            title = stringResource(R.string.car_vehicle_data),
+            description = stringResource(R.string.carset_vehicle_data_note),
             checked = carSensors,
         ) { CarSettings.setCarSensorsEnabled(it) }
         ExperimentalFeatureRow(
-            title = "Adaptive video quality",
-            description = "Lowers the picture's quality when the car, or its Wi-Fi, can't keep " +
-                "up, and raises it again once it can. Takes effect on the next connection.",
+            title = stringResource(R.string.car_adaptive_video),
+            description = stringResource(R.string.carset_adaptive_note),
             checked = adaptiveVideo,
         ) { CarSettings.setAdaptiveVideoEnabled(it) }
     }
@@ -512,7 +505,7 @@ private fun WebPageSetting() {
     var url by remember { mutableStateOf(AppSettings.startupUrl(context)) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Web page", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.web_page), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         Surface(
             onClick = { editing = !editing },
             shape = MaterialTheme.shapes.large,
@@ -520,7 +513,7 @@ private fun WebPageSetting() {
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                url.ifEmpty { "DuckDuckGo (default) - tap to set a different page" },
+                url.ifEmpty { stringResource(R.string.carset_web_default) },
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (url.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -529,7 +522,7 @@ private fun WebPageSetting() {
             )
         }
         Text(
-            "Shown by the Browser app on the launcher. Applies on the next connection.",
+            stringResource(R.string.carset_web_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -572,22 +565,22 @@ private fun ScreenFit(vehicle: String) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Screen fit", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        Stepper("Top", insets.top) { change(insets.copy(top = (insets.top + it).coerceAtLeast(0))) }
-        Stepper("Bottom", insets.bottom) { change(insets.copy(bottom = (insets.bottom + it).coerceAtLeast(0))) }
+        Text(stringResource(R.string.carset_screen_fit), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Stepper(stringResource(R.string.carset_top), insets.top) { change(insets.copy(top = (insets.top + it).coerceAtLeast(0))) }
+        Stepper(stringResource(R.string.carset_bottom), insets.bottom) { change(insets.copy(bottom = (insets.bottom + it).coerceAtLeast(0))) }
         Text(
-            "Usable height ${480 - insets.top - insets.bottom}px of 480",
+            stringResource(R.string.carset_usable_height, 480 - insets.top - insets.bottom),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         GsButton(
             onClick = {
                 val ok = app.seb3thehacker.gearslip.VehicleProfiles.saveInsets(context, vehicle, insets)
-                saved = if (ok) "Saved to $vehicle" else "Could not save"
+                saved = if (ok) context.getString(R.string.carset_saved_to, vehicle) else context.getString(R.string.carset_save_failed)
             },
             enabled = known,
             modifier = Modifier.fillMaxWidth().height(56.dp),
-        ) { Text(if (known) "Save for this vehicle" else "No vehicle profile matched") }
+        ) { Text(if (known) stringResource(R.string.carset_save_vehicle) else stringResource(R.string.carset_no_profile)) }
         saved?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
     }
 }
@@ -599,7 +592,7 @@ private fun Stepper(label: String, value: Int, onStep: (Int) -> Unit) {
         StepButton("−5", Modifier.weight(1f)) { onStep(-5) }
         StepButton("−1", Modifier.weight(1f)) { onStep(-1) }
         Text(
-            "${value}px",
+            stringResource(R.string.carset_px, value),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.weight(1.3f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

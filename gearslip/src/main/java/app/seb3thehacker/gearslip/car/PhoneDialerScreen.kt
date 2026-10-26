@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.Manifest
 import android.content.Context
@@ -138,11 +140,11 @@ fun PhoneDialerScreen() {
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // The tabs share the title's row, so the list and keypad get the height back.
-        ScreenHeader("Phone") {
+        ScreenHeader(stringResource(R.string.carset_phone)) {
             if (hasPermissions) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DialerTab("Contacts", tab == TAB_CONTACTS, Modifier.width(140.dp)) { tab = TAB_CONTACTS }
-                    DialerTab("Keypad", tab == TAB_KEYPAD, Modifier.width(140.dp)) { tab = TAB_KEYPAD }
+                    DialerTab(stringResource(R.string.dialer_contacts), tab == TAB_CONTACTS, Modifier.width(140.dp)) { tab = TAB_CONTACTS }
+                    DialerTab(stringResource(R.string.dialer_keypad), tab == TAB_KEYPAD, Modifier.width(140.dp)) { tab = TAB_KEYPAD }
                 }
             }
         }
@@ -168,14 +170,13 @@ private fun MissingPermission(context: Context, onGranted: () -> Unit) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Gearslip needs the Phone and Contacts permissions to dial from here. Allow them on " +
-                "the phone when you're parked.",
+            stringResource(R.string.dialer_needs_permission),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         GsButton(tone = GsTone.Tonal, onClick = {
             app.seb3thehacker.gearslip.PermissionActivity.ask(context, CALL_PERMISSIONS)
-        }) { Text("Ask on the phone") }
+        }) { Text(stringResource(R.string.dialer_ask)) }
     }
 }
 
@@ -211,7 +212,7 @@ private fun Keypad(context: Context) {
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            number.ifEmpty { "Enter a number" },
+            number.ifEmpty { stringResource(R.string.dialer_enter_number) },
             style = MaterialTheme.typography.headlineSmall,
             color = if (number.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -240,7 +241,7 @@ private fun Keypad(context: Context) {
                     colors = gsColors(GsTone.Primary),
                     enabled = number.isNotEmpty(),
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                ) { Icon(Icons.Filled.Call, "Call") }
+                ) { Icon(Icons.Filled.Call, stringResource(R.string.dialer_call)) }
             }
         }
     }
@@ -282,12 +283,12 @@ private fun ContactsList(context: Context) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 contacts.isEmpty() -> Text(
-                    "No contacts with a phone number found.",
+                    stringResource(R.string.dialer_no_contacts),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 filtered.isEmpty() -> Text(
-                    "No contacts match \"$query\".",
+                    stringResource(R.string.dialer_no_match, query),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -344,14 +345,14 @@ private fun ConfirmCallOverlay(contact: Contact, onConfirm: () -> Unit, onDismis
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Call ${contact.name}?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.dialer_call_who, contact.name), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(contact.number, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     GsButton(onClick = onDismiss, tone = GsTone.Outline, modifier = Modifier.weight(1f).height(56.dp)) {
-                        Text("Cancel", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
                     }
                     GsButton(onClick = onConfirm, modifier = Modifier.weight(1f).height(56.dp)) {
-                        Text("Call", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.dialer_call), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -368,7 +369,7 @@ private fun ContactSearchField(query: String, active: Boolean, onToggle: () -> U
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
-            query.ifEmpty { "Search contacts" },
+            query.ifEmpty { stringResource(R.string.dialer_search) },
             style = MaterialTheme.typography.bodyLarge,
             color = if (query.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -406,7 +407,7 @@ private fun ContactRow(contact: Contact, onClick: () -> Unit) {
                 Text(contact.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(contact.number, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Filled.Call, contentDescription = "Call", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.Call, contentDescription = stringResource(R.string.dialer_call), tint = MaterialTheme.colorScheme.primary)
         }
     }
 }

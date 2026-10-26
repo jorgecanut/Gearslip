@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.filled.Close
@@ -317,7 +319,7 @@ internal fun SearchField(
                 Spacer(Modifier.width(12.dp))
             }
             Text(
-                query.ifEmpty { hint.ifEmpty { "Search" } },
+                query.ifEmpty { hint.ifEmpty { stringResource(R.string.template_search) } },
                 style = MaterialTheme.typography.titleMedium,
                 color = if (query.isEmpty()) muted else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -327,7 +329,7 @@ internal fun SearchField(
             if (onClear != null && query.isNotEmpty()) {
                 GsIconButton(
                     androidx.compose.material.icons.Icons.Filled.Close,
-                    "Clear",
+                    stringResource(R.string.storage_clear),
                     onClear,
                     colors = GsColors(androidx.compose.ui.graphics.Color.Transparent, muted),
                     size = 42.dp,
@@ -623,7 +625,7 @@ private fun MediaPlaybackContent(template: MediaPlaybackTemplate, modifier: Modi
         } else {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
-                    "Nothing playing yet.",
+                    stringResource(R.string.template_nothing_playing),
                     style = ChromeType.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -647,6 +649,6 @@ private typealias ColumnScopeAlias = androidx.compose.foundation.layout.ColumnSc
 @Composable
 private fun Loading() {
     Box(Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
-        Text("Loading…", style = ChromeType.title)
+        Text(stringResource(R.string.media_loading), style = ChromeType.title)
     }
 }

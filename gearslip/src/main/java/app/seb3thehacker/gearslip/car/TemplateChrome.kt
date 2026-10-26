@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.graphics.Rect
 import androidx.compose.foundation.layout.widthIn
@@ -257,7 +259,7 @@ private fun NavigationBars(
 private fun RoutingCard(info: RoutingInfo, modifier: Modifier = Modifier) {
     if (info.isLoading) {
         ChromeSurface(modifier) {
-            Text("Finding a route…", Modifier.padding(horizontal = 18.dp, vertical = 16.dp), style = ChromeType.title)
+            Text(stringResource(R.string.nav_finding_route), Modifier.padding(horizontal = 18.dp, vertical = 16.dp), style = ChromeType.title)
         }
         return
     }
@@ -312,7 +314,7 @@ private fun RoutingCard(info: RoutingInfo, modifier: Modifier = Modifier) {
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Then", style = ChromeType.label, color = scheme.onSurfaceVariant)
+                    Text(stringResource(R.string.nav_then), style = ChromeType.label, color = scheme.onSurfaceVariant)
                     Spacer(Modifier.width(10.dp))
                     CarGlyph(next.maneuver?.icon, Modifier.size(28.dp))
                     val nextText = next.cue.text().ifEmpty { next.road.text() }
@@ -374,7 +376,7 @@ private fun LaneTile(lane: Lane) {
     ) {
         Icon(
             Icons.Filled.KeyboardArrowUp,
-            contentDescription = if (recommended) "Recommended lane" else "Lane",
+            contentDescription = stringResource(if (recommended) R.string.nav_lane_recommended else R.string.nav_lane),
             tint = if (recommended) MaterialTheme.colorScheme.onPrimaryContainer
             else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp).rotate(shown.turnDegrees()),
@@ -427,7 +429,7 @@ private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Mo
                     )
                 }
                 val detail = listOfNotNull(
-                    arrival.takeIf { it.isNotEmpty() }?.let { "Arrive $it" },
+                    arrival.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.nav_arrive, it) },
                     distance.takeIf { it.isNotEmpty() },
                 ).joinToString("  •  ")
                 if (detail.isNotEmpty()) {
@@ -442,7 +444,7 @@ private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Mo
             // pops the on-screen card, leaving the app still believing it is navigating.
             GsIconButton(
                 Icons.Filled.Close,
-                "Stop navigating",
+                stringResource(R.string.nav_stop),
                 { connection.stopNavigating() },
                 colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.onSurface),
                 size = 52.dp,
@@ -575,7 +577,7 @@ private fun RoutePreviewChrome(template: RoutePreviewNavigationTemplate, modifie
                 )
                 Box(Modifier.weight(1f, fill = false)) {
                     if (template.isLoading) {
-                        Text("Finding routes…", Modifier.padding(14.dp), style = ChromeType.title)
+                        Text(stringResource(R.string.nav_finding_routes), Modifier.padding(14.dp), style = ChromeType.title)
                     } else {
                         ItemListColumn(template.itemList)
                     }
@@ -599,7 +601,7 @@ private fun ListPane(
     ChromeSurface(modifier, shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)) {
         Column {
             HeaderBar(title, startAction)
-            if (loading) Text("Loading…", Modifier.padding(14.dp), style = ChromeType.title)
+            if (loading) Text(stringResource(R.string.media_loading), Modifier.padding(14.dp), style = ChromeType.title)
             else ItemListColumn(itemList)
         }
     }

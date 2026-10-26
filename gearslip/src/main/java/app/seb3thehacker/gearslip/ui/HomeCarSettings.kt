@@ -72,7 +72,7 @@ private fun navBarChoices() = listOf(
     NavBarMode.HIDE to stringResource(R.string.choice_nav_hide),
 )
 @Composable
-private fun openChoices() = listOf(CarSettings.HOME to stringResource(R.string.choice_open_home)) + CarApps.all.filter { it.id != "settings" }.map { it.id to it.label }
+private fun openChoices() = listOf(CarSettings.HOME to stringResource(R.string.choice_open_home)) + CarApps.all.filter { it.id != "settings" }.map { it.id to stringResource(it.labelRes) }
 
 /**
  * The car's settings on the phone's home screen: one card per group with a summary of where it

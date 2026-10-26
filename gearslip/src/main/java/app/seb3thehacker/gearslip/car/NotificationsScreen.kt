@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.content.Intent
 import android.provider.Settings
@@ -79,12 +81,12 @@ fun NotificationsSection() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Notifications",
+                stringResource(R.string.notif_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
             )
-            if (history.isNotEmpty()) TextButton(onClick = CarNotifications::clear) { Text("Clear all") }
+            if (history.isNotEmpty()) TextButton(onClick = CarNotifications::clear) { Text(stringResource(R.string.notif_clear_all)) }
         }
 
         if (!listening) {
@@ -97,7 +99,7 @@ fun NotificationsSection() {
 
         if (history.isEmpty()) {
             Text(
-                "Nothing yet. New notifications from the phone will show up here.",
+                stringResource(R.string.notif_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -124,11 +126,11 @@ internal fun AccessBanner(onOpen: () -> Unit) {
         ) {
             Icon(Icons.Filled.Warning, contentDescription = null)
             Text(
-                "Notifications are off. Allow Gearslip under Settings > Notifications > Notification access on the phone.",
+                stringResource(R.string.notif_off),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
-            GsButton(onClick = onOpen) { Text("Open") }
+            GsButton(onClick = onOpen) { Text(stringResource(R.string.guide_open)) }
         }
     }
 }
@@ -160,10 +162,10 @@ private fun NotificationRow(n: CarNotification, onReply: (CarNotification) -> Un
                 }
             }
             when {
-                n.replied -> Icon(Icons.Filled.Check, contentDescription = "Replied", tint = MaterialTheme.colorScheme.primary)
+                n.replied -> Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.notif_replied), tint = MaterialTheme.colorScheme.primary)
                 n.reply != null -> GsButton(onClick = { VoiceReply.reply(n) }, tone = GsTone.Tonal) {
                     ReplyGlyph(Modifier.size(20.dp))
-                    Text("Reply", Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -198,14 +200,14 @@ private fun ReplyPane(n: CarNotification, onDone: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", onDone)
+            GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), onDone)
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 modifier = Modifier.weight(1f),
             ) {
                 Text(
-                    if (text.isEmpty()) "Reply to ${n.title.ifBlank { n.appLabel }}" else "$text|",
+                    if (text.isEmpty()) stringResource(R.string.msg_reply_to, n.title.ifBlank { n.appLabel }) else "$text|",
                     color = if (text.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

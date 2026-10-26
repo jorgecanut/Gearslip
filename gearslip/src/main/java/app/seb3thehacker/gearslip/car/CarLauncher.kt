@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -127,7 +129,7 @@ internal object LauncherCache {
         // notifications - rather than a filter per kind that has to know about the others.
         val tiles = (carApps.keys + mediaApps.keys + messagingApps.keys).flatMap { pkg ->
             val icon by lazy { iconOf(pkg) }
-            tilesFor(carApps[pkg], mediaApps[pkg], messagingApps[pkg]).map { tile ->
+            tilesFor(carApps[pkg], mediaApps[pkg], messagingApps[pkg], context.getString(R.string.media_browse)).map { tile ->
                 when (tile) {
                     is AppTile.Screen -> Entry(tile.label, icon, template = tile.app)
                     is AppTile.Player -> Entry(tile.app.label, icon, media = tile.app)
@@ -163,6 +165,7 @@ private fun tilesFor(
     car: TemplateApp?,
     media: app.seb3thehacker.gearslip.media.MediaApp?,
     messaging: app.seb3thehacker.gearslip.notify.MessagingApp?,
+    browse: String,
 ): List<AppTile> {
     if (car != null && !car.isMediaScreen && car.kind != "messaging") return listOf(AppTile.Screen(car, car.label))
     val pkg = car?.component?.packageName ?: media?.component?.packageName ?: messaging?.packageName ?: return emptyList()
@@ -170,7 +173,7 @@ private fun tilesFor(
         val screenRefused = KnownApps.screenBroken(pkg) && KnownApps.playerWorks(pkg)
         val messengerScreen = messaging != null && (car?.kind == "messaging" || car?.kind == "app")
         if (car != null && !messengerScreen && !(media != null && screenRefused)) {
-            add(AppTile.Screen(car, if (media != null) "${car.label} · Browse" else car.label))
+            add(AppTile.Screen(car, if (media != null) "${car.label} · $browse" else car.label))
         }
         if (media != null) add(AppTile.Player(media))
         else if (messaging != null) add(AppTile.Messages(messaging))
@@ -280,7 +283,7 @@ fun CarLauncher() {
         val pkg = entry.packageName?.takeIf { entry.messaging == null }
         val id = entry.componentId
         return Tile(
-            entry.label, entry.icon, entry.builtIn?.glyph,
+            entry.builtIn?.let { context.getString(it.labelRes) } ?: entry.label, entry.icon, entry.builtIn?.glyph,
             broken = pkg != null && (KnownApps.isBroken(context, pkg) || (entry.template != null && KnownApps.screenBroken(pkg))),
             onLongClick = id?.let { { navigator.showAppMenu(it) } },
         ) { openApp(entry, id?.let { running[it] }, navigator, frame) }
@@ -307,7 +310,7 @@ private fun BrokenBadge(size: androidx.compose.ui.unit.Dp, modifier: Modifier = 
         modifier.size(size).background(Color(0xFFD32F2F), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Filled.Close, contentDescription = "Doesn't work with Gearslip", tint = Color.White, modifier = Modifier.size(size * 0.66f))
+        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.launcher_broken), tint = Color.White, modifier = Modifier.size(size * 0.66f))
     }
 }
 

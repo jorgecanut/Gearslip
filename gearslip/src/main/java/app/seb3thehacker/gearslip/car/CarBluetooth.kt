@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.annotation.StringRes
+import app.seb3thehacker.gearslip.R
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -111,7 +113,7 @@ object CarBluetooth {
         // If the car never answers on its channel, pair from the phone anyway.
         main.postDelayed({ startBond("the car didn't answer the pairing request") }, CAR_REPLY_WAIT_MS)
         main.postDelayed({
-            if (pairing) finish("Pairing didn't finish. Pair from the car's Bluetooth menu instead.")
+            if (pairing) finish(R.string.bt_pair_unfinished)
         }, GIVE_UP_MS)
     }
 
@@ -168,7 +170,7 @@ object CarBluetooth {
         bondStarted = true
         val started = runCatching { device.createBond() }.getOrDefault(false)
         log.i("pairing from the phone ($why): ${if (started) "started" else "refused"}")
-        if (!started) finish("Pairing didn't start. Pair from the car's Bluetooth menu instead.")
+        if (!started) finish(R.string.bt_pair_not_started)
     }
 
     private fun watchBonding(device: BluetoothDevice) {
@@ -184,8 +186,8 @@ object CarBluetooth {
                 log.i("bond state $previous -> $state")
                 when {
                     state == BluetoothDevice.BOND_BONDING -> bondStarted = true
-                    state == BluetoothDevice.BOND_BONDED -> finish("Paired. Calls now play through the car.")
-                    previous == BluetoothDevice.BOND_BONDING -> finish("Pairing didn't finish. Pair from the car's Bluetooth menu instead.")
+                    state == BluetoothDevice.BOND_BONDED -> finish(R.string.bt_paired)
+                    previous == BluetoothDevice.BOND_BONDING -> finish(R.string.bt_pair_unfinished)
                 }
             }
         }
@@ -193,12 +195,12 @@ object CarBluetooth {
         receiver = r
     }
 
-    private fun finish(message: String) {
+    private fun finish(@StringRes message: Int) {
         pairing = false
         stopWatching()
         main.removeCallbacksAndMessages(null)
         _prompt.value = Prompt.NONE
-        CarToasts.show(this, message, CarToast.LENGTH_LONG)
+        CarToasts.show(this, appContext?.getString(message) ?: return, CarToast.LENGTH_LONG)
     }
 
     private fun stopWatching() {

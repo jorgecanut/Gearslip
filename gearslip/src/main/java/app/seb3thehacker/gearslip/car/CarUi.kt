@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.filled.Call
 import app.seb3thehacker.gearslip.call.CarCalls
 import app.seb3thehacker.gearslip.call.CallUiState
@@ -359,7 +360,7 @@ fun CarUi() {
                                 GsButton(onClick = CarFullscreen::exit, modifier = Modifier.height(48.dp)) {
                                     Icon(MediaIcons.FullscreenExit, contentDescription = null, modifier = Modifier.size(22.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Exit full screen", style = MaterialTheme.typography.titleMedium)
+                                    Text(stringResource(R.string.carui_exit_fullscreen), style = MaterialTheme.typography.titleMedium)
                                 }
                             }
                         }
@@ -404,22 +405,20 @@ private fun CarSafetyWizard(onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Drive safely", style = ChromeType.headline, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.carui_drive_safely), style = ChromeType.headline, fontWeight = FontWeight.Bold)
                     Text(
-                        "Gearslip is unofficial software: it is not made or reviewed by any " +
-                            "carmaker, and it can fail without warning.",
+                        stringResource(R.string.carui_unofficial),
                         style = ChromeType.body,
                     )
                     Text(
-                        "Never interact with this screen while driving. Set the route or the " +
-                            "song before you go, then keep your attention on the road.",
+                        stringResource(R.string.carui_never_interact),
                         style = ChromeType.body,
                     )
                 }
             }
             Spacer(Modifier.height(24.dp))
             GsButton(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text("I understand", style = ChromeType.body)
+                Text(stringResource(R.string.carui_understand), style = ChromeType.body)
             }
         }
     }
@@ -450,7 +449,7 @@ private fun BrowseAppScreen(navigator: CarNavigator) {
     }
     val failed = status.phase == CarAppConnection.Phase.REJECTED || status.phase == CarAppConnection.Phase.FAILED
     if (failed || timedOut) {
-        AppWontStart(status.app ?: "This app", leave)
+        AppWontStart(status.app ?: stringResource(R.string.carui_this_app), leave)
         return
     }
     CarAppStage(CarServices.browse, status, frame, onDisconnect = leave)
@@ -466,13 +465,13 @@ private fun AppWontStart(app: String, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("$app doesn't work with Gearslip yet.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.carui_app_unsupported, app), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            "It didn't start. Some apps only run on Google's Android Auto.",
+            stringResource(R.string.carui_app_unsupported_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        GsButton(onClick = onBack, tone = GsTone.Tonal) { Text("Back") }
+        GsButton(onClick = onBack, tone = GsTone.Tonal) { Text(stringResource(R.string.back)) }
     }
 }
 

@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -169,19 +170,19 @@ private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame
         val scope = androidx.compose.runtime.rememberCoroutineScope()
         when (status.phase) {
             CarAppConnection.Phase.BINDING, CarAppConnection.Phase.HANDSHAKE ->
-                Text("Starting ${status.app ?: "the map"}…", style = MaterialTheme.typography.titleMedium)
+                Text(status.app?.let { stringResource(R.string.home_starting, it) } ?: stringResource(R.string.home_starting_map), style = MaterialTheme.typography.titleMedium)
             CarAppConnection.Phase.REJECTED, CarAppConnection.Phase.FAILED -> {
-                Text("${status.app ?: "The map app"} would not start.", style = MaterialTheme.typography.titleMedium)
+                Text(status.app?.let { stringResource(R.string.home_failed, it) } ?: stringResource(R.string.home_failed_map), style = MaterialTheme.typography.titleMedium)
                 status.detail?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Spacer(Modifier.height(8.dp))
-                StatusButton("Choose another app", GsTone.Primary, navigator::apps)
+                StatusButton(stringResource(R.string.home_choose_app), GsTone.Primary, navigator::apps)
             }
             else -> if (!hasNavApps) {
                 // Nothing to auto-select and nothing to pick from Car apps either - this is the
                 // only case worth a distinct screen, since every other IDLE case resolves itself.
-                Text("No mapping apps found.", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.home_no_maps), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Install a navigation app that supports Android Auto and it will start here on its own.",
+                    stringResource(R.string.home_no_maps_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -189,17 +190,17 @@ private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame
                 // IDLE with a last app on record means the driver stopped it themselves - it will
                 // not come back on its own, so the screen must offer a way to bring it back rather
                 // than sit on a "starting" message that never resolves.
-                Text("Map stopped", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.home_map_stopped), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(
-                    "It stays closed until you open it again.",
+                    stringResource(R.string.home_map_stopped_body),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(8.dp))
                 // Side by side, the same size, the likely one lit: one clear choice, not a stack.
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    StatusButton("Reopen the map", GsTone.Primary) { scope.launch { CarServices.reconnectNav(frame) } }
-                    StatusButton("Car apps", GsTone.Tonal) { navigator.apps() }
+                    StatusButton(stringResource(R.string.home_reopen_map), GsTone.Primary) { scope.launch { CarServices.reconnectNav(frame) } }
+                    StatusButton(stringResource(R.string.home_car_apps), GsTone.Tonal) { navigator.apps() }
                 }
             } else {
                 // Autostart is still picking one - a navigation app is installed, so this resolves
@@ -274,13 +275,13 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
                 Spacer(Modifier.height(10.dp))
                 PlayModeRow(now, media, size = 50.dp, modifier = Modifier.fillMaxWidth()) {
                     GsIconButton(
-                        ImageVector.vectorResource(R.drawable.lyrics_24), "Lyrics", navigator::showSideLyrics,
+                        ImageVector.vectorResource(R.drawable.lyrics_24), stringResource(R.string.storage_lyrics), navigator::showSideLyrics,
                         size = 50.dp, iconSize = 26.dp,
                     )
                 }
             }
             GsIconButton(
-                Icons.Filled.Close, "Back to the nav bar", navigator::closeSidePanel,
+                Icons.Filled.Close, stringResource(R.string.home_back_nav), navigator::closeSidePanel,
                 Modifier.align(Alignment.TopEnd), size = 36.dp, iconSize = 20.dp,
             )
         }
@@ -313,9 +314,9 @@ private fun SideLyrics(now: NowPlaying, modifier: Modifier) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 // The way back to the player, as the player's own Lyrics button is the way here.
-                GsIconButton(MediaIcons.MusicNote, "Show the player", navigator::showSidePlayer, size = 36.dp, iconSize = 20.dp)
+                GsIconButton(MediaIcons.MusicNote, stringResource(R.string.home_show_player), navigator::showSidePlayer, size = 36.dp, iconSize = 20.dp)
                 Spacer(Modifier.size(6.dp))
-                GsIconButton(Icons.Filled.Close, "Hide lyrics", navigator::closeSidePanel, size = 36.dp, iconSize = 20.dp)
+                GsIconButton(Icons.Filled.Close, stringResource(R.string.home_hide_lyrics), navigator::closeSidePanel, size = 36.dp, iconSize = 20.dp)
             }
             LyricsPanel(now, Modifier.weight(1f).fillMaxWidth(), lineStyle = MaterialTheme.typography.headlineSmall)
         }

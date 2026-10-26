@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.seb3thehacker.gearslip.car.theme.*
@@ -110,10 +112,9 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                 when (phase) {
                     CarMedia.Phase.REJECTED -> when (rejection) {
                         CarMedia.Rejection.NEEDS_NOTIFICATION_ACCESS -> Notice(
-                            "${app.label} keeps its library to itself.",
-                            "Gearslip can still control it once it has Notification access on the phone. " +
-                                "Allow it under Settings > Notifications > Notification access.",
-                            action = "Open on phone" to {
+                            stringResource(R.string.media_keeps_library, app.label),
+                            stringResource(R.string.media_needs_access),
+                            action = stringResource(R.string.media_open_on_phone) to {
                                 val app = context.applicationContext
                                 runCatching {
                                     app.startActivity(
@@ -123,17 +124,16 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                             },
                         )
                         CarMedia.Rejection.NEEDS_APP_RUNNING -> Notice(
-                            "${app.label} isn't running.",
-                            "${app.label} plays through Gearslip's own player, but only while it's " +
-                                "open on the phone. Open it once and it keeps playing here in the car.",
-                            action = "Open ${app.label}" to { media.launchAndConnect(app) },
+                            stringResource(R.string.media_not_running, app.label),
+                            stringResource(R.string.media_not_running_body, app.label),
+                            action = stringResource(R.string.media_open_app, app.label) to { media.launchAndConnect(app) },
                         )
                         CarMedia.Rejection.REFUSED -> Notice(
-                            "${app.label} would not let Gearslip browse it.",
-                            "Some media apps only accept Google's own host.",
+                            stringResource(R.string.media_refused, app.label),
+                            stringResource(R.string.media_refused_body),
                         )
                     }
-                    else -> Notice("Connecting to ${app.label}…", null)
+                    else -> Notice(stringResource(R.string.media_connecting, app.label), null)
                 }
             }
             return@Surface
@@ -180,14 +180,14 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
             }
             Column(Modifier.weight(1.2f).fillMaxHeight()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MediaTab("Now playing", tab == Tab.NOW_PLAYING, Modifier.weight(1f)) { tab = Tab.NOW_PLAYING }
-                    MediaTab("Up next", tab == Tab.QUEUE, Modifier.weight(1f)) { tab = Tab.QUEUE }
-                    MediaTab("Browse", tab == Tab.BROWSE, Modifier.weight(1f)) { tab = Tab.BROWSE }
-                    MediaTab("Lyrics", tab == Tab.LYRICS, Modifier.weight(1f)) { tab = Tab.LYRICS }
+                    MediaTab(stringResource(R.string.media_now_playing), tab == Tab.NOW_PLAYING, Modifier.weight(1f)) { tab = Tab.NOW_PLAYING }
+                    MediaTab(stringResource(R.string.media_up_next), tab == Tab.QUEUE, Modifier.weight(1f)) { tab = Tab.QUEUE }
+                    MediaTab(stringResource(R.string.media_browse), tab == Tab.BROWSE, Modifier.weight(1f)) { tab = Tab.BROWSE }
+                    MediaTab(stringResource(R.string.storage_lyrics), tab == Tab.LYRICS, Modifier.weight(1f)) { tab = Tab.LYRICS }
                     if (now.canSearch || media.canSearchLibrary) {
                         GsIconButton(
                             Icons.Filled.Search,
-                            "Search ${app.label}",
+                            stringResource(R.string.media_search, app.label),
                             { searching = true },
                             colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.onSurface),
                             size = 44.dp,
@@ -218,7 +218,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
 private fun AppIdentity(app: MediaApp, onExit: () -> Unit, modifier: Modifier = Modifier) {
     val icon = remember(app) { findEntry(app.component.flattenToString())?.icon }
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        GsIconButton(Icons.Filled.ArrowBack, "Back", onExit, size = 44.dp)
+        GsIconButton(Icons.Filled.ArrowBack, stringResource(R.string.back), onExit, size = 44.dp)
         Spacer(Modifier.width(14.dp))
         icon?.let {
             Image(it, null, Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)))
@@ -278,10 +278,10 @@ private fun SearchPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            GsIconButton(Icons.Filled.ArrowBack, "Back", onClose, size = ICON_BUTTON_SIZE)
+            GsIconButton(Icons.Filled.ArrowBack, stringResource(R.string.back), onClose, size = ICON_BUTTON_SIZE)
             SearchField(
                 query,
-                "Search $appLabel",
+                stringResource(R.string.media_search, appLabel),
                 Modifier.weight(1f).clickable { typing = true },
                 onClear = {
                     query = ""
@@ -292,12 +292,12 @@ private fun SearchPanel(
         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
             val entries = current?.entries
             when {
-                trimmed.isEmpty() -> SearchNote("Type a song, artist, album, or playlist.")
+                trimmed.isEmpty() -> SearchNote(stringResource(R.string.media_search_hint))
                 unsupported && canPickForYou ->
-                    SearchNote("$appLabel can't list results. Press search, and $appLabel picks what to play.")
-                unsupported -> SearchNote("$appLabel can't search from the car.")
-                entries == null -> SearchNote("Searching $appLabel…")
-                entries.isEmpty() -> SearchNote("$appLabel found nothing for \"$trimmed\".")
+                    SearchNote(stringResource(R.string.media_search_no_list, appLabel))
+                unsupported -> SearchNote(stringResource(R.string.media_search_unsupported, appLabel))
+                entries == null -> SearchNote(stringResource(R.string.media_searching, appLabel))
+                entries.isEmpty() -> SearchNote(stringResource(R.string.media_search_nothing, appLabel, trimmed))
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 8.dp)) {
                     items(entries) { entry ->
                         EntryRow(entry, media) {
@@ -355,8 +355,8 @@ private fun SearchStatus(search: CarMedia.Search, appLabel: String, onDismiss: (
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
     ) {
         Text(
-            if (search.ignored) "$appLabel didn't play anything for \"${search.query}\"."
-            else "Searching $appLabel for \"${search.query}\"…",
+            if (search.ignored) stringResource(R.string.media_search_ignored, appLabel, search.query)
+            else stringResource(R.string.media_searching_for, appLabel, search.query),
             style = MaterialTheme.typography.bodyLarge,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -411,9 +411,9 @@ internal fun LyricsPanel(
     }
 
     when (val state = lyrics) {
-        LyricsState.Loading -> Notice("Looking for lyrics…", null)
+        LyricsState.Loading -> Notice(stringResource(R.string.media_looking_lyrics), null)
         LyricsState.Missing -> Notice(
-            if (now.title.isEmpty()) "Nothing playing." else "No lyrics found for this track.",
+            stringResource(if (now.title.isEmpty()) R.string.media_nothing_playing_dot else R.string.media_no_lyrics),
             null,
         )
         is LyricsState.Found -> Column(modifier) {
@@ -639,7 +639,7 @@ private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) 
         ) {
             Column {
                 Text(
-                    now.title.ifEmpty { "Nothing playing" },
+                    now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
                     style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
@@ -652,7 +652,7 @@ private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) 
                 now.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, maxLines = 2) }
                 if (now.title.isEmpty() && now.error == null) {
                     Text(
-                        "Press play to pick up where you left off, or find something in Browse.",
+                        stringResource(R.string.media_press_play),
                         style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -683,7 +683,7 @@ private fun NowPlayingControls(now: NowPlaying, media: CarMedia, modifier: Modif
     ) {
         Column {
             Text(
-                now.title.ifEmpty { "Nothing playing" },
+                now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
                 style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
                 maxLines = 2, overflow = TextOverflow.Ellipsis,
             )
@@ -695,7 +695,7 @@ private fun NowPlayingControls(now: NowPlaying, media: CarMedia, modifier: Modif
             now.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, maxLines = 2) }
             if (now.title.isEmpty() && now.error == null) {
                 Text(
-                    "Press play to pick up where you left off, or find something in Browse.",
+                    stringResource(R.string.media_press_play),
                     style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -721,7 +721,7 @@ private fun CompactPlayer(now: NowPlaying, media: CarMedia, art: android.graphic
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f).padding(bottom = 4.dp)) {
                     Text(
-                        now.title.ifEmpty { "Nothing playing" },
+                        now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
                         style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                         maxLines = 3, overflow = TextOverflow.Ellipsis,
                     )

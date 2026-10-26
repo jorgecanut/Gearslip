@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -83,9 +85,10 @@ internal fun ReplyGlyph(modifier: Modifier = Modifier) =
     Icon(ImageVector.vectorResource(R.drawable.voice_selection_24), null, modifier)
 
 /** "Alex", or "Alex · 3 new" when a burst of messages from one chat has been merged. */
+@Composable
 private fun CarNotification.heading(): String {
     val who = title.ifBlank { appLabel }
-    return if (burst > 1) "$who · $burst new" else who
+    return if (burst > 1) pluralStringResource(R.plurals.msg_burst, burst, who, burst) else who
 }
 
 /** The card. It shows the voice reply too, wherever that was started from. */
@@ -106,17 +109,17 @@ fun NotificationPopup(showNew: Boolean, modifier: Modifier = Modifier) {
                 Text(n.heading(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(n.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            GsIconButton(Icons.Filled.Close, "Dismiss", { CarNotifications.dismissPopup(n.id) }, size = 40.dp, iconSize = 20.dp)
+            GsIconButton(Icons.Filled.Close, stringResource(R.string.msg_dismiss), { CarNotifications.dismissPopup(n.id) }, size = 40.dp, iconSize = 20.dp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             GsButton(onClick = { VoiceReply.read(n) }, tone = GsTone.Neutral, modifier = Modifier.weight(1f)) {
                 ReadGlyph(Modifier.size(20.dp))
-                Text("Read", Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.msg_read), Modifier.padding(start = 8.dp))
             }
             if (n.reply != null) {
                 GsButton(onClick = { VoiceReply.reply(n) }, modifier = Modifier.weight(1f)) {
                     ReplyGlyph(Modifier.size(20.dp))
-                    Text("Reply", Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -191,36 +194,36 @@ private fun VoiceReplyBody(s: VoiceReply.State, n: CarNotification) {
         when (s.phase) {
             VoiceReply.Phase.READING, VoiceReply.Phase.READ -> {
                 GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) {
-                    Text(if (s.phase == VoiceReply.Phase.READING) "Stop" else "Close")
+                    Text(if (s.phase == VoiceReply.Phase.READING) stringResource(R.string.msg_stop) else stringResource(R.string.close))
                 }
                 if (n.reply != null) {
                     GsButton(onClick = { VoiceReply.reply(n, readFirst = false) }, modifier = wide) {
                         ReplyGlyph(Modifier.size(20.dp))
-                        Text("Reply", Modifier.padding(start = 8.dp))
+                        Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
                     }
                 }
             }
             VoiceReply.Phase.OFFERING -> {
-                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text("No") }
+                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text(stringResource(R.string.msg_no)) }
                 GsButton(onClick = { VoiceReply.reply(n, readFirst = false) }, modifier = wide) {
                     ReplyGlyph(Modifier.size(20.dp))
-                    Text("Reply", Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
                 }
             }
             VoiceReply.Phase.ASKING, VoiceReply.Phase.LISTENING ->
-                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text("Cancel") }
+                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text(stringResource(R.string.cancel)) }
             VoiceReply.Phase.CONFIRMING -> {
-                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text("Cancel") }
-                GsButton(onClick = VoiceReply::sendNow, modifier = wide) { Text("Send now") }
+                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text(stringResource(R.string.cancel)) }
+                GsButton(onClick = VoiceReply::sendNow, modifier = wide) { Text(stringResource(R.string.msg_send_now)) }
             }
             VoiceReply.Phase.ERROR -> {
-                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text("Close") }
+                GsButton(onClick = VoiceReply::cancel, tone = GsTone.Neutral, modifier = wide) { Text(stringResource(R.string.close)) }
                 if (n.reply != null) {
-                    GsButton(onClick = { VoiceReply.reply(n, readFirst = false) }, tone = GsTone.Tonal, modifier = wide) { Text("Try again") }
+                    GsButton(onClick = { VoiceReply.reply(n, readFirst = false) }, tone = GsTone.Tonal, modifier = wide) { Text(stringResource(R.string.update_try_again)) }
                     GsButton(
                         onClick = { VoiceReply.cancel(); navigator.notifications(replyTo = n.key) },
                         tone = GsTone.Neutral, modifier = wide,
-                    ) { Text("Type") }
+                    ) { Text(stringResource(R.string.msg_type)) }
                 }
             }
             VoiceReply.Phase.SENT, VoiceReply.Phase.IDLE -> Unit
@@ -228,13 +231,14 @@ private fun VoiceReplyBody(s: VoiceReply.State, n: CarNotification) {
     }
 }
 
+@Composable
 private fun voiceHeading(s: VoiceReply.State, who: String): String = when (s.phase) {
     VoiceReply.Phase.READING, VoiceReply.Phase.READ -> who
-    VoiceReply.Phase.OFFERING, VoiceReply.Phase.ASKING -> "Reply to $who"
-    VoiceReply.Phase.LISTENING -> "Listening"
-    VoiceReply.Phase.CONFIRMING -> "Sending to $who"
-    VoiceReply.Phase.SENT -> "Sent to $who"
-    VoiceReply.Phase.ERROR -> "Couldn't reply"
+    VoiceReply.Phase.OFFERING, VoiceReply.Phase.ASKING -> stringResource(R.string.msg_reply_to, who)
+    VoiceReply.Phase.LISTENING -> stringResource(R.string.msg_listening)
+    VoiceReply.Phase.CONFIRMING -> stringResource(R.string.msg_sending_to, who)
+    VoiceReply.Phase.SENT -> stringResource(R.string.msg_sent_to, who)
+    VoiceReply.Phase.ERROR -> stringResource(R.string.msg_reply_failed)
     VoiceReply.Phase.IDLE -> ""
 }
 

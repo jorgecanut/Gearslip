@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -249,14 +251,14 @@ private fun ChromeBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                status.app ?: "Car app",
+                status.app ?: stringResource(R.string.stage_car_app),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
             GsIconButton(
                 androidx.compose.material.icons.Icons.Filled.Close,
-                "Close ${status.app ?: "the app"}",
+                status.app?.let { stringResource(R.string.stage_close, it) } ?: stringResource(R.string.stage_close_app),
                 onDisconnect,
                 size = 36.dp,
                 iconSize = 20.dp,

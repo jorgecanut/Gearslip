@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -60,7 +62,7 @@ fun CarDashboardScreen() {
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        ScreenHeader("Today")
+        ScreenHeader(stringResource(R.string.dash_today))
         WeatherCard(context)
         AgendaCard(context)
         NotificationsSection()
@@ -84,9 +86,9 @@ private fun WeatherCard(context: Context) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             when (val s = state) {
-                WeatherState.Loading -> Text("Getting weather…", style = MaterialTheme.typography.bodyLarge)
+                WeatherState.Loading -> Text(stringResource(R.string.dash_getting_weather), style = MaterialTheme.typography.bodyLarge)
                 is WeatherState.Unavailable -> Text(
-                    s.reason, style = MaterialTheme.typography.bodyLarge,
+                    stringResource(s.reason), style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 is WeatherState.Ready -> {
@@ -94,7 +96,7 @@ private fun WeatherCard(context: Context) {
                     WeatherIcon(w.code, w.isDay, size = 44.dp)
                     Column {
                         Text(
-                            "${w.temp}${w.tempUnit}  ·  ${Weather.describe(w.code)}",
+                            "${w.temp}${w.tempUnit}  ·  ${Weather.condition(w.code)}",
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
                         )
                         Text(w.place, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -112,12 +114,12 @@ private fun AgendaCard(context: Context) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Coming up", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.dash_coming_up), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         val list = events
         when {
-            list == null -> Text("Loading calendar…", style = MaterialTheme.typography.bodyMedium)
+            list == null -> Text(stringResource(R.string.dash_loading_calendar), style = MaterialTheme.typography.bodyMedium)
             list.isEmpty() -> Text(
-                "Nothing in the next week.",
+                stringResource(R.string.dash_nothing_week),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -135,7 +137,7 @@ private fun EventRow(event: AgendaEvent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                eventWhen(event),
+                eventWhen(event, stringResource(R.string.dash_all_day)),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -149,14 +151,14 @@ private fun EventRow(event: AgendaEvent) {
     }
 }
 
-/** "Today" events show just a time; later days get a weekday so a week's list stays readable. */
-private fun eventWhen(event: AgendaEvent): String {
+/** stringResource(R.string.dash_today) events show just a time; later days get a weekday so a week's list stays readable. */
+private fun eventWhen(event: AgendaEvent, allDay: String): String {
     val zone = if (event.allDay) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
     val start = Calendar.getInstance(zone).apply { timeInMillis = event.startMillis }
     val today = Calendar.getInstance()
     val sameDay = start.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
         start.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-    val time = if (event.allDay) "All day" else DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(event.startMillis))
+    val time = if (event.allDay) allDay else DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(event.startMillis))
     if (sameDay || (event.allDay && start.before(today))) return time
     return SimpleDateFormat("EEE", Locale.getDefault()).apply { timeZone = zone }.format(Date(event.startMillis)) + " " + time
 }

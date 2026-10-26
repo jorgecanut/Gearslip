@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -425,7 +427,7 @@ internal fun AutoStartButton(action: Action, modifier: Modifier = Modifier) {
             ) {
                 if (hasGlyph) CarGlyph(action.icon, Modifier.size(24.dp).align(Alignment.CenterStart))
                 Text(
-                    action.title.text().ifEmpty { "Start" },
+                    action.title.text().ifEmpty { stringResource(R.string.template_start) },
                     style = ChromeType.title,
                     maxLines = 1,
                 )

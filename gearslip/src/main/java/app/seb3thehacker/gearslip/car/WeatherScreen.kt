@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,11 +43,11 @@ fun WeatherScreen() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        ScreenHeader("Weather")
+        ScreenHeader(stringResource(R.string.crumb_weather))
         when (val s = state) {
-            WeatherState.Loading -> Text("Getting the weather…", style = MaterialTheme.typography.titleMedium)
+            WeatherState.Loading -> Text(stringResource(R.string.weather_getting), style = MaterialTheme.typography.titleMedium)
             is WeatherState.Unavailable -> Text(
-                s.reason, style = MaterialTheme.typography.titleMedium,
+                stringResource(s.reason), style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             is WeatherState.Ready -> Forecast(s.data)
@@ -66,18 +68,18 @@ private fun Forecast(w: WeatherData) {
             WeatherIcon(w.code, w.isDay, size = 88.dp)
             Column {
                 Text("${w.temp}${w.tempUnit}", fontSize = 56.sp, fontWeight = FontWeight.Bold)
-                Text(Weather.describe(w.code), style = MaterialTheme.typography.titleLarge)
+                Text(Weather.condition(w.code), style = MaterialTheme.typography.titleLarge)
             }
             Spacer(Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Feels like ${w.feelsLike}${w.tempUnit}", style = MaterialTheme.typography.bodyLarge)
-                Text("Humidity ${w.humidity}%", style = MaterialTheme.typography.bodyLarge)
-                Text("Wind ${w.wind} ${w.windUnit}", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.weather_feels_like, "${w.feelsLike}${w.tempUnit}"), style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.weather_humidity, w.humidity), style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.weather_wind, "${w.wind} ${w.windUnit}"), style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
 
-    Text("Next hours", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    Text(stringResource(R.string.weather_next_hours), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         items(w.hours) { h ->
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large) {
@@ -101,7 +103,7 @@ private fun Forecast(w: WeatherData) {
         }
     }
 
-    Text("This week", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    Text(stringResource(R.string.weather_this_week), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         w.days.forEachIndexed { i, d ->
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.large) {
@@ -111,11 +113,11 @@ private fun Forecast(w: WeatherData) {
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(
-                        if (i == 0) "Today" else SimpleDateFormat("EEEE", Locale.getDefault()).format(Date(d.date)),
+                        if (i == 0) stringResource(R.string.weather_today) else SimpleDateFormat("EEEE", Locale.getDefault()).format(Date(d.date)),
                         Modifier.width(120.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                     )
                     WeatherIcon(d.code, true, size = 28.dp)
-                    Text(Weather.describe(d.code), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Text(Weather.condition(d.code), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     if (d.rainChance > 0) Text("${d.rainChance}%", color = MaterialTheme.colorScheme.primary)
                     Text("${d.low}° / ${d.high}°", style = MaterialTheme.typography.bodyLarge)
                 }
@@ -123,7 +125,7 @@ private fun Forecast(w: WeatherData) {
         }
     }
     Text(
-        "Weather data by Open-Meteo.com (CC BY 4.0)",
+        stringResource(R.string.weather_credit),
         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

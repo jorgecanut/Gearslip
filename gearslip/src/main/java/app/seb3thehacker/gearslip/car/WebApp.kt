@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -95,19 +97,19 @@ fun WebApp(content: String) {
     Column(Modifier.fillMaxSize()) {
         // Back steps through the page's history first (the interceptor above), then leaves.
         if (!fullscreen) {
-            ScreenHeader(pageTitle.ifEmpty { "Browser" }, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                GsIconButton(androidx.compose.material.icons.Icons.Filled.Search, "Search or type an address", {
+            ScreenHeader(pageTitle.ifEmpty { stringResource(R.string.app_browser) }, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                GsIconButton(androidx.compose.material.icons.Icons.Filled.Search, stringResource(R.string.web_search), {
                     fieldText = null
                     address = ""
                 })
                 if (canGoForward) {
-                    GsIconButton(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowForward, "Forward", { web?.goForward() })
+                    GsIconButton(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.web_forward), { web?.goForward() })
                 }
-                GsIconButton(androidx.compose.material.icons.Icons.Filled.Refresh, "Reload", { web?.reload() })
-                GsIconButton(androidx.compose.material.icons.Icons.Filled.Home, "Start page", {
+                GsIconButton(androidx.compose.material.icons.Icons.Filled.Refresh, stringResource(R.string.web_reload), { web?.reload() })
+                GsIconButton(androidx.compose.material.icons.Icons.Filled.Home, stringResource(R.string.web_start_page), {
                     web?.let { view -> loadContent(view, content) }
                 })
-                GsIconButton(MediaIcons.Fullscreen, "Full screen", CarFullscreen::enter)
+                GsIconButton(MediaIcons.Fullscreen, stringResource(R.string.web_fullscreen), CarFullscreen::enter)
             }
         }
         Box(Modifier.weight(1f).fillMaxSize()) {

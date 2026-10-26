@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import app.seb3thehacker.gearslip.R
 import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -121,7 +122,7 @@ object DirectionsVoice {
                 say(instruction)
                 stage = Stage.DONE
             } else {
-                say("In ${spoken(turn.distance)}, $instruction")
+                say(ahead(turn.distance, instruction))
                 stage = if (meters != null && meters > PREPARE_FROM_METERS) Stage.FAR else Stage.PREPARED
             }
             return
@@ -132,7 +133,7 @@ object DirectionsVoice {
                 stage = Stage.DONE
             }
             stage == Stage.FAR && meters != null && meters <= PREPARE_AT_METERS -> {
-                say("In ${spoken(turn.distance)}, $instruction")
+                say(ahead(turn.distance, instruction))
                 stage = Stage.PREPARED
             }
         }
@@ -140,67 +141,79 @@ object DirectionsVoice {
 
     /** What to do, in words: built from the manoeuvre when the app names one, else the app's own text. */
     private fun instruction(step: Step): String? {
+        val res = appContext?.resources ?: return null
         val road = step.road.text()
-        val onto = if (road.isBlank()) "" else " onto $road"
-        val toward = if (road.isBlank()) "" else " toward $road"
+        // Each manoeuvre is a whole sentence, with and without the road, so a translation can
+        // put the road wherever its language wants it.
+        fun say(plain: Int, withRoad: Int) =
+            if (road.isBlank() || withRoad == 0) res.getString(plain) else res.getString(withRoad, road)
         val maneuver = step.maneuver
         val built = when (maneuver?.type) {
-            Maneuver.TYPE_TURN_SLIGHT_LEFT -> "Turn slightly left$onto"
-            Maneuver.TYPE_TURN_SLIGHT_RIGHT -> "Turn slightly right$onto"
-            Maneuver.TYPE_TURN_NORMAL_LEFT -> "Turn left$onto"
-            Maneuver.TYPE_TURN_NORMAL_RIGHT -> "Turn right$onto"
-            Maneuver.TYPE_TURN_SHARP_LEFT -> "Turn sharply left$onto"
-            Maneuver.TYPE_TURN_SHARP_RIGHT -> "Turn sharply right$onto"
-            Maneuver.TYPE_U_TURN_LEFT, Maneuver.TYPE_U_TURN_RIGHT -> "Make a U-turn"
-            Maneuver.TYPE_KEEP_LEFT -> "Keep left$toward"
-            Maneuver.TYPE_KEEP_RIGHT -> "Keep right$toward"
-            Maneuver.TYPE_FORK_LEFT -> "Keep left at the fork$toward"
-            Maneuver.TYPE_FORK_RIGHT -> "Keep right at the fork$toward"
+            Maneuver.TYPE_TURN_SLIGHT_LEFT -> say(R.string.dir_slight_left, R.string.dir_slight_left_onto)
+            Maneuver.TYPE_TURN_SLIGHT_RIGHT -> say(R.string.dir_slight_right, R.string.dir_slight_right_onto)
+            Maneuver.TYPE_TURN_NORMAL_LEFT -> say(R.string.dir_left, R.string.dir_left_onto)
+            Maneuver.TYPE_TURN_NORMAL_RIGHT -> say(R.string.dir_right, R.string.dir_right_onto)
+            Maneuver.TYPE_TURN_SHARP_LEFT -> say(R.string.dir_sharp_left, R.string.dir_sharp_left_onto)
+            Maneuver.TYPE_TURN_SHARP_RIGHT -> say(R.string.dir_sharp_right, R.string.dir_sharp_right_onto)
+            Maneuver.TYPE_U_TURN_LEFT, Maneuver.TYPE_U_TURN_RIGHT -> say(R.string.dir_u_turn, 0)
+            Maneuver.TYPE_KEEP_LEFT -> say(R.string.dir_keep_left, R.string.dir_keep_left_toward)
+            Maneuver.TYPE_KEEP_RIGHT -> say(R.string.dir_keep_right, R.string.dir_keep_right_toward)
+            Maneuver.TYPE_FORK_LEFT -> say(R.string.dir_fork_left, R.string.dir_fork_left_toward)
+            Maneuver.TYPE_FORK_RIGHT -> say(R.string.dir_fork_right, R.string.dir_fork_right_toward)
             Maneuver.TYPE_ON_RAMP_SLIGHT_LEFT, Maneuver.TYPE_ON_RAMP_NORMAL_LEFT, Maneuver.TYPE_ON_RAMP_SHARP_LEFT,
-            Maneuver.TYPE_ON_RAMP_U_TURN_LEFT -> "Take the ramp on the left$onto"
+            Maneuver.TYPE_ON_RAMP_U_TURN_LEFT -> say(R.string.dir_ramp_left, R.string.dir_ramp_left_onto)
             Maneuver.TYPE_ON_RAMP_SLIGHT_RIGHT, Maneuver.TYPE_ON_RAMP_NORMAL_RIGHT, Maneuver.TYPE_ON_RAMP_SHARP_RIGHT,
-            Maneuver.TYPE_ON_RAMP_U_TURN_RIGHT -> "Take the ramp on the right$onto"
-            Maneuver.TYPE_OFF_RAMP_SLIGHT_LEFT, Maneuver.TYPE_OFF_RAMP_NORMAL_LEFT -> "Take the exit on the left$toward"
-            Maneuver.TYPE_OFF_RAMP_SLIGHT_RIGHT, Maneuver.TYPE_OFF_RAMP_NORMAL_RIGHT -> "Take the exit on the right$toward"
-            Maneuver.TYPE_MERGE_LEFT -> "Merge left$onto"
-            Maneuver.TYPE_MERGE_RIGHT -> "Merge right$onto"
-            Maneuver.TYPE_MERGE_SIDE_UNSPECIFIED -> "Merge$onto"
+            Maneuver.TYPE_ON_RAMP_U_TURN_RIGHT -> say(R.string.dir_ramp_right, R.string.dir_ramp_right_onto)
+            Maneuver.TYPE_OFF_RAMP_SLIGHT_LEFT, Maneuver.TYPE_OFF_RAMP_NORMAL_LEFT -> say(R.string.dir_exit_left, R.string.dir_exit_left_toward)
+            Maneuver.TYPE_OFF_RAMP_SLIGHT_RIGHT, Maneuver.TYPE_OFF_RAMP_NORMAL_RIGHT -> say(R.string.dir_exit_right, R.string.dir_exit_right_toward)
+            Maneuver.TYPE_MERGE_LEFT -> say(R.string.dir_merge_left, R.string.dir_merge_left_onto)
+            Maneuver.TYPE_MERGE_RIGHT -> say(R.string.dir_merge_right, R.string.dir_merge_right_onto)
+            Maneuver.TYPE_MERGE_SIDE_UNSPECIFIED -> say(R.string.dir_merge, R.string.dir_merge_onto)
             Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW, Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW_WITH_ANGLE,
             Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW, Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW_WITH_ANGLE ->
                 maneuver.roundaboutExitNumber.takeIf { it in 1..ORDINALS.size }
-                    ?.let { "At the roundabout, take the ${ORDINALS[it - 1]} exit$onto" }
-                    ?: "Go through the roundabout$onto"
-            Maneuver.TYPE_ROUNDABOUT_ENTER_CW, Maneuver.TYPE_ROUNDABOUT_ENTER_CCW -> "Enter the roundabout"
-            Maneuver.TYPE_ROUNDABOUT_EXIT_CW, Maneuver.TYPE_ROUNDABOUT_EXIT_CCW -> "Exit the roundabout$onto"
-            Maneuver.TYPE_STRAIGHT -> "Continue straight$onto"
-            Maneuver.TYPE_NAME_CHANGE -> "Continue$onto"
-            Maneuver.TYPE_FERRY_BOAT, Maneuver.TYPE_FERRY_BOAT_LEFT, Maneuver.TYPE_FERRY_BOAT_RIGHT -> "Take the ferry"
-            Maneuver.TYPE_FERRY_TRAIN, Maneuver.TYPE_FERRY_TRAIN_LEFT, Maneuver.TYPE_FERRY_TRAIN_RIGHT -> "Take the train"
-            Maneuver.TYPE_DESTINATION, Maneuver.TYPE_DESTINATION_STRAIGHT -> "Your destination is ahead"
-            Maneuver.TYPE_DESTINATION_LEFT -> "Your destination is on the left"
-            Maneuver.TYPE_DESTINATION_RIGHT -> "Your destination is on the right"
+                    ?.let { res.getString(ORDINALS[it - 1]) }
+                    ?.let { exit ->
+                        if (road.isBlank()) res.getString(R.string.dir_roundabout_take, exit)
+                        else res.getString(R.string.dir_roundabout_take_onto, exit, road)
+                    }
+                    ?: say(R.string.dir_roundabout_through, R.string.dir_roundabout_through_onto)
+            Maneuver.TYPE_ROUNDABOUT_ENTER_CW, Maneuver.TYPE_ROUNDABOUT_ENTER_CCW -> say(R.string.dir_roundabout_enter, 0)
+            Maneuver.TYPE_ROUNDABOUT_EXIT_CW, Maneuver.TYPE_ROUNDABOUT_EXIT_CCW -> say(R.string.dir_roundabout_exit, R.string.dir_roundabout_exit_onto)
+            Maneuver.TYPE_STRAIGHT -> say(R.string.dir_straight, R.string.dir_straight_onto)
+            Maneuver.TYPE_NAME_CHANGE -> say(R.string.dir_continue, R.string.dir_continue_onto)
+            Maneuver.TYPE_FERRY_BOAT, Maneuver.TYPE_FERRY_BOAT_LEFT, Maneuver.TYPE_FERRY_BOAT_RIGHT -> say(R.string.dir_ferry, 0)
+            Maneuver.TYPE_FERRY_TRAIN, Maneuver.TYPE_FERRY_TRAIN_LEFT, Maneuver.TYPE_FERRY_TRAIN_RIGHT -> say(R.string.dir_train, 0)
+            Maneuver.TYPE_DESTINATION, Maneuver.TYPE_DESTINATION_STRAIGHT -> say(R.string.dir_destination, 0)
+            Maneuver.TYPE_DESTINATION_LEFT -> say(R.string.dir_destination_left, 0)
+            Maneuver.TYPE_DESTINATION_RIGHT -> say(R.string.dir_destination_right, 0)
             else -> null
         }
         return built ?: step.cue.text().ifBlank { null }
     }
 
+    /** "In 300 meters, turn left": the distance ahead of a turn that isn't close yet. */
+    private fun ahead(d: Distance, instruction: String): String =
+        appContext?.getString(R.string.dir_in_distance, spoken(d), instruction) ?: instruction
+
     /** The app's own rounded distance, read the way a person would say it. */
     private fun spoken(d: Distance): String {
+        val res = appContext?.resources ?: return ""
         val n = d.displayDistance
-        val number = if (n % 1.0 == 0.0) n.toInt().toString() else "%.1f".format(n)
-        val one = n == 1.0
+        val whole = n % 1.0 == 0.0
+        val number = if (whole) n.toInt().toString() else "%.1f".format(n)
         return when (d.displayUnit) {
-            Distance.UNIT_KILOMETERS, Distance.UNIT_KILOMETERS_P1 -> if (one) "1 kilometer" else "$number kilometers"
+            Distance.UNIT_KILOMETERS, Distance.UNIT_KILOMETERS_P1 ->
+                if (whole) res.getQuantityString(R.plurals.dir_km, n.toInt(), number) else res.getString(R.string.dir_km_decimal, number)
             Distance.UNIT_MILES, Distance.UNIT_MILES_P1 -> when (n) {
-                0.25 -> "a quarter mile"
-                0.5 -> "half a mile"
-                0.75 -> "three quarters of a mile"
-                1.0 -> "1 mile"
-                else -> "$number miles"
+                0.25 -> res.getString(R.string.dir_quarter_mile)
+                0.5 -> res.getString(R.string.dir_half_mile)
+                0.75 -> res.getString(R.string.dir_three_quarter_mile)
+                else -> if (whole) res.getQuantityString(R.plurals.dir_miles, n.toInt(), number) else res.getString(R.string.dir_miles_decimal, number)
             }
-            Distance.UNIT_FEET -> "$number feet"
-            Distance.UNIT_YARDS -> "$number yards"
-            else -> "${n.roundToInt()} meters"
+            Distance.UNIT_FEET -> res.getQuantityString(R.plurals.dir_feet, n.toInt(), number)
+            Distance.UNIT_YARDS -> res.getQuantityString(R.plurals.dir_yards, n.toInt(), number)
+            else -> res.getQuantityString(R.plurals.dir_meters, n.roundToInt(), n.roundToInt())
         }
     }
 
@@ -347,5 +360,8 @@ object DirectionsVoice {
     private const val LEAD_MS = 100L
     private const val HOLD_MS = 2_000L
     private const val SYNTH_TIMEOUT_S = 10L
-    private val ORDINALS = listOf("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth")
+    private val ORDINALS = listOf(
+        R.string.dir_ordinal_1, R.string.dir_ordinal_2, R.string.dir_ordinal_3, R.string.dir_ordinal_4,
+        R.string.dir_ordinal_5, R.string.dir_ordinal_6, R.string.dir_ordinal_7, R.string.dir_ordinal_8,
+    )
 }

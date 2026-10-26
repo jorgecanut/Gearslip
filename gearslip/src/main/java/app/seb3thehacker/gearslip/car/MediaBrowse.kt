@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.seb3thehacker.gearslip.car.theme.*
@@ -86,7 +88,7 @@ internal fun BrowsePanel(browse: app.seb3thehacker.gearslip.media.BrowseState, m
         if (media.canGoUp || browse.trail.isNotEmpty()) {
             Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (media.canGoUp) {
-                    GsIconButton(Icons.Filled.ArrowBack, "Up", media::up, size = 44.dp, shape = CircleShape)
+                    GsIconButton(Icons.Filled.ArrowBack, stringResource(R.string.media_up), media::up, size = 44.dp, shape = CircleShape)
                     Spacer(Modifier.width(14.dp))
                 }
                 browse.trail.lastOrNull()?.let {
@@ -99,13 +101,13 @@ internal fun BrowsePanel(browse: app.seb3thehacker.gearslip.media.BrowseState, m
             }
         }
         when {
-            browse.loading -> Notice("Loading…", null)
+            browse.loading -> Notice(stringResource(R.string.media_loading), null)
             browse.unavailable -> Notice(
-                "$appLabel keeps its library to itself.",
-                "Start music in the app on your phone. Play, pause, skip and seek work from here.",
+                stringResource(R.string.media_keeps_library, appLabel),
+                stringResource(R.string.media_browse_start),
             )
-            browse.failed -> Notice("Could not load this list.", null)
-            browse.entries.isEmpty() -> Notice("Nothing here.", null)
+            browse.failed -> Notice(stringResource(R.string.media_load_failed), null)
+            browse.entries.isEmpty() -> Notice(stringResource(R.string.media_nothing_here), null)
             else -> BrowseList(browse.entries, media)
         }
     }
@@ -228,9 +230,8 @@ internal fun QueuePanel(queue: List<QueueTrack>, now: NowPlaying, media: CarMedi
     Column(modifier) {
         if (upNext.isEmpty()) {
             Notice(
-                "Nothing queued.",
-                "${if (now.title.isEmpty()) "Nothing playing" else "Only what's already playing"} - " +
-                    "not every app tells Gearslip what comes next.",
+                stringResource(R.string.media_nothing_queued),
+                stringResource(if (now.title.isEmpty()) R.string.media_queue_empty_idle else R.string.media_queue_empty_playing),
             )
         } else {
             LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -260,7 +261,7 @@ private fun QueueRow(track: QueueTrack, media: CarMedia) {
                     Text(track.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Icon(Icons.Filled.PlayArrow, "Play", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.PlayArrow, stringResource(R.string.media_play), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -286,7 +287,7 @@ internal fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = 
                 }
             }
             if (entry.browsable && entry.playable) {
-                GsIconButton(Icons.Filled.PlayArrow, "Play", { media.playAll(entry) })
+                GsIconButton(Icons.Filled.PlayArrow, stringResource(R.string.media_play), { media.playAll(entry) })
             }
             if (entry.browsable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
         }
