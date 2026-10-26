@@ -301,10 +301,9 @@ object SpeechEngine {
                 config = OfflineRecognizerConfig(
                     featConfig = FeatureConfig(sampleRate = RATE, featureDim = 80),
                     modelConfig = if (model.modelType == "canary") {
-                        // The chosen language in and out, and no punctuation: clean() strips it anyway.
-                        val language = SpeechModels.language.value.code
+                        // English in, English out, and no punctuation: clean() strips it anyway.
                         OfflineModelConfig(
-                            canary = OfflineCanaryModelConfig(path(model.encoder), path(model.decoder), srcLang = language, tgtLang = language, usePnc = false),
+                            canary = OfflineCanaryModelConfig(path(model.encoder), path(model.decoder), srcLang = "en", tgtLang = "en", usePnc = false),
                             tokens = path("tokens.txt"),
                             numThreads = threads(),
                         )

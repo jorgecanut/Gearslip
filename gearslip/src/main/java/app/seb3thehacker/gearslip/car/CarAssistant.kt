@@ -15,7 +15,6 @@ import androidx.core.content.ContextCompat
 import app.seb3thehacker.gearslip.call.CallUiState
 import app.seb3thehacker.gearslip.call.CarCalls
 import app.seb3thehacker.gearslip.speech.SpeechEngine
-import app.seb3thehacker.gearslip.speech.SpeechModels
 import app.seb3thehacker.gearslip.speech.VoiceFocus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -138,7 +137,6 @@ object CarAssistant {
             }
             override fun onStop(utteranceId: String?, interrupted: Boolean) { VoiceFocus.release() }
         })
-        engine.setLanguage(SpeechModels.language.value.locale)
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "gearslip-assistant")
     }
 
@@ -162,7 +160,6 @@ object CarAssistant {
             // Stopped part way: whoever stopped it has already moved on.
             override fun onStop(utteranceId: String?, interrupted: Boolean) { VoiceFocus.release() }
         })
-        engine.setLanguage(SpeechModels.language.value.locale)
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "gearslip-say")
     }
 
@@ -248,7 +245,6 @@ object CarAssistant {
         r.startListening(
             Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, SpeechModels.language.value.locale.toLanguageTag())
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
             },

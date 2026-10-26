@@ -1,4 +1,4 @@
-Gearslip 0.3.12 plus a Spanish voice assistant and fixes for head units whose music channel only takes AAC (tested on an aftermarket GalReceiver 2014 unit). This is a fork build, not an official release.
+Gearslip 0.3.12 plus fixes for head units whose music channel only takes AAC (tested on an aftermarket GalReceiver 2014 unit). This is a fork build, not an official release.
 
 ## Fork fixes
 - Music plays on head units that only take raw AAC: the AAC codec config goes out right after Start, before the first frame. Before, the head unit reset the connection half a second into the first song.
@@ -7,11 +7,9 @@ Gearslip 0.3.12 plus a Spanish voice assistant and fixes for head units whose mu
 - When a VPN keeps the phone from reaching the car over Wi-Fi, a popup says so, with a shortcut to the VPN settings.
 - Media apps that won't let Gearslip browse them, like YouTube Music, no longer stay stuck on "would not let Gearslip browse it": start one playing on the phone and the car takes over its controls.
 - When the car hangs up on its own (switched off, or wireless dropped), the music pauses and the phone stops sending audio, as when you unplug the cable. Before, it kept playing until the next connection.
-- The voice assistant speaks Spanish: choose Español under Settings, Voice: language. Spanish downloads Kroko's Spanish model (149 MB) and uses Canary for the final words.
-- Ask "what's on my calendar" (or "¿qué tengo hoy?") to hear your next event.
 - A call made from Gearslip on an AAC-only head unit no longer leaves the car on its own phone screen: Gearslip tells the car about the call, as Android Auto does. Music comes back once the call ends.
 - Gearslip stops sending video to a car that has stopped taking it, and picks up again when the car does.
-- Spoken directions use the map app's own words when the phone isn't set to English, and the log shows why text-to-speech stays silent.
+- Spoken directions restart text-to-speech when it gets stuck, and the log shows why it stays silent.
 - The session report says when the car was simply switched off, and the log is much shorter.
 
 This build is signed with a different key than the official releases: uninstall the official Gearslip before installing it.

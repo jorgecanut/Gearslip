@@ -33,6 +33,20 @@ object VoiceHelp {
 
     fun show() { _shown.value = true }
     fun hide() { _shown.value = false }
+
+    /** Say this, and this happens. Kept in step with [AssistantCommands]. */
+    val COMMANDS = listOf(
+        "Navigate to…" to "Directions there. Add \"with Organic Maps\" to pick the app",
+        "Play…" to "A song, artist, or album in the open music app",
+        "Pause · Resume · Next · Previous" to "Control the music",
+        "What's playing" to "The song and artist",
+        "Call…" to "A contact by name",
+        "Open…" to "Any app, like Browser, Phone, or Screen sharing",
+        "Exit" to "Back to the car's own screen",
+        "Go home · Open apps · Settings" to "Move around Gearslip",
+        "What time is it · Weather" to "The time, or the forecast",
+        "Help" to "This list",
+    )
 }
 
 /** The command list over the car screen: read it at a glance, tap the cross or wait to dismiss. */
@@ -68,7 +82,7 @@ fun VoiceHelpOverlay(modifier: Modifier = Modifier) {
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                AssistantPhrases.current.helpCommands.forEach { (say, does) ->
+                VoiceHelp.COMMANDS.forEach { (say, does) ->
                     Column(Modifier.fillMaxWidth()) {
                         Text(say, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Text(does, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

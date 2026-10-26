@@ -75,6 +75,7 @@ object DirectionsVoice {
      * engines drop one set before they were bound, and then never report a file as done - which
      * is what every turn of a whole drive timing out looked like. What the engine is and whether
      * it has a voice for the phone's language go in the log, as that's the other usual cause.
+     * The language itself is left as the engine has it.
      */
     private fun startEngine() {
         val context = appContext ?: return
@@ -88,7 +89,7 @@ object DirectionsVoice {
             }
             e.setOnUtteranceProgressListener(progress)
             val locale = Locale.getDefault()
-            val language = runCatching { e.setLanguage(locale) }.getOrDefault(TextToSpeech.LANG_NOT_SUPPORTED)
+            val language = runCatching { e.isLanguageAvailable(locale) }.getOrDefault(TextToSpeech.LANG_NOT_SUPPORTED)
             val voice = runCatching { e.voice?.name }.getOrNull()
             GearslipLog.i("guidance: text-to-speech ready - engine ${e.defaultEngine}, $locale ${languageName(language)}, voice $voice")
             ttsReady = true
@@ -163,7 +164,7 @@ object DirectionsVoice {
                 say(instruction)
                 stage = Stage.DONE
             } else {
-                say(ahead(turn.distance, instruction))
+                say("In ${spoken(turn.distance)}, $instruction")
                 stage = if (meters != null && meters > PREPARE_FROM_METERS) Stage.FAR else Stage.PREPARED
             }
             return
@@ -174,19 +175,14 @@ object DirectionsVoice {
                 stage = Stage.DONE
             }
             stage == Stage.FAR && meters != null && meters <= PREPARE_AT_METERS -> {
-                say(ahead(turn.distance, instruction))
+                say("In ${spoken(turn.distance)}, $instruction")
                 stage = Stage.PREPARED
             }
         }
     }
 
-    /**
-     * What to do, in words: built from the manoeuvre when the app names one, else the app's own
-     * text. The built words are English, so on a phone set to another language the map app's own
-     * cue is used instead: a Spanish voice reading "Turn left onto" was no help to anyone.
-     */
+    /** What to do, in words: built from the manoeuvre when the app names one, else the app's own text. */
     private fun instruction(step: Step): String? {
-        if (!english()) return step.cue.text().ifBlank { null } ?: step.road.text().ifBlank { null }
         val road = step.road.text()
         val onto = if (road.isBlank()) "" else " onto $road"
         val toward = if (road.isBlank()) "" else " toward $road"
@@ -230,12 +226,6 @@ object DirectionsVoice {
         }
         return built ?: step.cue.text().ifBlank { null }
     }
-
-    private fun english() = Locale.getDefault().language == "en"
-
-    /** "In 300 meters, turn left" - only in English; the map app's cue in another language stands alone. */
-    private fun ahead(distance: Distance, instruction: String) =
-        if (english()) "In ${spoken(distance)}, $instruction" else instruction
 
     /** The app's own rounded distance, read the way a person would say it. */
     private fun spoken(d: Distance): String {
