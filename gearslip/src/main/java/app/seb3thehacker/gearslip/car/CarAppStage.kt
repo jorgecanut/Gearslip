@@ -11,6 +11,8 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import kotlin.math.hypot
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,10 +75,28 @@ fun CarAppStage(
             if (status.surfaceRequested) {
                 AppSurface(connection, frame, template, Modifier.fillMaxSize())
             }
+            // The docked player floats over one side of the map: the chrome keeps clear of it,
+            // and the app hears that side is covered, so its map centres in the rest.
+            val panel = LocalSidePanelInset.current
+            val panelAtStart = LocalCardsAtEnd.current
             TemplateChrome(
                 template,
-                Modifier.fillMaxSize().padding(top = if (embedded) 0.dp else CHROME_BAR, bottom = navBar),
+                Modifier.fillMaxSize().padding(
+                    top = if (embedded) 0.dp else CHROME_BAR,
+                    bottom = navBar,
+                    start = if (panelAtStart) panel else 0.dp,
+                    end = if (panelAtStart) 0.dp else panel,
+                ),
             )
+            if (panel > 0.dp) {
+                Box(
+                    Modifier
+                        .align(if (panelAtStart) Alignment.CenterStart else Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .width(panel)
+                        .covers("side-panel", if (panelAtStart) CoverEdge.START else CoverEdge.END),
+                )
+            }
             BottomCover(navBar, Modifier.align(Alignment.BottomCenter))
         }
         if (!embedded) ChromeBar(status, onDisconnect, Modifier.align(Alignment.TopCenter))

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import app.seb3thehacker.gearslip.car.theme.gsPanelShadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
@@ -64,9 +66,9 @@ import app.seb3thehacker.gearslip.media.NowPlaying
 import kotlinx.coroutines.launch
 
 /**
- * The home screen: the map, with the docked player beside it when asked for. With the player on
- * the left, the map app's cards move to the map's far edge, so the player, the map and the cards
- * each keep their own space.
+ * The home screen: the map, with the docked player floating over one side of it when asked for.
+ * With the player on the left, the map app's cards move to the map's far edge, so the player, the
+ * map and the cards each keep their own space.
  *
  * The map is whatever navigation app was used last, brought back on its own. The player sits in
  * the nav bar's pill until its dock button moves it here; the column closes itself back to a
@@ -96,27 +98,51 @@ fun CarHome() {
     }
     val splitScreen = phase == CarMedia.Phase.READY && now.isActive && panel != SidePanel.NONE
     val playerLeft by CarSettings.playerLeft.collectAsStateWithLifecycle()
+    // What the card showed last, so it still has something to show while it slides away.
+    val shown = remember { androidx.compose.runtime.mutableStateOf(SidePanel.CONTROLS) }
+    if (panel != SidePanel.NONE) shown.value = panel
 
-    // No padding anywhere, split screen or not: the player sits flush against the map.
-    Row(Modifier.fillMaxSize()) {
-        val side = Modifier.weight(1f).fillMaxHeight().padding(bottom = LocalNavBarInset.current)
-        if (splitScreen && playerLeft) {
-            if (panel == SidePanel.LYRICS) SideLyrics(now, side) else DockedPlayer(now, side)
-        }
-        Box(
-            Modifier
-                .weight(if (splitScreen) 2.1f else 1f)
-                .fillMaxHeight(),
+    // The map runs edge to edge underneath; the player floats over one side of it as a card, with
+    // a gap all round. The map's surface keeps its size when the card comes and goes, so the app
+    // only re-centres its map instead of drawing onto a new surface.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val column = maxWidth / PLAYER_SHARE
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalCardsAtEnd provides (splitScreen && playerLeft),
+            LocalSidePanelInset provides if (splitScreen) column else 0.dp,
         ) {
-            androidx.compose.runtime.CompositionLocalProvider(LocalCardsAtEnd provides (splitScreen && playerLeft)) {
-                MapPane(navStatus, frame)
-            }
+            MapPane(navStatus, frame)
         }
-        if (splitScreen && !playerLeft) {
-            if (panel == SidePanel.LYRICS) SideLyrics(now, side) else DockedPlayer(now, side)
+        androidx.compose.animation.AnimatedVisibility(
+            splitScreen,
+            Modifier.align(if (playerLeft) Alignment.CenterStart else Alignment.CenterEnd),
+            enter = androidx.compose.animation.slideInHorizontally(tween(220)) { if (playerLeft) -it / 3 else it / 3 } +
+                androidx.compose.animation.fadeIn(tween(180)),
+            exit = androidx.compose.animation.slideOutHorizontally(tween(180)) { if (playerLeft) -it / 3 else it / 3 } +
+                androidx.compose.animation.fadeOut(tween(140)),
+        ) {
+            val card = Modifier
+                .width(column)
+                .fillMaxHeight()
+                .padding(
+                    start = if (playerLeft) CARD_GAP else 0.dp,
+                    end = if (playerLeft) 0.dp else CARD_GAP,
+                    top = CARD_GAP,
+                    bottom = LocalNavBarInset.current + CARD_GAP,
+                )
+            if (shown.value == SidePanel.LYRICS) SideLyrics(now, card) else DockedPlayer(now, card)
         }
     }
 }
+
+/** The player takes one part in this many of the screen's width, as it did beside the map. */
+private const val PLAYER_SHARE = 3.1f
+
+/** Between the player card and the screen's edges, and the map's own cards beside it. */
+private val CARD_GAP = 12.dp
+
+/** The card's corners: rounder than a button's, as the map app's own cards are. */
+private val CARD_SHAPE = RoundedCornerShape(24.dp)
 
 @Composable
 private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame) {
@@ -127,7 +153,10 @@ private fun MapPane(status: CarAppConnection.Status, frame: CarEnvironment.Frame
     }
 
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
+        Modifier.fillMaxSize().padding(
+            start = if (LocalCardsAtEnd.current) LocalSidePanelInset.current else 0.dp,
+            end = if (LocalCardsAtEnd.current) 0.dp else LocalSidePanelInset.current,
+        ).padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -181,7 +210,7 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
 
     // The theme's surface rather than the art's colour: a slab of album colour beside the map
     // fought it for attention, and the art says the same thing in less space.
-    Surface(modifier = modifier, color = scheme.surfaceContainer) {
+    Surface(modifier = modifier.gsPanelShadow(CARD_SHAPE), shape = CARD_SHAPE, color = scheme.surfaceContainer) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(12.dp)) {
             // Whatever height the controls below leave over, so the art grows on a taller
             // screen and shrinks rather than pushing the buttons off a short one.
@@ -189,15 +218,20 @@ private fun DockedPlayer(now: NowPlaying, modifier: Modifier) {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.fillMaxWidth()) {
                     // Art opens the full media screen, same as on the pill.
+                    val coverShape = RoundedCornerShape(16.dp)
                     Box(
                         Modifier
                             .align(Alignment.TopCenter)
                             .size(artSize)
-                            .clip(RoundedCornerShape(12.dp))
+                            .gsPanelShadow(coverShape)
+                            .clip(coverShape)
                             .background(scheme.surface)
                             .clickable { navigator.media() },
                     ) {
-                        art?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                        // A new song's cover fades in over the old one instead of cutting to it.
+                        androidx.compose.animation.Crossfade(art, animationSpec = tween(350), label = "cover") { shown ->
+                            shown?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                        }
                     }
                     GsIconButton(
                         Icons.Filled.Close, "Back to the nav bar", navigator::closeSidePanel,
@@ -242,7 +276,7 @@ private fun SideLyrics(now: NowPlaying, modifier: Modifier) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
     val art by produceState(now.art, now.art, now.artUri) { value = now.art ?: MediaArt.load(context, now.artUri) }
-    Surface(modifier = modifier, color = scheme.surfaceContainer) {
+    Surface(modifier = modifier.gsPanelShadow(CARD_SHAPE), shape = CARD_SHAPE, color = scheme.surfaceContainer) {
         Column(Modifier.fillMaxSize().padding(start = 18.dp, end = 12.dp, top = 12.dp, bottom = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(scheme.surface)) {

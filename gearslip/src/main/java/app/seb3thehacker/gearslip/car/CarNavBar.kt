@@ -78,6 +78,7 @@ import app.seb3thehacker.gearslip.car.theme.GsColors
 import app.seb3thehacker.gearslip.car.theme.withTintedSurfaces
 import app.seb3thehacker.gearslip.car.theme.GsIconBox
 import app.seb3thehacker.gearslip.car.theme.GsIconButton
+import app.seb3thehacker.gearslip.car.theme.gsBarShadow
 import app.seb3thehacker.gearslip.car.theme.GsButton
 import app.seb3thehacker.gearslip.car.theme.GsTone
 import app.seb3thehacker.gearslip.car.theme.gsColors
@@ -164,7 +165,8 @@ internal fun CarNavBar(navigator: CarNavigator) {
     val frame by CarEnvironment.frame.collectAsState()
     val running = rememberRunningApps()
 
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    // Casts the theme's panel shadow up onto the map, so the bar sits above it rather than beside it.
+    Surface(Modifier.gsBarShadow(), color = MaterialTheme.colorScheme.surfaceContainer) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(NAV_BAR_HEIGHT).padding(horizontal = 10.dp)) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 // Home and Apps are two different places now, not a toggle on one button - the

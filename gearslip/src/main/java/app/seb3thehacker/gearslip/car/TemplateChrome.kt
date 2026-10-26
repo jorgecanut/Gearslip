@@ -160,6 +160,13 @@ internal val LocalChromeCover = compositionLocalOf<ChromeCover?> { null }
  */
 internal val LocalCardsAtEnd = compositionLocalOf { false }
 
+/**
+ * How much of the map's width the docked player floats over, on the side opposite the cards. The
+ * map itself runs underneath at full size; the app is told this part is covered, and the chrome
+ * keeps clear of it.
+ */
+internal val LocalSidePanelInset = compositionLocalOf { 0.dp }
+
 /** The edge the app's cards cover, and the one its map buttons do. */
 internal val cardEdge @Composable get() = if (LocalCardsAtEnd.current) CoverEdge.END else CoverEdge.START
 internal val buttonEdge @Composable get() = if (LocalCardsAtEnd.current) CoverEdge.START else CoverEdge.END
