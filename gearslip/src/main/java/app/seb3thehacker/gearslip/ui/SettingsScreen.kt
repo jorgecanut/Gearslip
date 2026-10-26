@@ -255,7 +255,11 @@ private fun CertificateSection() {
         if (uri != null) pendingUri = uri
     }
 
-    SettingsSection(stringResource(R.string.settings_certificate), footer = notice ?: stringResource(R.string.cert_next_connection)) {
+    // With the aasdk certificate loaded, the footer says what to do when a car rejects it.
+    val certFooter = stringResource(
+        if (summary?.kind == CertProvider.Kind.DOWNLOADED) R.string.cert_downloaded_footer else R.string.cert_next_connection,
+    )
+    SettingsSection(stringResource(R.string.settings_certificate), footer = notice ?: certFooter) {
         val s = summary
         val loaded = s != null && s.kind != CertProvider.Kind.SELF_SIGNED
         val hasDetails = s?.subject != null || s?.issuer != null

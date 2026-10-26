@@ -107,6 +107,16 @@ fun CertSetupScreen(onDone: () -> Unit) {
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
+                // A downloaded certificate works in most cars, not all: say where to go when it doesn't.
+                if (!manualProgress) {
+                    Text(
+                        stringResource(R.string.certsetup_installed_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
                 Spacer(Modifier.height(20.dp))
                 Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                     Text(stringResource(R.string.certsetup_continue))

@@ -125,9 +125,9 @@
     <string name="cert_download">Download from aasdk</string>
     <string name="cert_downloaded">Certificate downloaded.</string>
     <string name="cert_download_failed">Download failed: %1$s</string>
-    <string name="cert_download_sub">The certificate the open-source aasdk project publishes on GitHub. Gearslip doesn\'t include one</string>
+    <string name="cert_download_sub">The certificate the open-source aasdk project publishes on GitHub. Most cars accept it, but some from around 2020 on reject it</string>
     <string name="cert_import">Import my own file</string>
-    <string name="cert_import_sub">A .p12 file with its private key, from wherever you choose</string>
+    <string name="cert_import_sub">A .p12 file with its private key. Use your own when your car rejects the aasdk certificate</string>
     <string name="cert_remove_imported">Remove imported certificate</string>
     <string name="cert_remove_downloaded">Remove downloaded certificate</string>
     <string name="cert_removed_imported">Removed the imported certificate.</string>
@@ -330,13 +330,13 @@
     <string name="certsetup_continue">Continue</string>
     <string name="certsetup_failed">Download failed</string>
     <string name="certsetup_retry">Retry</string>
-    <string name="certsetup_import_sub">A .p12 file with its private key, from wherever you choose.</string>
+    <string name="certsetup_import_sub">A .p12 file with its private key. Use your own when your car rejects the aasdk certificate.</string>
     <string name="certsetup_skip">Skip car connection setup</string>
 
     <!--  -->
     <string name="certsetup_loaded">Cars accept only Google-issued certificates, and you have one loaded.</string>
     <string name="certsetup_choose">Cars accept only Google-issued certificates. Gearslip doesn\'t include one, so choose where yours comes from.</string>
-    <string name="certsetup_aasdk_sub">The open-source aasdk project publishes this certificate at github.com/opencardev/aasdk. Most cars accept it; some from around 2020 on don\'t.</string>
+    <string name="certsetup_aasdk_sub">The open-source aasdk project publishes this certificate at github.com/opencardev/aasdk. Most cars accept it. Some from around 2020 on reject it, and then you need to import your own.</string>
 
     <!-- Storage -->
     <string name="storage_title">Gearslip storage</string>
@@ -840,4 +840,10 @@
         <item quantity="one">%1$d meter</item>
         <item quantity="other">%1$d meters</item>
     </plurals>
+
+    <!--  -->
+    <string name="certsetup_installed_hint">If your car won\'t connect, it may reject this certificate. Import your own in Settings, under Certificate.</string>
+
+    <!--  -->
+    <string name="cert_downloaded_footer">Car won\'t connect? Some cars from around 2020 on reject the aasdk certificate, so import your own instead. Changes take effect on the next connection.</string>
 </resources>
