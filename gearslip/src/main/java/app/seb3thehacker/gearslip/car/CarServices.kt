@@ -80,6 +80,42 @@ object CarServices {
         VoiceReply.init(appContext)
         // Loaded now, while nothing's waiting on it, so the first reply isn't slower than the rest.
         app.seb3thehacker.gearslip.speech.SpeechEngine.warm(appContext)
+        watchPlaying()
+    }
+
+    private var sessionsWatch: MediaSessionManager.OnActiveSessionsChangedListener? = null
+
+    /**
+     * Follows the phone's music to whichever app is actually playing. The media screen and the
+     * car's now-playing stayed on Spotify ("no active session") for a whole drive while YouTube
+     * Music, opened from the car's app list, played through the car. A switch happens only when
+     * the app on screen isn't playing itself, so it never takes the screen from music that is.
+     */
+    private fun watchPlaying() {
+        val ctx = context ?: return
+        if (sessionsWatch != null) return
+        val manager = ctx.getSystemService(MediaSessionManager::class.java) ?: return
+        val listener = ComponentName(ctx, GearslipNotificationListener::class.java)
+        val watch = MediaSessionManager.OnActiveSessionsChangedListener { sessions ->
+            val playing = sessions.orEmpty().firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+                ?: return@OnActiveSessionsChangedListener
+            val current = _mediaApp.value
+            if (current?.component?.packageName == playing.packageName) return@OnActiveSessionsChangedListener
+            if (current != null && media.now.value.playing) return@OnActiveSessionsChangedListener
+            val found = MediaCatalog.installed(ctx).firstOrNull { it.component.packageName == playing.packageName }
+                ?: return@OnActiveSessionsChangedListener
+            app.seb3thehacker.gearslip.GearslipLog.i("media: ${found.label} started playing - following it")
+            openMedia(found)
+        }
+        // Without notification access the sessions can't be read; nothing to follow then.
+        runCatching { manager.addOnActiveSessionsChangedListener(watch, listener, android.os.Handler(android.os.Looper.getMainLooper())) }
+            .onSuccess { sessionsWatch = watch }
+    }
+
+    private fun stopWatchingPlaying() {
+        val watch = sessionsWatch ?: return
+        sessionsWatch = null
+        runCatching { context?.getSystemService(MediaSessionManager::class.java)?.removeOnActiveSessionsChangedListener(watch) }
     }
 
     // --- map -----------------------------------------------------------------------------
@@ -275,14 +311,15 @@ object CarServices {
 
     /** The car went away: nothing should keep running for a screen that no longer exists. */
     fun shutdown() {
+        stopWatchingPlaying()
         context?.let { app.seb3thehacker.gearslip.notify.CarMotion.stop(it) }
         app.seb3thehacker.gearslip.call.CarCalls.stop()
         runCatching { nav.disconnect() }
         runCatching { media.disconnect() }
         runCatching { browse.disconnect() }
         CarAssistant.cancel()
-        // About 900 MB that nothing needs once the car's gone.
-        app.seb3thehacker.gearslip.speech.SpeechEngine.unload()
+        // About 900 MB that nothing needs once the car's gone - after a grace, in case it's back.
+        app.seb3thehacker.gearslip.speech.SpeechEngine.unloadAfterCarLeaves()
         CarAudio.release()
         _mediaApp.value = null
         navStopped = false

@@ -101,6 +101,21 @@ class LocationKeepAlive : Service() {
             }
         }
 
+        /**
+         * Starts the service again if it was refused while a car app still needs it. Android only
+         * allows a location service to start while Gearslip is visible, and car apps usually bind
+         * with the phone locked in a pocket, so the first try often fails; the next time the
+         * driver opens Gearslip is the next chance.
+         */
+        fun retry(context: Context) {
+            main.post {
+                if (holders > 0 && state == State.FAILED) {
+                    GearslipLog.i("location keep-alive: Gearslip is in front - trying again")
+                    begin(context.applicationContext)
+                }
+            }
+        }
+
         /** Lets go of one hold; the last one stops the service. */
         fun release(context: Context) {
             main.post {

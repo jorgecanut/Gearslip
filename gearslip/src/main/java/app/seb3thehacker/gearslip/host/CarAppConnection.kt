@@ -432,6 +432,25 @@ class CarAppConnection(private val context: Context) {
             .onFailure { GearslipLog.w("host: could not stop navigation: ${it.message}") }
     }
 
+    private var lastTemplateName: String? = null
+    private var invalidations = 0
+    private var invalidationsLoggedAt = 0L
+
+    /** The first few redraws in full, then a count once a minute: one a second buried the log. */
+    @Synchronized
+    private fun noteInvalidate() {
+        invalidations++
+        val now = System.currentTimeMillis()
+        if (invalidations <= INVALIDATES_LOGGED) {
+            GearslipLog.i("host: app invalidated its template")
+            invalidationsLoggedAt = now
+        } else if (now - invalidationsLoggedAt >= INVALIDATE_LOG_EVERY_MS) {
+            GearslipLog.i("host: app redrew its screen ${invalidations - INVALIDATES_LOGGED} times in the last ${(now - invalidationsLoggedAt) / 1000}s")
+            invalidations = INVALIDATES_LOGGED
+            invalidationsLoggedAt = now
+        }
+    }
+
     /** The app describes its current screen; this is what the host draws. */
     private fun requestTemplate() {
         val manager = appManager ?: return
@@ -442,7 +461,12 @@ class CarAppConnection(private val context: Context) {
                 GearslipLog.w("host: getTemplate returned ${value?.javaClass?.name}")
                 return@call
             }
-            GearslipLog.i("host: template = ${template.javaClass.simpleName}")
+            // A navigation app redraws every second on the move; only a new kind of screen is news.
+            val name = template.javaClass.simpleName
+            if (name != lastTemplateName) {
+                lastTemplateName = name
+                GearslipLog.i("host: template = $name")
+            }
             _template.value = template
             update { it.copy(template = template.javaClass.simpleName) }
             autoRoute.onTemplate(template)
@@ -630,7 +654,7 @@ class CarAppConnection(private val context: Context) {
     private fun createAppHost(owner: Any) = object : IAppHost.Stub() {
         override fun getInterfaceVersion(): Int = IAppHost.VERSION
         override fun invalidate() {
-            GearslipLog.i("host: app invalidated its template")
+            noteInvalidate()
             main.post { requestTemplate() }
         }
 
@@ -863,6 +887,9 @@ class CarAppConnection(private val context: Context) {
 
         /** How long a new destination waits for the old route to end; see [navigateTo]. */
         const val REROUTE_WAIT_MS = 1_500L
+
+        const val INVALIDATES_LOGGED = 5
+        const val INVALIDATE_LOG_EVERY_MS = 60_000L
 
         /** How long an app gets to answer the first question before it counts as refusing. */
         const val HANDSHAKE_TIMEOUT_MS = 10_000L

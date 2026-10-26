@@ -25,6 +25,8 @@ object CarAudio {
         fun start()
         fun stop()
         fun write(pcm: ByteArray, size: Int)
+        /** Ask the car for its speakers back after it took them; links that never give them up ignore it. */
+        fun askToResume(why: String) {}
     }
 
     enum class Capture { OFF, ASKING, ON, DENIED }
@@ -137,6 +139,15 @@ object CarAudio {
 
     internal fun deliver(pcm: ByteArray, size: Int, peak: Float) {
         _level.value = peak
+        // Music again after the car took the speakers (a call, the radio): ask for them back.
+        if (peak > AUDIBLE) link?.askToResume("the phone is playing again")
         link?.write(pcm, size)
     }
+
+    /** A phone call just ended: the car had the speakers for it and may now hand them back. */
+    fun callEnded() {
+        link?.askToResume("the call ended")
+    }
+
+    private const val AUDIBLE = 0.01f
 }

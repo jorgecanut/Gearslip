@@ -50,6 +50,7 @@ object SpeechEngine {
     const val NOT_DOWNLOADED = "Download a voice model in Gearslip's settings on the phone first."
 
     private const val RATE = 16_000
+    private const val CAR_GONE_GRACE_MS = 3 * 60_000L
     private const val CHUNK = 1_600 // 100 ms
     private const val MAX_S = 15f
     /** Quiet before the first word that counts as "nobody spoke". */
@@ -88,6 +89,7 @@ object SpeechEngine {
 
     /** Loads the model ahead of time, so the first command doesn't wait for it. */
     fun warm(context: Context) {
+        main.removeCallbacks(carGoneUnload) // back before the grace ran out: the models are still here
         val app = context.applicationContext
         SpeechModels.init(app)
         // Kroko first, alone: loading both at once slowed it from a fraction of a second to six.
@@ -109,9 +111,22 @@ object SpeechEngine {
         }
     }
 
+    private val carGoneUnload = Runnable { unload() }
+
+    /**
+     * The car went away: drop the models, but not at once. A wireless car that drops and comes
+     * straight back (the same drive, a minute apart) otherwise reloads them every time, up to
+     * 14 seconds of a voice button that doesn't work yet.
+     */
+    fun unloadAfterCarLeaves() {
+        main.removeCallbacks(carGoneUnload)
+        main.postDelayed(carGoneUnload, CAR_GONE_GRACE_MS)
+    }
+
     /** Drops the loaded models: the driver picked another or deleted one, or the car went away. */
     fun unload() {
         main.removeCallbacks(idleUnload)
+        main.removeCallbacks(carGoneUnload)
         run++
         worker.execute {
             recognizer?.release()

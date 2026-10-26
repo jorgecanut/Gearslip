@@ -78,6 +78,7 @@ object CarCalls {
     private fun onPhoneState(state: Int) {
         when (state) {
             TelephonyManager.CALL_STATE_IDLE -> {
+                if (_state.value is CallUiState.Active) app.seb3thehacker.gearslip.audio.CarAudio.callEnded()
                 pendingRespond = null
                 ringingCaller = null
                 // A mute left on would silence the microphone for everything after the call.

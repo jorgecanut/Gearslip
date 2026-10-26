@@ -213,6 +213,8 @@ class AudioLink(
             focusAnswer?.countDown()
             return
         }
+        focusAnswered = true
+        if (aacSink && onAacFocus(state)) return
         val had = focusGranted
         focusGranted = state == FOCUS_STATE_GAIN || state == FOCUS_STATE_GAIN_TRANSIENT ||
             state == FOCUS_STATE_GAIN_MEDIA_ONLY
@@ -225,12 +227,102 @@ class AudioLink(
         if (!ready || started) return
         if (asksFocus && !focusRequested) {
             focusRequested = true
+            focusAnswered = false
             sendControl(MSG_FOCUS_REQUEST, Protobuf.varintField(1, FOCUS_GAIN.toLong()))
             GearslipLog.i("$tag: -> AudioFocusRequest(GAIN); waiting for the head unit to hand the sink over")
+            if (aacSink) {
+                // The 2014 GalReceiver answers in about 60 ms; starting before that sent its first
+                // chunk without focus. Wait for the answer briefly, then start as below anyway.
+                Thread({
+                    runCatching { Thread.sleep(FOCUS_WAIT_MS) }
+                    if (!focusAnswered) startStream()
+                }, "gearslip-audio-focus").apply { isDaemon = true }.start()
+                return
+            }
         }
         // Some head units grant the sink silently and never answer. Do not let that be the end of
         // it: start anyway, and let the acks say whether anything is being taken.
         startStream()
+    }
+
+    @Volatile private var focusAnswered = false
+    /** The car took the sound for a while (a call, its own voice) and should hand it back. */
+    @Volatile private var pausedByCar = false
+    /** The car took the sound for good, as when the driver picks the radio. */
+    @Volatile private var lostToCar = false
+    @Volatile private var lastResumeAsk = 0L
+
+    /**
+     * Focus on a sink that takes only AAC, the one kind of car this has been tried on (a 2014
+     * GalReceiver). Every other car keeps the handling below it. True when handled here.
+     *
+     * Before, a LOSS_TRANSIENT (a call, here) got Stop and a RELEASE, which told the car the music
+     * was over, so it never handed the speakers back and the drive went on silent. Android Auto
+     * keeps its claim through a transient loss and resumes on the car's GAIN, and ducks rather
+     * than stops on CAN_DUCK.
+     */
+    private fun onAacFocus(state: Int): Boolean {
+        when (state) {
+            FOCUS_STATE_LOSS_TRANSIENT -> {
+                // Not onTakenBack: a call pauses the phone's music by itself and resumes it after,
+                // and pausing it here too left it paused once the call was over.
+                pausedByCar = true
+                focusGranted = false
+                pause()
+                return true
+            }
+            FOCUS_STATE_LOSS_TRANSIENT_CAN_DUCK -> return true // the car turns us down itself; keep playing
+            FOCUS_STATE_LOSS -> {
+                val had = started || focusGranted || pausedByCar
+                pausedByCar = false
+                lostToCar = true
+                focusGranted = false
+                stop()
+                if (had) onTakenBack()
+                return true
+            }
+            FOCUS_STATE_GAIN, FOCUS_STATE_GAIN_TRANSIENT, FOCUS_STATE_GAIN_MEDIA_ONLY -> {
+                if (pausedByCar || lostToCar) GearslipLog.i("$tag: the car handed the speakers back - resuming")
+                pausedByCar = false
+                lostToCar = false
+                focusGranted = true
+                focusRequested = true
+                startStream()
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Stop the stream but keep the focus claim, so the car hands the speakers back when it's done. */
+    private fun pause() {
+        synchronized(startLock) {
+            if (!started) return
+            started = false
+            synchronized(ackLock) { ackLock.notifyAll() }
+            runCatching { sendOnChannel(MSG_STOP, Protobuf.varintField(1, sessionId.toLong())) }
+            aac?.release()
+            aac = null
+            GearslipLog.i("$tag: -> Stop (keeping focus) after $chunks chunks / $bytes bytes - waiting for the car to hand the speakers back")
+            chunks = 0
+            bytes = 0
+        }
+    }
+
+    /**
+     * Asks for the speakers again after the car took them: once a call ends, or when the phone
+     * starts playing again. The car's GAIN resumes the stream. AAC-only sinks, and at most every
+     * [RESUME_ASK_EVERY_MS], so a car that keeps saying no isn't nagged.
+     */
+    override fun askToResume(why: String) {
+        if (!aacSink || !ready || started || !asksFocus) return
+        if (!pausedByCar && !lostToCar) return
+        val now = System.currentTimeMillis()
+        if (now - lastResumeAsk < RESUME_ASK_EVERY_MS) return
+        lastResumeAsk = now
+        focusRequested = true
+        sendControl(MSG_FOCUS_REQUEST, Protobuf.varintField(1, FOCUS_GAIN.toLong()))
+        GearslipLog.i("$tag: -> AudioFocusRequest(GAIN) - $why")
     }
 
     /**
@@ -387,6 +479,8 @@ class AudioLink(
         private const val FOCUS_STATE_GAIN_MEDIA_ONLY = 6
         private const val FOCUS_STATE_LOSS = 3
         private const val FOCUS_STATE_LOSS_TRANSIENT = 5
+        private const val FOCUS_STATE_LOSS_TRANSIENT_CAN_DUCK = 4
+        private const val RESUME_ASK_EVERY_MS = 10_000L
         private const val SESSION_ID = 2
         private const val STALL_MS = 2_000L
         private const val CHUNK_LOG_EVERY = 200 // about every four seconds

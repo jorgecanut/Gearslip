@@ -255,7 +255,10 @@ object WirelessLink {
                 }
             }
         } catch (e: IOException) {
-            if (rfcomm != null) log.w("Bluetooth: channel closed (${e.message})")
+            if (rfcomm != null) {
+                log.w("Bluetooth: channel closed (${e.message})")
+                app.seb3thehacker.gearslip.SessionReport.carWentAway("its Bluetooth closed")
+            }
         }
     }
 
@@ -369,10 +372,16 @@ object WirelessLink {
             override fun onLost(net: Network) {
                 lostNetwork = net
                 if (activeSsid == ssid) activeSsid = null
-                log.w(
-                    "Wi-Fi: lost \"$ssid\" - Android dropped the car's network. Picking it by hand " +
-                        "in the Wi-Fi list does this; the remaining tries go over the phone's own Wi-Fi",
-                )
+                if (app.seb3thehacker.gearslip.SessionReport.carGone != null) {
+                    // Mid-drive, after the car's Bluetooth already went: the car is switching off.
+                    log.w("Wi-Fi: lost \"$ssid\" - the car turned its network off")
+                    app.seb3thehacker.gearslip.SessionReport.carWentAway("its Wi-Fi went off")
+                } else {
+                    log.w(
+                        "Wi-Fi: lost \"$ssid\" - Android dropped the car's network. Picking it by hand " +
+                            "in the Wi-Fi list does this; the remaining tries go over the phone's own Wi-Fi",
+                    )
+                }
             }
         }
         network?.let { runCatching { manager.unregisterNetworkCallback(it) } }

@@ -13,6 +13,7 @@ import app.seb3thehacker.gearslip.audio.AudioLink
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -55,15 +56,55 @@ object DirectionsVoice {
     fun init(context: Context) {
         if (tts != null) return
         appContext = context.applicationContext
-        tts = TextToSpeech(appContext) { status -> ttsReady = status == TextToSpeech.SUCCESS }.apply {
-            setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
-                override fun onDone(utteranceId: String?) { pending.remove(utteranceId)?.countDown() }
-                @Deprecated("Deprecated in Java, no replacement on this API level")
-                override fun onError(utteranceId: String?) { pending.remove(utteranceId)?.countDown() }
-            })
+        startEngine()
+    }
+
+    private val progress = object : UtteranceProgressListener() {
+        override fun onStart(utteranceId: String?) {}
+        override fun onDone(utteranceId: String?) { pending.remove(utteranceId)?.countDown() }
+        @Deprecated("Deprecated in Java, no replacement on this API level")
+        override fun onError(utteranceId: String?) { pending.remove(utteranceId)?.countDown() }
+        override fun onError(utteranceId: String?, errorCode: Int) {
+            GearslipLog.w("guidance: text-to-speech failed a turn (error $errorCode)")
+            pending.remove(utteranceId)?.countDown()
         }
     }
+
+    /**
+     * Binds the phone's text-to-speech. The listener is set again once the engine is up: some
+     * engines drop one set before they were bound, and then never report a file as done - which
+     * is what every turn of a whole drive timing out looked like. What the engine is and whether
+     * it has a voice for the phone's language go in the log, as that's the other usual cause.
+     */
+    private fun startEngine() {
+        val context = appContext ?: return
+        ttsReady = false
+        var engine: TextToSpeech? = null
+        engine = TextToSpeech(context) ready@{ status ->
+            val e = engine ?: return@ready
+            if (status != TextToSpeech.SUCCESS) {
+                GearslipLog.w("guidance: text-to-speech didn't start (status $status)")
+                return@ready
+            }
+            e.setOnUtteranceProgressListener(progress)
+            val locale = Locale.getDefault()
+            val language = runCatching { e.setLanguage(locale) }.getOrDefault(TextToSpeech.LANG_NOT_SUPPORTED)
+            val voice = runCatching { e.voice?.name }.getOrNull()
+            GearslipLog.i("guidance: text-to-speech ready - engine ${e.defaultEngine}, $locale ${languageName(language)}, voice $voice")
+            ttsReady = true
+        }.apply { setOnUtteranceProgressListener(progress) }
+        tts = engine
+    }
+
+    private fun languageName(result: Int) = when (result) {
+        TextToSpeech.LANG_AVAILABLE, TextToSpeech.LANG_COUNTRY_AVAILABLE, TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE -> "available"
+        TextToSpeech.LANG_MISSING_DATA -> "voice not downloaded"
+        TextToSpeech.LANG_NOT_SUPPORTED -> "not supported"
+        else -> "result $result"
+    }
+
+    /** Turns in a row the engine never finished; after [RESTART_AFTER] it is started afresh. */
+    private var timeouts = 0
 
     /** The car opened its directions sink: start following the map app's turns. */
     fun attach(link: AudioLink, musicIsOurs: () -> Boolean) {
@@ -85,6 +126,7 @@ object DirectionsVoice {
         if (this.link !== link) return
         this.link = null
         running = false
+        latest++ // drops any turn still queued for a car that's gone
     }
 
     /** Why the last turn wasn't spoken, so the log says it once rather than every tick. */
@@ -121,7 +163,7 @@ object DirectionsVoice {
                 say(instruction)
                 stage = Stage.DONE
             } else {
-                say("In ${spoken(turn.distance)}, $instruction")
+                say(ahead(turn.distance, instruction))
                 stage = if (meters != null && meters > PREPARE_FROM_METERS) Stage.FAR else Stage.PREPARED
             }
             return
@@ -132,14 +174,19 @@ object DirectionsVoice {
                 stage = Stage.DONE
             }
             stage == Stage.FAR && meters != null && meters <= PREPARE_AT_METERS -> {
-                say("In ${spoken(turn.distance)}, $instruction")
+                say(ahead(turn.distance, instruction))
                 stage = Stage.PREPARED
             }
         }
     }
 
-    /** What to do, in words: built from the manoeuvre when the app names one, else the app's own text. */
+    /**
+     * What to do, in words: built from the manoeuvre when the app names one, else the app's own
+     * text. The built words are English, so on a phone set to another language the map app's own
+     * cue is used instead: a Spanish voice reading "Turn left onto" was no help to anyone.
+     */
     private fun instruction(step: Step): String? {
+        if (!english()) return step.cue.text().ifBlank { null } ?: step.road.text().ifBlank { null }
         val road = step.road.text()
         val onto = if (road.isBlank()) "" else " onto $road"
         val toward = if (road.isBlank()) "" else " toward $road"
@@ -183,6 +230,12 @@ object DirectionsVoice {
         }
         return built ?: step.cue.text().ifBlank { null }
     }
+
+    private fun english() = Locale.getDefault().language == "en"
+
+    /** "In 300 meters, turn left" - only in English; the map app's cue in another language stands alone. */
+    private fun ahead(distance: Distance, instruction: String) =
+        if (english()) "In ${spoken(distance)}, $instruction" else instruction
 
     /** The app's own rounded distance, read the way a person would say it. */
     private fun spoken(d: Distance): String {
@@ -231,9 +284,17 @@ object DirectionsVoice {
         }
         if (!done.await(SYNTH_TIMEOUT_S, TimeUnit.SECONDS)) {
             pending.remove(utterance)
+            if (link !== sink) return // the car left while it waited; nothing was going to be said
             GearslipLog.w("guidance: text-to-speech took too long, a turn went unspoken")
+            if (++timeouts >= RESTART_AFTER) {
+                timeouts = 0
+                GearslipLog.w("guidance: text-to-speech hasn't finished $RESTART_AFTER turns in a row - starting it again")
+                runCatching { engine.shutdown() }
+                startEngine()
+            }
             return
         }
+        timeouts = 0
         val pcm = Wav.read(file)?.let { Wav.convert(it, sink.sampleRate, sink.channels) } ?: run {
             GearslipLog.w("guidance: text-to-speech gave audio Gearslip can't read")
             return
@@ -346,6 +407,7 @@ object DirectionsVoice {
     private const val PREPARE_AT_METERS = 1_000
     private const val LEAD_MS = 100L
     private const val HOLD_MS = 2_000L
-    private const val SYNTH_TIMEOUT_S = 10L
+    private const val SYNTH_TIMEOUT_S = 6L
+    private const val RESTART_AFTER = 2
     private val ORDINALS = listOf("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth")
 }

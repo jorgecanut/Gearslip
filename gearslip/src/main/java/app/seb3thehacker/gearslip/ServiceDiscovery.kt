@@ -116,6 +116,12 @@ object ServiceDiscovery {
      */
     fun findMediaStatusChannel(response: ByteArray): Int? = findChannelWith(response, 9)
 
+    /**
+     * The channel the car takes the phone's call state on (PhoneStatusService, Service field 10).
+     * With it the car knows a call belongs to the projected phone; null when the car has none.
+     */
+    fun findPhoneStatusChannel(response: ByteArray): Int? = findChannelWith(response, 10)
+
     class NavStatusService(val serviceId: Int, val minimumIntervalMs: Int)
 
     /** The cluster advertises its minimum update interval in NavigationStatusService field 1. */

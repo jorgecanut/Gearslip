@@ -157,6 +157,7 @@ class AudioCaptureService : Service() {
             val startedAt = heardAt
             var everHeard = false
             var warnedSilent = false
+            var loggedSilence = false
             try {
                 record.startRecording()
                 GearslipLog.i("audio: capturing media playback at ${rate}Hz x$channels")
@@ -176,7 +177,10 @@ class AudioCaptureService : Service() {
                     val now = System.currentTimeMillis()
                     val level = peak / 32768f
                     if (now - heardAt >= LEVEL_LOG_MS) {
-                        GearslipLog.i("audio: peak %.3f".format(level))
+                        // Silence once, then quiet until sound returns: a paused phone logged
+                        // "peak 0,000" every three seconds for minutes.
+                        if (peak > 0 || !loggedSilence) GearslipLog.i("audio: peak %.3f".format(level))
+                        loggedSilence = peak == 0
                         heardAt = now
                         peak = 0
                     }

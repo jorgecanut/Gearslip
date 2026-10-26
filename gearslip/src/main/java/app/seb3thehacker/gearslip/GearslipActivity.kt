@@ -111,7 +111,7 @@ class GearslipActivity : ComponentActivity(), Projection {
             if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_DETACHED) {
                 GearslipLog.w("accessory detached")
                 // A wireless session has no accessory to lose; leave it running.
-                if (wirelessSocket == null) closeAccessory()
+                if (wirelessSocket == null) closeAccessory("the USB cable was unplugged")
             }
         }
     }
@@ -165,7 +165,7 @@ class GearslipActivity : ComponentActivity(), Projection {
 
         setContent {
             GearslipTheme {
-                GearslipApp(onDisconnect = { closeAccessory() }, onRequestCallScreening = ::requestCallScreeningRole)
+                GearslipApp(onDisconnect = { closeAccessory("Disconnect was tapped on the phone") }, onRequestCallScreening = ::requestCallScreeningRole)
                 val offer by offerBluetooth.collectAsState()
                 if (offer) {
                     fun close() {
@@ -215,6 +215,9 @@ class GearslipActivity : ComponentActivity(), Projection {
     override fun onStart() {
         super.onStart()
         Prefetch.warm(this)
+        // Android only lets a location service start while Gearslip is in front; one refused
+        // while the phone was locked gets its second chance now.
+        app.seb3thehacker.gearslip.host.LocationKeepAlive.retry(this)
         UsageStats.onAppOpened(this)
         app.seb3thehacker.gearslip.update.UpdateChecker.onAppOpened(this)
         // Back from the app's settings with the microphone turned on: try car audio again.
@@ -239,7 +242,7 @@ class GearslipActivity : ComponentActivity(), Projection {
         CarAudio.onConsentRequested = null
         CarAudio.release()
         PhoneMirror.requestStop()
-        closeAccessory()
+        closeAccessory("Android closed Gearslip's screen on the phone")
         GearslipLog.flush()
     }
 
@@ -359,7 +362,7 @@ class GearslipActivity : ComponentActivity(), Projection {
             GearslipLog.i("auto-connect: a session is already running")
             return
         }
-        if (runner != null) closeAccessory(stopWireless = false)
+        if (runner != null) closeAccessory("clearing a session the car already ended", stopWireless = false)
         if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             GearslipLog.w("auto-connect: needs the Nearby devices permission")
             return
@@ -381,7 +384,7 @@ class GearslipActivity : ComponentActivity(), Projection {
         // point anyway (its read loop already died when the head unit dropped the transport),
         // but the accessory it opened was never explicitly closed, which is what actually blocks
         // a re-open - a dead thread does not release the file descriptor on its own.
-        closeAccessory()
+        closeAccessory("a new USB connection replaces it")
         describe(accessory)
 
         val manager = getSystemService(UsbManager::class.java)
@@ -406,7 +409,7 @@ class GearslipActivity : ComponentActivity(), Projection {
 
     /** A wireless session: the same runner, on the socket [WirelessLink] opened to the car. */
     private fun startWireless(socket: java.net.Socket) {
-        closeAccessory(stopWireless = false)
+        closeAccessory("a new wireless connection replaces it", stopWireless = false)
         if (!AppSettings.gearslipEnabled(this)) {
             GearslipLog.i("wireless: Gearslip is switched off - not connecting")
             runCatching { socket.close() }
@@ -431,10 +434,16 @@ class GearslipActivity : ComponentActivity(), Projection {
         GearslipLog.i("           version=${accessory.version} description=${accessory.description}")
     }
 
-    private fun closeAccessory() = closeAccessory(stopWireless = true)
-
-    /** Ends the session, wired or wireless. [stopWireless] also drops the car's Bluetooth and Wi-Fi. */
-    private fun closeAccessory(stopWireless: Boolean) {
+    /**
+     * Ends the session, wired or wireless. [stopWireless] also drops the car's Bluetooth and Wi-Fi.
+     * [why] goes in the log and the report: a session the phone ended used to read as one that
+     * simply stopped, with no way to tell a tap from Android closing the screen.
+     */
+    private fun closeAccessory(why: String, stopWireless: Boolean = true) {
+        if (runner != null && worker?.isAlive == true) {
+            GearslipLog.i("ending the session: $why")
+            SessionReport.ended("the phone ended it: $why")
+        }
         runner?.stop()
         SessionReport.print()
         runCatching { descriptor?.close() }

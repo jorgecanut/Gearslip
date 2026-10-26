@@ -65,7 +65,22 @@ object SessionReport {
     @Volatile private var audio = ""
     @Volatile private var lastStream = ""
     @Volatile private var lastState = ""
+    /** How a session ended that wasn't a failure, such as the car being switched off. */
+    @Volatile private var ending = ""
     private var printed = false
+
+    /**
+     * Set by the wireless link when the car drops its Bluetooth channel or its Wi-Fi: what a car
+     * does when it's switched off. A transport error after that is the car leaving, not a fault.
+     */
+    @Volatile var carGone: String? = null; private set
+
+    fun carWentAway(what: String) {
+        if (startedAt == 0L || printed) return
+        carGone = carGone?.let { "$it, then $what" } ?: what
+    }
+
+    fun ended(why: String) { ending = why }
 
     private var appContext: Context? = null
 
@@ -91,6 +106,7 @@ object SessionReport {
         headUnitInfo = null
         carScreen = ""; carDpi = 0
         headUnit = ""; profile = ""; video = ""; lastStream = ""; lastState = ""
+        ending = ""; carGone = null
         printed = false
     }
 
@@ -179,11 +195,17 @@ object SessionReport {
     /** The report as plain text, for the log file and for anything that gets sent. */
     fun render(): String {
         val seconds = if (startedAt == 0L) 0 else (System.currentTimeMillis() - startedAt) / 1000
-        fun row(name: String, value: String) = if (value.isEmpty()) "" else "  ${name.padEnd(16)}$value\n"
+        fun row(name: String, value: String) = if (value.isEmpty()) "" else "  ${name.padEnd(17)}$value\n"
+        // The USB category covers any broken link; over Wi-Fi it is Wi-Fi that broke.
+        val label = if (category == Category.USB && link == "wireless") "Wi-Fi transport" else category.label
         return buildString {
             append("=".repeat(60)).append('\n')
             append("SESSION REPORT\n")
-            append(row("result", if (category == Category.NONE) "ok / no failure recorded" else "FAILED - ${category.label}"))
+            append(row("result", when {
+                category != Category.NONE -> "FAILED - $label"
+                ending.isNotEmpty() -> "ok - $ending"
+                else -> "ok / no failure recorded"
+            }))
             append(row("detail", failure))
             append(row("failed in state", lastState))
             append(row("duration", "${seconds}s"))

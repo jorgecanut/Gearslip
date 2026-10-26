@@ -4,6 +4,7 @@ import android.os.Build
 import app.seb3thehacker.gearslip.audio.AudioLink
 import app.seb3thehacker.gearslip.audio.CarAudio
 import app.seb3thehacker.gearslip.audio.CarMic
+import app.seb3thehacker.gearslip.call.CarPhoneStatus
 import app.seb3thehacker.gearslip.media.CarMediaStatus
 import app.seb3thehacker.gearslip.car.BluetoothAudioCheck
 import app.seb3thehacker.gearslip.car.LocationCheck
@@ -101,6 +102,12 @@ class GearslipRunner(
     @Volatile private var audioLink: AudioLink? = null
     @Volatile private var guidanceLink: AudioLink? = null
     @Volatile private var vendorChannelId = -1
+    @Volatile private var phoneStatus: CarPhoneStatus? = null
+    /**
+     * The car's music sink takes AAC and nothing else (a 2014 GalReceiver). Fixes tried on only
+     * that kind of car so far are kept to it, so cars that already work aren't changed under them.
+     */
+    @Volatile private var aacOnlyCar = false
     private var audioMessagesSeen = 0
     private var touchWidth = 0
     private var touchHeight = 0
@@ -155,8 +162,15 @@ class GearslipRunner(
             }
         } catch (t: Throwable) {
             if (stopped) return
-            log.e("transport failed in state $state", t)
-            SessionReport.fail(SessionReport.Category.USB, "transport failed", t, state.name)
+            val carGone = SessionReport.carGone
+            if (state == State.DONE && carGone != null) {
+                // The car dropped its Bluetooth or Wi-Fi first: it was switched off, not a fault.
+                log.i("the car went away ($carGone) - the link closed with it: ${GearslipLog.rootCause(t)}")
+                SessionReport.ended("the car went away ($carGone)")
+            } else {
+                log.e("transport failed in state $state", t)
+                SessionReport.fail(SessionReport.Category.USB, "transport failed", t, state.name)
+            }
             reportDisconnect()
         } finally {
             running = false
@@ -186,6 +200,8 @@ class GearslipRunner(
         CarSensors.clear()
         CarMic.current = null
         CarBluetooth.onCarDisconnected()
+        phoneStatus?.stop()
+        phoneStatus = null
         BluetoothAudioCheck.onCarDisconnected()
         LocationCheck.onCarDisconnected()
         mediaStatus?.stop()
@@ -239,6 +255,8 @@ class GearslipRunner(
                 mediaStatus?.onMessage(messageId, body)
             } else if (frame.channel == guidanceLink?.channelId) {
                 guidanceLink?.onMessage(messageId, body)
+            } else if (frame.channel == phoneStatus?.channelId) {
+                phoneStatus?.onMessage(messageId, body)
             } else if (frame.channel == CarBluetooth.channelId) {
                 CarBluetooth.onMessage(messageId, body)
             } else if (frame.channel == vendorChannelId) {
@@ -450,7 +468,12 @@ class GearslipRunner(
         val described = Protobuf.describe(body)
             .replace(Regex("(?m)^  #5 string = .*$"), "  #5 string = (car serial, left out)")
             .replace(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"), "(Bluetooth address, left out)")
-        log.i("head unit describes itself as:\n" + described)
+        if (described == lastDescribed) {
+            log.i("head unit describes itself as last time (${body.size} bytes, unchanged)")
+        } else {
+            lastDescribed = described
+            log.i("head unit describes itself as:\n" + described)
+        }
         log.verdict(
             "VIABLE",
             "The head unit accepted the presented phone certificate, completed TLS, and is " +
@@ -514,6 +537,7 @@ class GearslipRunner(
         startMediaStatusChannel(serviceDiscoveryResponse)
         startClusterNavChannel(serviceDiscoveryResponse)
         startBluetooth(serviceDiscoveryResponse)
+        startPhoneStatusChannel(serviceDiscoveryResponse)
         startVendorChannel(serviceDiscoveryResponse)
 
         val input = ServiceDiscovery.findInputService(serviceDiscoveryResponse, video.displayId)
@@ -549,6 +573,7 @@ class GearslipRunner(
             return
         }
         if (media.codecType != ServiceDiscovery.CODEC_PCM) {
+            aacOnlyCar = true
             log.w("the car offers no PCM media sink, only ${media.codecName}; music goes as AAC")
         }
         val first = media.configs.firstOrNull()
@@ -661,7 +686,21 @@ class GearslipRunner(
             bluetooth,
             open = { openChannel(bluetooth.serviceId) },
             send = { id, body -> send(id, body, encrypted = true, channel = bluetooth.serviceId) },
+            // Android Auto says hello on this channel every drive, even when already paired; see CarBluetooth.
+            announce = aacOnlyCar,
         )
+    }
+
+    /** The phone's calls, for the car: see [CarPhoneStatus]. AAC-only cars for now. */
+    private fun startPhoneStatusChannel(serviceDiscoveryResponse: ByteArray) {
+        val channel = ServiceDiscovery.findPhoneStatusChannel(serviceDiscoveryResponse) ?: return
+        if (!aacOnlyCar) {
+            log.i("phone status channel: $channel (left closed on this car)")
+            return
+        }
+        log.i("phone status channel: $channel")
+        phoneStatus = CarPhoneStatus(channel) { id, body -> send(id, body, encrypted = true, channel = channel) }
+        openChannel(channel)
     }
 
     /** Turn-by-turn for the instrument cluster: the next turn, its road, and how far. */
@@ -982,7 +1021,13 @@ class GearslipRunner(
                     inFlight = maxOf(0, inFlight - maxOf(1, acked))
                     acksSeen++
                     lastAckAt = System.currentTimeMillis()
+                    unansweredResets = 0
                     ackLock.notifyAll()
+                }
+                if (carIgnoringVideo) {
+                    carIgnoringVideo = false
+                    log.i("the car is taking video again - resuming with a fresh keyframe")
+                    videoSource?.requestSyncFrame()
                 }
                 if (framesSent <= 3 || framesSent % 60 == 0) {
                     log.i("<- MediaAck(ack=$acked) inFlight=$inFlight after $framesSent frames")
@@ -1145,6 +1190,15 @@ class GearslipRunner(
     private fun sendVideoFrame(data: ByteArray, presentationTimeUs: Long, keyFrame: Boolean) {
         // The car is showing its own screen and would throw these away.
         if (!videoProjected) return
+        if (carIgnoringVideo) {
+            // Only a keyframe now and then, to notice the car coming back; see [unansweredResets].
+            val now = System.currentTimeMillis()
+            if (!keyFrame || now - lastProbeAt < PROBE_EVERY_MS) {
+                if (!keyFrame && now - lastProbeAt >= PROBE_EVERY_MS) videoSource?.requestSyncFrame()
+                return
+            }
+            lastProbeAt = now
+        }
         synchronized(ackLock) {
             val waitStart = System.currentTimeMillis()
             while (running && inFlight >= maxUnacked) {
@@ -1152,6 +1206,21 @@ class GearslipRunner(
                 // picture. After a long silence, assume the window cleared and carry on.
                 val since = System.currentTimeMillis() - lastAckAt
                 if (since > ACK_STALL_MS) {
+                    unansweredResets++
+                    // An AAC-only 2014 head unit stopped acking for good when a call took its
+                    // screen, without saying so; resetting every 2 s sent it 1,100 frames it threw
+                    // away. A car that acked before and then ignores three windows in a row has
+                    // stopped watching: hold back until it acks a probe keyframe.
+                    if (aacOnlyCar && acksSeen > 0 && unansweredResets >= IGNORED_RESETS) {
+                        if (!carIgnoringVideo) {
+                            carIgnoringVideo = true
+                            lastProbeAt = System.currentTimeMillis()
+                            log.w("no ack for ${unansweredResets * ACK_STALL_MS / 1000}s - the car has stopped taking video; sending a keyframe every ${PROBE_EVERY_MS / 1000}s until it answers")
+                        }
+                        inFlight = 0
+                        lastAckAt = System.currentTimeMillis()
+                        break
+                    }
                     log.w("no ack for ${since}ms with $inFlight in flight - resetting the window")
                     inFlight = 0
                     lastAckAt = System.currentTimeMillis() // one warning per stall, not one per frame
@@ -1188,6 +1257,12 @@ class GearslipRunner(
         }
     }
 
+    /** Window resets in a row with no ack between them. */
+    @Volatile private var unansweredResets = 0
+    /** The car went quiet on video without taking its screen back; see [sendVideoFrame]. */
+    @Volatile private var carIgnoringVideo = false
+    @Volatile private var lastProbeAt = 0L
+
     /** Whether the car is showing Gearslip; false while it shows its own interface. */
     @Volatile private var videoProjected = true
     /** The encoder's SPS/PPS, resent when the car hands its screen back. */
@@ -1218,6 +1293,8 @@ class GearslipRunner(
             // Frames sent just before the car took over may never be acked.
             synchronized(ackLock) {
                 inFlight = 0
+                unansweredResets = 0
+                carIgnoringVideo = false
                 ackLock.notifyAll()
             }
             val start = Protobuf.varintField(1, SESSION_ID.toLong()) +
@@ -1275,8 +1352,26 @@ class GearslipRunner(
         val response = Protobuf.varintField(1, timestamp) +
             (payload?.let { Protobuf.bytesField(2, it) } ?: byteArrayOf())
         send(MSG_PING_RESPONSE, response, encrypted = tls.handshakeComplete)
-        log.i("<- PingRequest(timestamp=$timestamp) / -> PingResponse (keeping the session alive)")
+        // One a second for the whole drive buried the log; the first few show the exchange works.
+        pings++
+        val now = System.currentTimeMillis()
+        if (pings <= PINGS_LOGGED) {
+            log.i("<- PingRequest(timestamp=$timestamp) / -> PingResponse (keeping the session alive)")
+            pingsLoggedAt = now
+        } else if (now - pingsLoggedAt >= PING_LOG_EVERY_MS) {
+            log.i("<- ${pings - pingsAtLog} pings answered in the last ${(now - pingsLoggedAt) / 1000}s")
+            pingsLoggedAt = now
+            pingsAtLog = pings
+        }
+        // Several in one go means the car's pings sat somewhere on the way: worth seeing.
+        if (pings > PINGS_LOGGED && now - lastPingAt < 50) log.i("ping arrived ${now - lastPingAt}ms after the last - the link held them up")
+        lastPingAt = now
     }
+
+    private var pings = 0
+    private var pingsAtLog = PINGS_LOGGED
+    private var pingsLoggedAt = 0L
+    private var lastPingAt = 0L
 
     private fun send(
         messageId: Int,
@@ -1459,6 +1554,9 @@ class GearslipRunner(
     }
 
     private companion object {
+        /** The last car's service list, so a reconnect doesn't print the same 200 lines again. */
+        @Volatile var lastDescribed: String? = null
+
         /** The stats window adaptive bitrate reads, matching the watchdog's sleep. */
         const val ADAPT_WINDOW_MS = 5_000L
 
@@ -1515,6 +1613,10 @@ class GearslipRunner(
         const val ACTION_UP = 1
 
         const val ACK_STALL_MS = 2_000L
+        const val IGNORED_RESETS = 3
+        const val PROBE_EVERY_MS = 5_000L
+        const val PINGS_LOGGED = 5
+        const val PING_LOG_EVERY_MS = 60_000L
         const val AUDIO_TRACE_MESSAGES = 6
         const val GUIDANCE_SESSION_ID = 1
         const val PERIODIC_KEYFRAME_MS = 5_000L

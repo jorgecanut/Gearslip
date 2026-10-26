@@ -38,6 +38,12 @@ import java.security.MessageDigest
  * phone's own Bluetooth address (apps get a placeholder), and confirming the pairing code without
  * asking. So a car may turn the request down, and the phone always shows its pairing dialog. The
  * channel stays closed unless the driver taps Pair: every new channel is a risk to cars that work.
+ *
+ * The exception is a car already paired whose music sink takes only AAC (a 2014 GalReceiver).
+ * Android Auto sends the same PairingRequest there every drive and the car answers
+ * already_paired, which is how it knows the phone on its hands-free link is the projected one.
+ * Without it, a call made from Gearslip came up on the car's own phone screen and the
+ * projection never came back. So on those cars the channel opens and says hello, nothing more.
  */
 object CarBluetooth {
 
@@ -61,13 +67,15 @@ object CarBluetooth {
     @Volatile private var bondStarted = false
     /** From the Pair tap until it succeeds or fails, whether or not the card still shows. */
     @Volatile private var pairing = false
+    /** The channel is open only to tell an already-paired car this phone is the projected one. */
+    @Volatile private var announcing = false
     private var receiver: BroadcastReceiver? = null
 
     /** The car's Bluetooth address, when it named one in its service list. */
     val carAddress: String? get() = car?.service?.carAddress
 
     /** The car's Bluetooth channel once the driver has asked to pair, -1 otherwise. */
-    val channelId: Int get() = car?.takeIf { pairing }?.service?.serviceId ?: -1
+    val channelId: Int get() = car?.takeIf { pairing || announcing }?.service?.serviceId ?: -1
 
     fun init(context: Context) {
         appContext = context.applicationContext
@@ -78,12 +86,20 @@ object CarBluetooth {
         service: ServiceDiscovery.BluetoothService,
         open: () -> Unit,
         send: (messageId: Int, body: ByteArray) -> Unit,
+        /** Say hello on the channel when already paired; see the class comment. */
+        announce: Boolean = false,
     ) {
         car = Car(service, open, send)
         bondStarted = false
+        announcing = false
         log.i("the car offers Bluetooth pairing, methods=${service.pairingMethods}")
         val device = device() ?: return
         when {
+            device.bondState == BluetoothDevice.BOND_BONDED && announce -> {
+                log.i("already paired with this car - telling it this is the projected phone")
+                announcing = true
+                open()
+            }
             device.bondState == BluetoothDevice.BOND_BONDED -> log.i("already paired with this car")
             declined(service.carAddress) -> log.i("not paired, and the driver said not now for this car")
             else -> _prompt.value = Prompt.ASK
@@ -93,6 +109,7 @@ object CarBluetooth {
     fun onCarDisconnected() {
         car = null
         pairing = false
+        announcing = false
         main.post {
             stopWatching()
             _prompt.value = Prompt.NONE
@@ -137,6 +154,10 @@ object CarBluetooth {
                 val status = Protobuf.readInt32Field(body, 1) ?: 0
                 log.i("<- ChannelOpenResponse: status=$status")
                 if (status != 0) {
+                    if (announcing) {
+                        announcing = false
+                        return
+                    }
                     main.post { startBond("the car wouldn't open its Bluetooth channel") }
                     return
                 }
@@ -151,6 +172,8 @@ object CarBluetooth {
             MSG_PAIRING_RESPONSE -> {
                 val fields = Wire.fields(body)
                 log.i("<- PairingResponse status=${Wire.varint(fields, 1)} already_paired=${Wire.varint(fields, 2) == 1L}")
+                // A hello, not a pairing: the phone is bonded already, nothing more to do.
+                if (announcing && !pairing) return
                 // Some cars start pairing themselves once they answer; give them a moment first.
                 main.postDelayed({ startBond("the car answered") }, CAR_BOND_WAIT_MS)
             }
