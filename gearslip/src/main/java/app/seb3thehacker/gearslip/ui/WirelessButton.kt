@@ -140,20 +140,20 @@ internal fun WirelessButton() {
 }
 
 /**
- * A VPN on the phone often keeps wireless Android Auto from reaching the car: Android routes the
- * phone's traffic through it instead of the car's Wi-Fi. Said as the start-up begins, so the
- * driver can turn it off before the connection fails rather than after.
+ * A VPN kept wireless Android Auto from reaching the car: Android sent the phone's traffic
+ * through it instead of the car's Wi-Fi. Home's card says so too, but the driver is usually
+ * away from the phone by then, so this is still there when they come back.
  */
 @Composable
 fun VpnDialog(car: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("A VPN is on") },
+        title = { Text("A VPN is blocking the car") },
         text = {
             Text(
-                "A VPN can stop Gearslip from reaching $car over Wi-Fi. If the connection fails, " +
-                    "turn the VPN off, or exclude Gearslip in the VPN app's settings.",
+                "Gearslip joined $car's Wi-Fi, but a VPN on this phone won't let it reach the car. " +
+                    "Turn the VPN off, or exclude Gearslip in the VPN app's settings, then try again.",
             )
         },
         confirmButton = {
@@ -162,6 +162,6 @@ fun VpnDialog(car: String, onDismiss: () -> Unit) {
                 runCatching { context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) }
             }) { Text("VPN settings") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Continue") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("OK") } },
     )
 }
