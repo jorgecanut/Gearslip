@@ -185,6 +185,7 @@ class GearslipRunner(
         guidanceLink?.close()
         guidanceLink = null
         CarSensors.clear()
+        app.seb3thehacker.gearslip.car.CarData.clear()
         CarMic.current = null
         CarBluetooth.onCarDisconnected()
         BluetoothAudioCheck.onCarDisconnected()
@@ -467,6 +468,7 @@ class GearslipRunner(
         log.i("head unit: $info")
         SessionReport.headUnit(info.toString())
         SessionReport.headUnitInfo = info
+        app.seb3thehacker.gearslip.car.CarData.onModel(info.carModel, info.carYear)
         vehicleProfile = runCatching { vehicleProfileFor(info) }.getOrNull()
         val profile = vehicleProfile
         SessionReport.profile(profile?.name)
@@ -785,6 +787,7 @@ class GearslipRunner(
 
             MSG_SENSOR_EVENT_INDICATION -> {
                 CarSensors.onEvent(body)
+                app.seb3thehacker.gearslip.car.CarData.onEvent(body)
                 logSensorEvent(body)
                 onNightSensor(body)
             }
