@@ -101,7 +101,7 @@ fun RecommendedAppsScreen(onBack: () -> Unit) {
     }
 }
 
-/** Hidden for now: off, neither Settings nor the setup guide shows the list. The code stays. */
+/** The list's entry in Settings, hidden for now. The setup guide always ends on the list. */
 internal const val SHOW_RECOMMENDED_APPS = false
 
 /** The same green as the launcher's "works" check. */
