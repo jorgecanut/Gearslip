@@ -1,5 +1,8 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Bundle
@@ -108,9 +111,9 @@ private fun StorageScreen(onBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Gearslip storage") },
+                title = { Text(stringResource(R.string.storage_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) }
                 },
             )
         },
@@ -121,23 +124,23 @@ private fun StorageScreen(onBack: () -> Unit) {
         ) {
             val u = usage
             Text(
-                if (u == null) "Measuring…" else "Gearslip's data takes ${size(u.total)} of the phone's storage.",
+                if (u == null) stringResource(R.string.storage_measuring) else stringResource(R.string.storage_total, size(u.total)),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             SettingsCard {
                 StorageRow(
-                    "Lyrics",
-                    u?.let { "${it.lyricsSongs} songs · ${size(it.lyrics)}. Cleared lyrics download again when you open them." },
+                    stringResource(R.string.storage_lyrics),
+                    u?.let { pluralStringResource(R.plurals.storage_lyrics_detail, it.lyricsSongs, it.lyricsSongs, size(it.lyrics)) },
                     enabled = (u?.lyrics ?: 0) > 0,
-                    action = "Clear",
+                    action = stringResource(R.string.storage_clear),
                 ) { clear { Lyrics.clearCache(context) } }
                 SettingsDivider()
                 StorageRow(
-                    "Voice models",
-                    u?.let { "${size(it.voice)}. Voice commands need them; download them again in Settings." },
+                    stringResource(R.string.storage_voice),
+                    u?.let { stringResource(R.string.storage_voice_detail, size(it.voice)) },
                     enabled = (u?.voice ?: 0) > 0,
-                    action = "Remove",
+                    action = stringResource(R.string.storage_remove),
                 ) {
                     clear {
                         voiceDir(context).deleteRecursively()
@@ -146,17 +149,17 @@ private fun StorageScreen(onBack: () -> Unit) {
                 }
                 SettingsDivider()
                 StorageRow(
-                    "Old logs",
-                    u?.let { "${size(it.logs)}. Logs from earlier launches; this launch's log stays." },
+                    stringResource(R.string.storage_logs),
+                    u?.let { stringResource(R.string.storage_logs_detail, size(it.logs)) },
                     enabled = (u?.logs ?: 0) > 0,
-                    action = "Clear",
+                    action = stringResource(R.string.storage_clear),
                 ) { clear { oldLogs(context).forEach { it.deleteRecursively() } } }
                 SettingsDivider()
                 StorageRow(
-                    "Other temporary files",
-                    u?.let { "${size(it.other)}. Downloaded updates and other files Gearslip can make again." },
+                    stringResource(R.string.storage_other),
+                    u?.let { stringResource(R.string.storage_other_detail, size(it.other)) },
                     enabled = (u?.other ?: 0) > 0,
-                    action = "Clear",
+                    action = stringResource(R.string.storage_clear),
                 ) { clear { otherCache(context).forEach { it.deleteRecursively() } } }
             }
             DeleteEverything()
@@ -168,7 +171,7 @@ private fun StorageScreen(onBack: () -> Unit) {
 private fun StorageRow(title: String, detail: String?, enabled: Boolean, action: String, onClick: () -> Unit) {
     SettingsRow(
         title,
-        subtitle = detail ?: "Measuring…",
+        subtitle = detail ?: stringResource(R.string.storage_measuring),
         trailing = { TextButton(onClick = onClick, enabled = enabled) { Text(action) } },
     )
 }
@@ -180,18 +183,18 @@ private fun DeleteEverything() {
     var armed by remember { mutableStateOf(false) }
     SettingsCard {
         SettingsRow(
-            "Delete all Gearslip data",
+            stringResource(R.string.storage_delete_all),
             subtitle = if (armed) {
-                "Tap Delete again to erase settings, certificates, voice models and logs. Gearslip closes, and starts from setup next time."
+                stringResource(R.string.storage_delete_armed)
             } else {
-                "Settings, certificates, voice models, lyrics and logs."
+                stringResource(R.string.storage_delete_sub)
             },
             titleColor = MaterialTheme.colorScheme.error,
             trailing = {
                 TextButton(onClick = {
                     if (armed) context.getSystemService(ActivityManager::class.java)?.clearApplicationUserData()
                     else armed = true
-                }) { Text(if (armed) "Delete" else "Delete…", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(if (armed) R.string.storage_delete else R.string.storage_delete_ellipsis), color = MaterialTheme.colorScheme.error) }
             },
         )
     }

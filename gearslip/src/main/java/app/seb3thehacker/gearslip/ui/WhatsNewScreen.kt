@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,10 +39,10 @@ fun WhatsNewScreen(onBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("What's new") },
+                title = { Text(stringResource(R.string.settings_whats_new)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -58,7 +60,7 @@ fun WhatsNewScreen(onBack: () -> Unit) {
             Changelog.releases.forEach { release ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        if (release.versionCode == BuildConfig.VERSION_CODE) "${release.versionName} (this version)" else release.versionName,
+                        if (release.versionCode == BuildConfig.VERSION_CODE) stringResource(R.string.whats_new_this_version, release.versionName) else release.versionName,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,

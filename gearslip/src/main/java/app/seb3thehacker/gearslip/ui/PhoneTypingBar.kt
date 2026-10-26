@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -49,7 +51,7 @@ fun PhoneTypingBar(modifier: Modifier = Modifier) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth().imePadding()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = PhoneTyping::dismiss) {
-                Icon(Icons.Filled.Close, contentDescription = "Close the car keyboard")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.typing_close))
             }
             OutlinedTextField(
                 value = value,
@@ -57,14 +59,14 @@ fun PhoneTypingBar(modifier: Modifier = Modifier) {
                     value = it
                     PhoneTyping.type(it.text)
                 },
-                label = { Text("Type for the car screen") },
+                label = { Text(stringResource(R.string.typing_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { PhoneTyping.submit() }),
                 modifier = Modifier.weight(1f).focusRequester(focus),
             )
             IconButton(onClick = PhoneTyping::submit) {
-                Icon(Icons.Filled.Search, contentDescription = "Search on the car screen")
+                Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.typing_search))
             }
         }
     }

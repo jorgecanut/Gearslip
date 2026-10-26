@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.speech.SpeechModels
 
 import androidx.compose.material3.LinearProgressIndicator
@@ -115,15 +117,15 @@ fun HomeScreen(
                 // Sits at the bottom, where a thumb reaches it.
                 Column(Modifier.padding(vertical = 16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HomeShortcut(Icons.Filled.Info, "Help", onOpenHelp, Modifier.weight(1f))
+                        HomeShortcut(Icons.Filled.Info, stringResource(R.string.home_help), onOpenHelp, Modifier.weight(1f))
                         // The preview draws the car screen on the phone, so it waits until no car is using it.
-                        if (!live) HomeShortcut(Icons.Filled.PlayArrow, "Preview", onOpenCarPreview, Modifier.weight(1f))
-                        HomeShortcut(Icons.AutoMirrored.Filled.List, "Logs", onOpenLogs, Modifier.weight(1f))
+                        if (!live) HomeShortcut(Icons.Filled.PlayArrow, stringResource(R.string.home_preview), onOpenCarPreview, Modifier.weight(1f))
+                        HomeShortcut(Icons.AutoMirrored.Filled.List, stringResource(R.string.home_logs), onOpenLogs, Modifier.weight(1f))
                     }
                     if (live) {
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                            Text("Disconnect")
+                            Text(stringResource(R.string.home_disconnect))
                         }
                     }
                 }
@@ -156,12 +158,12 @@ private fun HomeHeader(onOpenSettings: () -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onOpenSettings, modifier = Modifier.size(56.dp)) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(32.dp))
+                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title), modifier = Modifier.size(32.dp))
                 }
             }
             val version = "v${LocalContext.current.appVersionName()}"
             Text(
-                if (debug) "$version · debug build" else version,
+                if (debug) stringResource(R.string.home_debug_build, version) else version,
                 style = MaterialTheme.typography.labelLarge,
                 color = if (debug) content else MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -206,10 +208,9 @@ private fun BluetoothMissingCard() {
     Spacer(Modifier.height(16.dp))
     Surface(color = container, contentColor = content, shape = MaterialTheme.shapes.extraLarge) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Bluetooth isn't connected", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.home_bt_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Text(
-                "Music plays over Bluetooth, but your phone isn't connected to the car. Connect it " +
-                    "here or from the car's Bluetooth menu.",
+                stringResource(R.string.home_bt_body),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Button(
@@ -220,7 +221,7 @@ private fun BluetoothMissingCard() {
                     }
                 },
                 modifier = Modifier.padding(top = 4.dp),
-            ) { Text("Bluetooth settings") }
+            ) { Text(stringResource(R.string.bluetooth_settings)) }
         }
     }
 }
@@ -233,7 +234,7 @@ private fun VoiceDownloadCard() {
     Spacer(Modifier.height(16.dp))
     SettingsCard {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Downloading voice, $percent%", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.home_voice_downloading, percent), style = MaterialTheme.typography.bodyLarge)
             LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
         }
     }

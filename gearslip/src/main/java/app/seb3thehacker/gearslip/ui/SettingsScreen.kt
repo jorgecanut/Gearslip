@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.runtime.withFrameNanos
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -107,10 +109,10 @@ fun SettingsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -128,25 +130,25 @@ fun SettingsScreen(
             SettingsSection {
                 val context = LocalContext.current
                 SettingsRow(
-                    "What's new",
+                    stringResource(R.string.settings_whats_new),
                     Modifier.clickable { GearslipLinks.open(context, GearslipLinks.RELEASE_NOTES) },
-                    subtitle = "Read the ${BuildConfig.VERSION_NAME} release notes on GitHub",
+                    subtitle = stringResource(R.string.settings_whats_new_sub, BuildConfig.VERSION_NAME),
                     icon = Icons.Filled.Star,
                     trailing = { Arrow() },
                 )
             }
             SettingsSection(
-                "Support Gearslip",
-                footer = "Gearslip is free, with no ads and no tracking. Your support keeps it going.",
+                stringResource(R.string.settings_support),
+                footer = stringResource(R.string.settings_support_footer),
             ) { DonateRows() }
             if (ready(2)) ConnectionSection()
             if (SHOW_RECOMMENDED_APPS && ready(6)) AppsSection(onOpenRecommendedApps)
             if (ready(7)) SettingsSection(
-                "Usage notes",
+                stringResource(R.string.settings_usage_notes),
                 Modifier.onGloballyPositioned { usageNotesY = it.positionInParent().y.toInt() },
-                header = USAGE_STATS_INTRO,
+                header = usageStatsIntro(LocalContext.current),
             ) { UsageStatsRows() }
-            if (ready(8)) SettingsSection("Updates") { UpdateRow() }
+            if (ready(8)) SettingsSection(stringResource(R.string.settings_updates)) { UpdateRow() }
             if (ready(9)) CertificateSection()
             if (ready(10)) AboutSection(onReplayTutorial)
             if (BuildConfig.DEBUG && ready(11)) DebugSection()
@@ -168,11 +170,11 @@ private fun Arrow() = Icon(
 /** The setup guide replay, and where Gearslip lives outside the app. */
 @Composable
 private fun AboutSection(onReplayTutorial: () -> Unit) {
-    SettingsSection("About") {
+    SettingsSection(stringResource(R.string.settings_about)) {
         SettingsRow(
-            "Replay the setup guide",
+            stringResource(R.string.settings_replay),
             Modifier.clickable(onClick = onReplayTutorial),
-            subtitle = "Go through the first-run steps again",
+            subtitle = stringResource(R.string.settings_replay_sub),
             icon = Icons.Filled.Refresh,
             trailing = { Arrow() },
         )
@@ -186,14 +188,14 @@ private fun AboutSection(onReplayTutorial: () -> Unit) {
 private fun ConnectionSection() {
     val context = LocalContext.current
     var enabled by remember { mutableStateOf(AppSettings.gearslipEnabled(context)) }
-    SettingsSection("Connection") {
+    SettingsSection(stringResource(R.string.settings_connection)) {
         SettingsRow(
-            "Use Gearslip in the car",
+            stringResource(R.string.settings_use_in_car),
             Modifier.toggleable(enabled, role = Role.Switch) {
                 enabled = it
                 AppSettings.setGearslipEnabled(context, it)
             },
-            subtitle = if (enabled) "Gearslip answers when you plug into a car" else "Off: Android Auto can take the connection instead",
+            subtitle = stringResource(if (enabled) R.string.settings_use_in_car_on else R.string.settings_use_in_car_off),
             icon = Icons.Filled.Settings,
             trailing = { Switch(checked = enabled, onCheckedChange = null) },
         )
@@ -224,9 +226,9 @@ private fun DebugSection() {
 
 @Composable
 private fun AppsSection(onOpenRecommendedApps: () -> Unit) {
-    SettingsSection("Apps") {
+    SettingsSection(stringResource(R.string.settings_apps)) {
         SettingsRow(
-            "Recommended apps",
+            stringResource(R.string.recommended_title),
             Modifier.clickable(onClick = onOpenRecommendedApps),
             icon = Icons.Filled.Star,
             trailing = { Arrow() },
@@ -253,21 +255,21 @@ private fun CertificateSection() {
         if (uri != null) pendingUri = uri
     }
 
-    SettingsSection("Certificate", footer = notice ?: "Changes take effect on the next connection.") {
+    SettingsSection(stringResource(R.string.settings_certificate), footer = notice ?: stringResource(R.string.cert_next_connection)) {
         val s = summary
         val loaded = s != null && s.kind != CertProvider.Kind.SELF_SIGNED
         val hasDetails = s?.subject != null || s?.issuer != null
         SettingsRow(
-            s?.headline ?: "Checking…",
+            s?.headline ?: stringResource(R.string.cert_checking),
             if (hasDetails) Modifier.clickable { detailsOpen = !detailsOpen } else Modifier,
-            subtitle = s?.validUntil?.let { "Valid until $it" },
+            subtitle = s?.validUntil?.let { stringResource(R.string.cert_valid_until, it) },
             icon = if (s == null || loaded) Icons.Filled.Lock else Icons.Filled.Warning,
             tint = if (s == null || loaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             trailing = if (hasDetails) {
                 {
                     Icon(
                         if (detailsOpen) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                        contentDescription = if (detailsOpen) "Hide details" else "Show details",
+                        contentDescription = stringResource(if (detailsOpen) R.string.cert_hide_details else R.string.cert_show_details),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -278,39 +280,39 @@ private fun CertificateSection() {
                 Modifier.padding(start = 56.dp, end = 16.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                s?.subject?.let { Detail("Subject", it) }
-                s?.issuer?.let { Detail("Issuer", it) }
+                s?.subject?.let { Detail(stringResource(R.string.cert_subject), it) }
+                s?.issuer?.let { Detail(stringResource(R.string.cert_issuer), it) }
             }
         }
         SettingsDivider()
         SettingsRow(
-            if (downloading) "Downloading…" else "Download from aasdk",
+            stringResource(if (downloading) R.string.cert_downloading else R.string.cert_download),
             Modifier.clickable(enabled = !downloading) {
                 downloading = true
                 scope.launch {
                     val result = withContext(Dispatchers.IO) { runCatching { CertProvider.downloadAndImport(context) } }
                     downloading = false
                     result.onSuccess {
-                        notice = "Certificate downloaded."
+                        notice = context.getString(R.string.cert_downloaded)
                         refresh++
                     }.onFailure {
-                        notice = "Download failed: ${it.message}"
+                        notice = context.getString(R.string.cert_download_failed, it.message.toString())
                     }
                 }
             },
-            subtitle = "The certificate the open-source aasdk project publishes on GitHub. Gearslip doesn't include one",
+            subtitle = stringResource(R.string.cert_download_sub),
             icon = Icons.Filled.Refresh,
         )
         SettingsDivider()
         SettingsRow(
-            "Import my own file",
+            stringResource(R.string.cert_import),
             Modifier.clickable { picker.launch(arrayOf("*/*")) },
-            subtitle = "A .p12 file with its private key, from wherever you choose",
+            subtitle = stringResource(R.string.cert_import_sub),
             icon = Icons.Filled.Add,
         )
         val removable = when (s?.kind) {
-            CertProvider.Kind.IMPORTED -> "Remove imported certificate"
-            CertProvider.Kind.DOWNLOADED -> "Remove downloaded certificate"
+            CertProvider.Kind.IMPORTED -> stringResource(R.string.cert_remove_imported)
+            CertProvider.Kind.DOWNLOADED -> stringResource(R.string.cert_remove_downloaded)
             else -> null
         }
         if (removable != null) {
@@ -319,7 +321,7 @@ private fun CertificateSection() {
                 removable,
                 Modifier.clickable {
                     if (s?.kind == CertProvider.Kind.IMPORTED) CertProvider.removeImported(context) else CertProvider.removeDownloaded(context)
-                    notice = if (s?.kind == CertProvider.Kind.IMPORTED) "Removed the imported certificate." else "Removed the downloaded certificate."
+                    notice = context.getString(if (s?.kind == CertProvider.Kind.IMPORTED) R.string.cert_removed_imported else R.string.cert_removed_downloaded)
                     refresh++
                 },
                 icon = Icons.Filled.Delete,
@@ -339,10 +341,10 @@ private fun CertificateSection() {
                     }
                     result.onSuccess {
                         pendingUri = null
-                        notice = "Certificate imported."
+                        notice = context.getString(R.string.cert_imported)
                         refresh++
                     }.onFailure {
-                        reportError("Could not import: wrong password, or not a PKCS#12 file with a private key.")
+                        reportError(context.getString(R.string.cert_import_failed))
                     }
                 }
             },
@@ -365,20 +367,20 @@ private fun PasswordDialog(onDismiss: () -> Unit, onConfirm: (String, (String) -
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Certificate password") },
+        title = { Text(stringResource(R.string.cert_password_title)) },
         text = {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; error = null },
                 singleLine = true,
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.cert_password)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 isError = error != null,
-                supportingText = { Text(error ?: "Leave empty if the file has none.") },
+                supportingText = { Text(error ?: stringResource(R.string.cert_password_hint)) },
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(password) { error = it } }) { Text("Import") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(password) { error = it } }) { Text(stringResource(R.string.cert_import_button)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

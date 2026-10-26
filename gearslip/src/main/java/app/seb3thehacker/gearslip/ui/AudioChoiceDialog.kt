@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
@@ -24,27 +26,25 @@ fun AudioChoiceDialog(onUseBluetooth: () -> Unit, onKeepAsking: () -> Unit) {
     var showCommand by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onKeepAsking,
-        title = { Text("Play car audio over Bluetooth?") },
+        title = { Text(stringResource(R.string.audio_bt_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Android treats music sent over USB like sharing your screen, so it asks every " +
-                        "drive. Over Bluetooth it never asks. You can change this later in Settings.",
+                    stringResource(R.string.audio_bt_body),
                 )
                 if (showCommand) {
                     Text(
-                        "Or keep USB and stop the question for good: plug the phone into a " +
-                            "computer with USB debugging on, and run this once.",
+                        stringResource(R.string.audio_keep_usb),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     CopyableCommand("adb shell appops set ${BuildConfig.APPLICATION_ID} PROJECT_MEDIA allow")
                 } else {
-                    TextButton(onClick = { showCommand = true }) { Text("Never ask, using a computer") }
+                    TextButton(onClick = { showCommand = true }) { Text(stringResource(R.string.audio_never_ask)) }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onUseBluetooth) { Text("Use Bluetooth") } },
-        dismissButton = { TextButton(onClick = onKeepAsking) { Text("Keep asking") } },
+        confirmButton = { TextButton(onClick = onUseBluetooth) { Text(stringResource(R.string.audio_use_bt)) } },
+        dismissButton = { TextButton(onClick = onKeepAsking) { Text(stringResource(R.string.audio_keep_asking)) } },
     )
 }
 
@@ -57,15 +57,13 @@ fun AudioChoiceDialog(onUseBluetooth: () -> Unit, onKeepAsking: () -> Unit) {
 fun MicBlockedDialog(onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Car audio needs the microphone permission") },
+        title = { Text(stringResource(R.string.audio_mic_title)) },
         text = {
             Text(
-                "Android lets an app send other apps' sound to the car only if it has the " +
-                    "microphone permission. It's turned off for Gearslip, so music plays on the " +
-                    "phone. Turn it on under Permissions, then Microphone.",
+                stringResource(R.string.audio_mic_body),
             )
         },
-        confirmButton = { TextButton(onClick = onOpenSettings) { Text("Open app settings") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Not now") } },
+        confirmButton = { TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.audio_open_settings)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.worked_not_now)) } },
     )
 }

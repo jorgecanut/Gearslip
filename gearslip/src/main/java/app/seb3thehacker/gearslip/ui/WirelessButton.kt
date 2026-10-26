@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -64,7 +66,7 @@ internal fun WirelessButton() {
 
     if (denied) {
         Text(
-            "Gearslip needs Bluetooth and nearby Wi-Fi access for this.",
+            stringResource(R.string.wireless_needs_permission),
             style = MaterialTheme.typography.bodyMedium,
         )
         // Once Android stops asking, the only way back is the app's own permission settings.
@@ -77,7 +79,7 @@ internal fun WirelessButton() {
                 }
             },
             modifier = Modifier.padding(bottom = 4.dp),
-        ) { Text("Enable Nearby devices permission") }
+        ) { Text(stringResource(R.string.wireless_enable_permission)) }
     }
     Button(
         onClick = {
@@ -88,17 +90,17 @@ internal fun WirelessButton() {
     ) {
         Box(Modifier.size(28.dp)) { WifiIcon(MaterialTheme.colorScheme.onPrimary) }
         Spacer(Modifier.width(12.dp))
-        Text("Connect wirelessly", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.wireless_connect), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 
     devices?.let { list ->
         AlertDialog(
             onDismissRequest = { devices = null },
-            title = { Text("Which car?") },
+            title = { Text(stringResource(R.string.wireless_which_car)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     if (list.isEmpty()) {
-                        Text("Your phone isn't paired with anything yet. Pair it with the car first.")
+                        Text(stringResource(R.string.wireless_none_paired))
                     }
                     list.forEach { device ->
                         Text(
@@ -118,7 +120,7 @@ internal fun WirelessButton() {
                     // The car has to be paired before it shows up here, and pairing happens in Android's settings.
                     if (list.isNotEmpty()) {
                         Text(
-                            "Car not listed? Pair it with your phone first.",
+                            stringResource(R.string.wireless_not_listed),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
@@ -132,9 +134,9 @@ internal fun WirelessButton() {
                     runCatching {
                         context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     }
-                }) { Text("Bluetooth settings") }
+                }) { Text(stringResource(R.string.bluetooth_settings)) }
             },
-            confirmButton = { TextButton(onClick = { devices = null }) { Text("Cancel") } },
+            confirmButton = { TextButton(onClick = { devices = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }

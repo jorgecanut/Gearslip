@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,7 +82,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                "Certificate Setup",
+                stringResource(R.string.certsetup_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -88,9 +90,9 @@ fun CertSetupScreen(onDone: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Text(
                 if (installed) {
-                    "Cars accept only Google-issued certificates, and you have one loaded."
+                    stringResource(R.string.certsetup_loaded)
                 } else {
-                    "Cars accept only Google-issued certificates. Gearslip doesn't include one, so choose where yours comes from."
+                    stringResource(R.string.certsetup_choose)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
@@ -100,14 +102,14 @@ fun CertSetupScreen(onDone: () -> Unit) {
 
             if (installed) {
                 Text(
-                    if (manualProgress) "Certificate imported." else "Certificate installed.",
+                    if (manualProgress) stringResource(R.string.cert_imported) else stringResource(R.string.certsetup_installed),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(20.dp))
                 Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text("Continue")
+                    Text(stringResource(R.string.certsetup_continue))
                 }
                 Spacer(Modifier.height(40.dp))
                 return@Column
@@ -130,11 +132,10 @@ fun CertSetupScreen(onDone: () -> Unit) {
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {
-                        Text("Download from aasdk")
+                        Text(stringResource(R.string.cert_download))
                     }
                     Text(
-                        "The open-source aasdk project publishes this certificate at github.com/opencardev/aasdk. " +
-                            "Most cars accept it; some from around 2020 on don't.",
+                        stringResource(R.string.certsetup_aasdk_sub),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -146,7 +147,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
                     Box(Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
                         DownloadingRow {
                             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                            Text("Downloading…", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.cert_downloading), style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -157,7 +158,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
                     Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.medium) {
                         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "Download failed",
+                                stringResource(R.string.certsetup_failed),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
@@ -168,7 +169,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                             )
                             Button(onClick = { downloadState = DownloadState.Idle }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Retry")
+                                Text(stringResource(R.string.certsetup_retry))
                             }
                         }
                     }
@@ -180,9 +181,9 @@ fun CertSetupScreen(onDone: () -> Unit) {
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("*/*")) },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text("Import my own file") }
+            ) { Text(stringResource(R.string.cert_import)) }
             Text(
-                "A .p12 file with its private key, from wherever you choose.",
+                stringResource(R.string.certsetup_import_sub),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -197,7 +198,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
-                Text("Skip car connection setup")
+                Text(stringResource(R.string.certsetup_skip))
             }
 
             Spacer(Modifier.height(40.dp))
@@ -216,7 +217,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
                         pendingUri = null
                         manualProgress = true
                     }.onFailure {
-                        reportError("Wrong password or not a valid PKCS#12 file with a private key.")
+                        reportError(context.getString(R.string.cert_import_failed))
                     }
                 }
             },
@@ -224,7 +225,7 @@ fun CertSetupScreen(onDone: () -> Unit) {
     }
 }
 
-/** A tight horizontal row for the inline "Downloading…" spinner state. */
+/** A tight horizontal row for the inline stringResource(R.string.cert_downloading) spinner state. */
 @Composable
 private fun DownloadingRow(content: @Composable RowScope.() -> Unit) {
     Row(
@@ -248,20 +249,20 @@ private fun PasswordDialog(onDismiss: () -> Unit, onConfirm: (String, (String) -
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Certificate password") },
+        title = { Text(stringResource(R.string.cert_password_title)) },
         text = {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; error = null },
                 singleLine = true,
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.cert_password)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 isError = error != null,
-                supportingText = { Text(error ?: "Leave empty if the file has none.") },
+                supportingText = { Text(error ?: stringResource(R.string.cert_password_hint)) },
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(password) { error = it } }) { Text("Import") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(password) { error = it } }) { Text(stringResource(R.string.cert_import_button)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

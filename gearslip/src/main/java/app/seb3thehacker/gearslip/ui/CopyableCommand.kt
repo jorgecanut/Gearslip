@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,7 +31,7 @@ fun CopyableCommand(command: String) {
         shape = MaterialTheme.shapes.small,
         onClick = {
             clipboard.setText(AnnotatedString(command))
-            Toast.makeText(context, "Command copied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.command_copied), Toast.LENGTH_SHORT).show()
         },
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
     ) {
@@ -41,7 +43,7 @@ fun CopyableCommand(command: String) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "Tap to copy",
+                stringResource(R.string.command_tap_copy),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
             )

@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,11 +37,9 @@ internal fun VoiceModelSection() {
     remember { SpeechModels.init(context) }
     val selected by SpeechModels.selected.collectAsState()
     val final by SpeechModels.final.collectAsState()
-    SettingsSection(title = "Voice: live words") {
+    SettingsSection(title = stringResource(R.string.voice_live_title)) {
         Text(
-            "The voice assistant turns speech into text on this phone, and nothing you say leaves it. " +
-                "It needs two models, about 270 MB together, downloaded once. " +
-                "This one writes your words as you speak.",
+            stringResource(R.string.voice_live_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -49,10 +49,9 @@ internal fun VoiceModelSection() {
             ModelRow(model, model == selected)
         }
     }
-    SettingsSection(title = "Voice: final words") {
+    SettingsSection(title = stringResource(R.string.voice_final_title)) {
         Text(
-            "When you stop talking, this model reads the whole phrase again. It catches names and " +
-                "places the live model misses.",
+            stringResource(R.string.voice_final_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -67,9 +66,9 @@ internal fun VoiceModelSection() {
         ) {
             RadioButton(final == null, onClick = null, modifier = Modifier.padding(8.dp))
             Column {
-                Text("None", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.voice_none), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Keep the live words. Fastest, least accurate",
+                    stringResource(R.string.voice_none_sub),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -95,12 +94,12 @@ private fun ModelRow(model: Model, chosen: Boolean) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(chosen, onClick = null, modifier = Modifier.padding(8.dp))
             Column(Modifier.weight(1f)) {
-                Text("${model.label} · ${model.downloadMb} MB", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.voice_model_size, model.label, model.downloadMb), style = MaterialTheme.typography.titleMedium)
                 Text(
                     when (val s = state) {
-                        State.Ready -> "Downloaded. ${model.detail}"
-                        is State.Downloading -> "Downloading, ${s.percent}%"
-                        is State.Failed -> "Download failed: ${s.reason}"
+                        State.Ready -> stringResource(R.string.voice_downloaded, model.detail)
+                        is State.Downloading -> stringResource(R.string.voice_downloading, s.percent)
+                        is State.Failed -> stringResource(R.string.cert_download_failed, s.reason)
                         State.Missing -> model.detail
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -109,9 +108,9 @@ private fun ModelRow(model: Model, chosen: Boolean) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 when (state) {
-                    State.Ready -> TextButton(onClick = { SpeechModels.delete(context, model) }) { Text("Delete") }
-                    is State.Downloading -> TextButton(onClick = { SpeechModels.delete(context, model) }) { Text("Cancel") }
-                    else -> OutlinedButton(onClick = { SpeechModels.download(context, model) }) { Text("Download") }
+                    State.Ready -> TextButton(onClick = { SpeechModels.delete(context, model) }) { Text(stringResource(R.string.storage_delete)) }
+                    is State.Downloading -> TextButton(onClick = { SpeechModels.delete(context, model) }) { Text(stringResource(R.string.cancel)) }
+                    else -> OutlinedButton(onClick = { SpeechModels.download(context, model) }) { Text(stringResource(R.string.update_download)) }
                 }
             }
         }
