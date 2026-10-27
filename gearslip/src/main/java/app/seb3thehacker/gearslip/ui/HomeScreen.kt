@@ -278,9 +278,23 @@ private fun StatusCard(status: SessionStatus.Snapshot) {
                 ) {}
             }
             Column {
-                Text(status.headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                // The steady states read from strings.xml; a stage or a failure comes with its own text.
+                val headline = when (status.phase) {
+                    SessionStatus.Phase.IDLE -> stringResource(R.string.status_idle)
+                    SessionStatus.Phase.CONNECTING -> stringResource(R.string.status_connecting)
+                    SessionStatus.Phase.PROJECTING -> stringResource(R.string.status_projecting)
+                    SessionStatus.Phase.DISCONNECTED -> stringResource(R.string.status_disconnected)
+                    SessionStatus.Phase.FAILED -> status.headline
+                }
+                val detail = when (status.phase) {
+                    SessionStatus.Phase.IDLE -> stringResource(R.string.status_idle_detail)
+                    SessionStatus.Phase.PROJECTING -> stringResource(R.string.status_projecting_detail)
+                    SessionStatus.Phase.DISCONNECTED -> stringResource(R.string.status_disconnected_detail)
+                    else -> status.detail
+                }
+                Text(headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-                Text(status.detail, style = MaterialTheme.typography.bodyMedium)
+                Text(detail, style = MaterialTheme.typography.bodyMedium)
             }
         }
         // The other way in: wireless, right under the cable's instructions.

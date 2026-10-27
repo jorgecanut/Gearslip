@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ internal object GearslipLinks {
     const val MATRIX = "https://matrix.to/#/!mf0_mgBd5KqKpc9FfX_wHp1jFCcwAtPrndIn_oGIyMk?via=matrix.org"
     const val SOURCE = "https://github.com/twinksoftware/gearslip"
     const val CARS = "$SOURCE/blob/main/CARS.md"
+    const val TRANSLATE = "https://hosted.weblate.org/engage/gearslip/"
 
     /** This version's release notes on GitHub; every release is tagged v plus its version name. */
     val RELEASE_NOTES = "$SOURCE/releases/tag/v${app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME}"
@@ -158,7 +160,7 @@ internal fun MoneroDialog(onDismiss: () -> Unit) {
     )
 }
 
-/** The About section's links: the chat room, the source code, and credits. */
+/** The About section's links: the chat room, translations, the source code, and credits. */
 @Composable
 internal fun AboutLinkRows() {
     val context = LocalContext.current
@@ -174,6 +176,14 @@ internal fun AboutLinkRows() {
         Modifier.clickable { GearslipLinks.open(context, GearslipLinks.MATRIX) },
         subtitle = stringResource(R.string.about_matrix_sub),
         icon = Icons.AutoMirrored.Filled.Send,
+        trailing = arrow,
+    )
+    SettingsDivider()
+    SettingsRow(
+        stringResource(R.string.about_translate),
+        Modifier.clickable { GearslipLinks.open(context, GearslipLinks.TRANSLATE) },
+        subtitle = stringResource(R.string.about_translate_sub),
+        icon = Icons.Filled.Edit,
         trailing = arrow,
     )
     SettingsDivider()

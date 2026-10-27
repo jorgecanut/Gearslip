@@ -315,6 +315,8 @@
     <string name="close">Close</string>
     <string name="about_matrix">Join the chat on Matrix</string>
     <string name="about_matrix_sub">Talk with other drivers about cars, apps, and Gearslip</string>
+    <string name="about_translate">Help translate Gearslip</string>
+    <string name="about_translate_sub">Fix or add your language on Weblate. Some translations started as machine translations.</string>
     <string name="about_source">Source code</string>
     <string name="about_source_sub">Read or change Gearslip\'s code under the AGPL</string>
     <string name="about_voice_credits">Voice credits</string>
@@ -850,4 +852,13 @@
     <!-- Cluster screen -->
     <string name="car_cluster_video">Turn card on the cluster screen</string>
     <string name="car_cluster_video_note">For a car with a second screen in the instrument cluster: Gearslip shows the next turn there. Applies on the next connection.</string>
+
+    <!-- Connection status on Home -->
+    <string name="status_idle">Not connected</string>
+    <string name="status_idle_detail">Plug into the car\'s USB port, or connect wirelessly. Gearslip opens by itself when the car answers.</string>
+    <string name="status_connecting">Connecting</string>
+    <string name="status_projecting">Projecting</string>
+    <string name="status_projecting_detail">Streaming to the head unit.</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_disconnected_detail">The head unit is no longer connected.</string>
 </resources>
