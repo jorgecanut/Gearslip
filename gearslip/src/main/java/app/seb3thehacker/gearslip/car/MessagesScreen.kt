@@ -11,6 +11,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -107,6 +109,7 @@ fun MessagesScreen(packageName: String) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConversationCard(n: CarNotification, onRead: () -> Unit, onReply: () -> Unit, onMarkRead: () -> Unit) {
     var expanded by rememberSaveable(n.key) { mutableStateOf(false) }
@@ -146,6 +149,14 @@ private fun ConversationCard(n: CarNotification, onRead: () -> Unit, onReply: ()
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
+                    if (n.replied) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = stringResource(R.string.notif_replied),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                        )
+                    }
                 }
                 if (!expanded && lines.size > COLLAPSED_LINES) {
                     Text(
@@ -155,30 +166,30 @@ private fun ConversationCard(n: CarNotification, onRead: () -> Unit, onReply: ()
                     )
                 }
                 shown.forEach { MessageLine(it, showSender = n.isGroup) }
+                // Below the messages and side by side, so the text keeps the card's whole width.
+                FlowRow(
+                    Modifier.padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    GsButton(onClick = onRead, tone = GsTone.Neutral) {
+                        ReadGlyph(Modifier.size(20.dp))
+                        Text(stringResource(R.string.msg_read), Modifier.padding(start = 8.dp))
+                    }
+                    if (n.reply != null) {
+                        GsButton(onClick = onReply, tone = GsTone.Tonal) {
+                            ReplyGlyph(Modifier.size(20.dp))
+                            Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
+                        }
+                        GsButton(onClick = { quick = !quick }, tone = GsTone.Neutral) {
+                            Text(stringResource(if (quick) R.string.msg_hide_quick else R.string.msg_quick))
+                        }
+                    }
+                    if (n.markRead != null) {
+                        GsButton(onClick = onMarkRead, tone = GsTone.Neutral) { Text(stringResource(R.string.msg_mark_read)) }
+                    }
+                }
                 if (quick) QuickReplies(n, Modifier.padding(top = 6.dp))
-            }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (n.replied) {
-                    Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.notif_replied), tint = MaterialTheme.colorScheme.primary)
-                }
-                GsButton(onClick = onRead, tone = GsTone.Neutral) {
-                    ReadGlyph(Modifier.size(20.dp))
-                    Text(stringResource(R.string.msg_read), Modifier.padding(start = 8.dp))
-                }
-                if (n.reply != null) {
-                    GsButton(onClick = onReply, tone = GsTone.Tonal) {
-                        ReplyGlyph(Modifier.size(20.dp))
-                        Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
-                    }
-                }
-                if (n.reply != null) {
-                    GsButton(onClick = { quick = !quick }, tone = GsTone.Neutral) {
-                        Text(stringResource(if (quick) R.string.msg_hide_quick else R.string.msg_quick))
-                    }
-                }
-                if (n.markRead != null) {
-                    GsButton(onClick = onMarkRead, tone = GsTone.Neutral) { Text(stringResource(R.string.msg_mark_read)) }
-                }
             }
         }
     }
