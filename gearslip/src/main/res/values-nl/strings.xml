@@ -817,4 +817,16 @@
     <string name="status_projecting_detail">Streamen naar de headunit.</string>
     <string name="status_disconnected">Verbinding verbroken</string>
     <string name="status_disconnected_detail">De headunit is niet meer verbonden.</string>
+    <string name="places_title">Opgeslagen plekken</string>
+    <string name="places_sub">Zeg “navigate home” in elke kaart-app</string>
+    <string name="places_intro">Zeg “navigate home”, “take me to work” of “navigate to” met een eigen naam, en Gearslip stuurt het adres naar je kaart-app. Spraakopdrachten werken voorlopig alleen in het Engels.</string>
+    <string name="places_home">Thuis</string>
+    <string name="places_work">Werk</string>
+    <string name="places_other">Plek %1$d</string>
+    <string name="places_name">Naam</string>
+    <string name="places_address">Adres</string>
+    <string name="places_here">Huidige locatie gebruiken</string>
+    <string name="places_finding">Zoeken…</string>
+    <string name="places_not_found">Gearslip kon je locatie niet vinden. Staat locatie aan?</string>
+    <string name="places_clear">Wissen</string>
 </resources>

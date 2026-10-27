@@ -695,4 +695,16 @@
     <string name="status_projecting_detail">Mostrando en la pantalla del coche.</string>
     <string name="status_disconnected">Desconectado</string>
     <string name="status_disconnected_detail">El coche ya no está conectado.</string>
+    <string name="places_title">Lugares guardados</string>
+    <string name="places_sub">Di “navigate home” en cualquier app de mapas</string>
+    <string name="places_intro">Di “navigate home”, “take me to work” o “navigate to” con un nombre tuyo, y Gearslip envía esa dirección a tu app de mapas. Por ahora los comandos de voz son solo en inglés.</string>
+    <string name="places_home">Casa</string>
+    <string name="places_work">Trabajo</string>
+    <string name="places_other">Lugar %1$d</string>
+    <string name="places_name">Nombre</string>
+    <string name="places_address">Dirección</string>
+    <string name="places_here">Usar mi ubicación</string>
+    <string name="places_finding">Buscando…</string>
+    <string name="places_not_found">Gearslip no encontró dónde estás. Comprueba que la ubicación esté activada.</string>
+    <string name="places_clear">Borrar</string>
 </resources>

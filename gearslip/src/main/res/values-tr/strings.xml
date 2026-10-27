@@ -817,4 +817,16 @@
     <string name="status_projecting_detail">Multimedya ünitesine aktarılıyor.</string>
     <string name="status_disconnected">Bağlantı kesildi</string>
     <string name="status_disconnected_detail">Multimedya ünitesi artık bağlı değil.</string>
+    <string name="places_title">Kayıtlı yerler</string>
+    <string name="places_sub">Herhangi bir harita uygulamasında “navigate home” deyin</string>
+    <string name="places_intro">“navigate home”, “take me to work” ya da kendi verdiğiniz bir adla “navigate to” deyin, Gearslip adresi harita uygulamanıza göndersin. Sesli komutlar şimdilik yalnızca İngilizce.</string>
+    <string name="places_home">Ev</string>
+    <string name="places_work">İş</string>
+    <string name="places_other">Yer %1$d</string>
+    <string name="places_name">Ad</string>
+    <string name="places_address">Adres</string>
+    <string name="places_here">Bulunduğum yeri kullan</string>
+    <string name="places_finding">Aranıyor…</string>
+    <string name="places_not_found">Gearslip konumunuzu bulamadı. Konumun açık olduğundan emin olun.</string>
+    <string name="places_clear">Temizle</string>
 </resources>

@@ -825,4 +825,16 @@
     <string name="status_projecting_detail">Diffusion vers l’autoradio.</string>
     <string name="status_disconnected">Déconnecté</string>
     <string name="status_disconnected_detail">L’autoradio n’est plus connecté.</string>
+    <string name="places_title">Lieux enregistrés</string>
+    <string name="places_sub">Dites « navigate home » dans n’importe quelle app de cartes</string>
+    <string name="places_intro">Dites « navigate home », « take me to work » ou « navigate to » suivi d’un de vos noms, et Gearslip envoie l’adresse à votre app de cartes. Les commandes vocales ne marchent qu’en anglais pour l’instant.</string>
+    <string name="places_home">Domicile</string>
+    <string name="places_work">Travail</string>
+    <string name="places_other">Lieu %1$d</string>
+    <string name="places_name">Nom</string>
+    <string name="places_address">Adresse</string>
+    <string name="places_here">Utiliser ma position</string>
+    <string name="places_finding">Recherche…</string>
+    <string name="places_not_found">Gearslip n’a pas trouvé votre position. Vérifiez que la localisation est activée.</string>
+    <string name="places_clear">Effacer</string>
 </resources>

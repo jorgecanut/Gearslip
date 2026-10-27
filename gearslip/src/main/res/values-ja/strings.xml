@@ -809,4 +809,16 @@
     <string name="status_projecting_detail">ヘッドユニットに映像を送っています。</string>
     <string name="status_disconnected">切断されました</string>
     <string name="status_disconnected_detail">ヘッドユニットとの接続が切れました。</string>
+    <string name="places_title">保存した場所</string>
+    <string name="places_sub">どの地図アプリでも「navigate home」と話しかけられます</string>
+    <string name="places_intro">「navigate home」「take me to work」、または「navigate to」と自分で付けた名前を言うと、Gearslip がその住所を地図アプリに送ります。音声コマンドは今のところ英語のみです。</string>
+    <string name="places_home">自宅</string>
+    <string name="places_work">職場</string>
+    <string name="places_other">場所 %1$d</string>
+    <string name="places_name">名前</string>
+    <string name="places_address">住所</string>
+    <string name="places_here">現在地を使う</string>
+    <string name="places_finding">検索中…</string>
+    <string name="places_not_found">現在地が見つかりませんでした。位置情報がオンになっているか確認してください。</string>
+    <string name="places_clear">消去</string>
 </resources>

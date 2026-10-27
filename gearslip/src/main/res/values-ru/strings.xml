@@ -833,4 +833,16 @@
     <string name="status_projecting_detail">Изображение передаётся на магнитолу.</string>
     <string name="status_disconnected">Отключено</string>
     <string name="status_disconnected_detail">Магнитола больше не подключена.</string>
+    <string name="places_title">Сохранённые места</string>
+    <string name="places_sub">Скажите «navigate home» в любом приложении карт</string>
+    <string name="places_intro">Скажите «navigate home», «take me to work» или «navigate to» со своим названием, и Gearslip отправит адрес в приложение карт. Пока голосовые команды работают только на английском.</string>
+    <string name="places_home">Дом</string>
+    <string name="places_work">Работа</string>
+    <string name="places_other">Место %1$d</string>
+    <string name="places_name">Название</string>
+    <string name="places_address">Адрес</string>
+    <string name="places_here">Где я сейчас</string>
+    <string name="places_finding">Ищу…</string>
+    <string name="places_not_found">Gearslip не нашёл, где вы. Проверьте, что геолокация включена.</string>
+    <string name="places_clear">Очистить</string>
 </resources>

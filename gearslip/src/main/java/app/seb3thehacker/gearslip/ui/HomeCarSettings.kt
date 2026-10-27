@@ -46,6 +46,7 @@ enum class CarGroup(@param:StringRes val title: Int) {
     SCREEN(R.string.car_group_screen),
     NAV_BAR(R.string.car_group_nav_bar),
     SOUND(R.string.car_group_sound),
+    PLACES(R.string.places_title),
     WARNINGS(R.string.car_group_warnings),
     MORE(R.string.car_group_more),
 }
@@ -98,6 +99,8 @@ internal fun HomeCarSettings(onOpen: (CarGroup) -> Unit, modifier: Modifier = Mo
     val navBars = navBarChoices()
     val context = androidx.compose.ui.platform.LocalContext.current
     fun str(id: Int) = context.getString(id)
+    // Read again each time Home shows, so a place saved a moment ago is listed.
+    val places = androidx.compose.runtime.remember { app.seb3thehacker.gearslip.car.SavedPlaces.all(context) }
     fun summary(group: CarGroup) = when (group) {
         CarGroup.SCREEN -> listOf(opens.label(open), sizes.label(scale), themes.label(theme))
         CarGroup.NAV_BAR -> listOf(navBars.label(navBar), str(if (playerLeft) R.string.summary_player_left else R.string.summary_player_right))
@@ -105,6 +108,14 @@ internal fun HomeCarSettings(onOpen: (CarGroup) -> Unit, modifier: Modifier = Mo
             str(if (pipeAudio) R.string.summary_usb_audio else R.string.summary_bluetooth_audio),
             str(if (speakDirections) R.string.summary_directions_on else R.string.summary_directions_off),
         )
+        CarGroup.PLACES -> places.mapIndexedNotNull { i, place ->
+            when {
+                place.address.isBlank() -> null
+                i == app.seb3thehacker.gearslip.car.SavedPlaces.HOME -> str(R.string.places_home)
+                i == app.seb3thehacker.gearslip.car.SavedPlaces.WORK -> str(R.string.places_work)
+                else -> place.label.ifBlank { context.getString(R.string.places_other, i - app.seb3thehacker.gearslip.car.SavedPlaces.WORK) }
+            }
+        }.ifEmpty { listOf(str(R.string.places_sub)) }
         CarGroup.WARNINGS -> listOf(
             str(if (bluetoothWarning && !pipeAudio) R.string.summary_bluetooth_on else R.string.summary_bluetooth_off),
             str(if (locationWarning) R.string.summary_location_on else R.string.summary_location_off),
@@ -253,6 +264,7 @@ private fun GroupRows(group: CarGroup) {
                 note = stringResource(R.string.car_phone_speech_note),
             )
         }
+        CarGroup.PLACES -> Unit
         CarGroup.WARNINGS -> {
             if (!pipeAudio) {
                 Toggle(stringResource(R.string.car_warn_bluetooth), bluetoothWarning, CarSettings::setBluetoothWarning)

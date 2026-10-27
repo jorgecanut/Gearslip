@@ -695,4 +695,16 @@
     <string name="status_projecting_detail">Das Bild läuft auf dem Bildschirm des Autos.</string>
     <string name="status_disconnected">Getrennt</string>
     <string name="status_disconnected_detail">Das Auto ist nicht mehr verbunden.</string>
+    <string name="places_title">Gespeicherte Orte</string>
+    <string name="places_sub">Sag „navigate home“ in jeder Karten-App</string>
+    <string name="places_intro">Sag „navigate home“, „take me to work“ oder „navigate to“ mit einem eigenen Namen, und Gearslip schickt die Adresse an deine Karten-App. Sprachbefehle gibt es bisher nur auf Englisch.</string>
+    <string name="places_home">Zuhause</string>
+    <string name="places_work">Arbeit</string>
+    <string name="places_other">Ort %1$d</string>
+    <string name="places_name">Name</string>
+    <string name="places_address">Adresse</string>
+    <string name="places_here">Aktuellen Standort nehmen</string>
+    <string name="places_finding">Suche Standort…</string>
+    <string name="places_not_found">Gearslip konnte deinen Standort nicht finden. Ist die Standortermittlung an?</string>
+    <string name="places_clear">Löschen</string>
 </resources>

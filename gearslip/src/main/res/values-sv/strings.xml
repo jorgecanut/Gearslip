@@ -817,4 +817,16 @@
     <string name="status_projecting_detail">Strömmar till bilstereon.</string>
     <string name="status_disconnected">Frånkopplad</string>
     <string name="status_disconnected_detail">Bilstereon är inte längre ansluten.</string>
+    <string name="places_title">Sparade platser</string>
+    <string name="places_sub">Säg ”navigate home” i valfri kartapp</string>
+    <string name="places_intro">Säg ”navigate home”, ”take me to work” eller ”navigate to” med ett eget namn, så skickar Gearslip adressen till din kartapp. Röstkommandon fungerar bara på engelska än så länge.</string>
+    <string name="places_home">Hem</string>
+    <string name="places_work">Jobb</string>
+    <string name="places_other">Plats %1$d</string>
+    <string name="places_name">Namn</string>
+    <string name="places_address">Adress</string>
+    <string name="places_here">Använd min plats</string>
+    <string name="places_finding">Söker…</string>
+    <string name="places_not_found">Gearslip hittade inte var du är. Kontrollera att platstjänster är på.</string>
+    <string name="places_clear">Rensa</string>
 </resources>

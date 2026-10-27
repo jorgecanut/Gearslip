@@ -809,4 +809,16 @@
     <string name="status_projecting_detail">正在向车机传输画面。</string>
     <string name="status_disconnected">已断开</string>
     <string name="status_disconnected_detail">车机已断开连接。</string>
+    <string name="places_title">保存的地点</string>
+    <string name="places_sub">在任何地图应用中说“navigate home”</string>
+    <string name="places_intro">说“navigate home”“take me to work”，或“navigate to”加上你起的名字，Gearslip 就会把地址发给地图应用。语音命令目前只支持英语。</string>
+    <string name="places_home">家</string>
+    <string name="places_work">公司</string>
+    <string name="places_other">地点 %1$d</string>
+    <string name="places_name">名称</string>
+    <string name="places_address">地址</string>
+    <string name="places_here">使用当前位置</string>
+    <string name="places_finding">正在定位…</string>
+    <string name="places_not_found">Gearslip 找不到你的位置。请检查定位是否已开启。</string>
+    <string name="places_clear">清除</string>
 </resources>

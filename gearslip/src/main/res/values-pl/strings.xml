@@ -833,4 +833,16 @@
     <string name="status_projecting_detail">Przesyłanie obrazu do radia samochodowego.</string>
     <string name="status_disconnected">Rozłączono</string>
     <string name="status_disconnected_detail">Radio samochodowe nie jest już połączone.</string>
+    <string name="places_title">Zapisane miejsca</string>
+    <string name="places_sub">Powiedz „navigate home” w dowolnej aplikacji z mapami</string>
+    <string name="places_intro">Powiedz „navigate home”, „take me to work” albo „navigate to” z własną nazwą, a Gearslip wyśle adres do aplikacji z mapami. Na razie polecenia głosowe działają tylko po angielsku.</string>
+    <string name="places_home">Dom</string>
+    <string name="places_work">Praca</string>
+    <string name="places_other">Miejsce %1$d</string>
+    <string name="places_name">Nazwa</string>
+    <string name="places_address">Adres</string>
+    <string name="places_here">Użyj mojej lokalizacji</string>
+    <string name="places_finding">Szukam…</string>
+    <string name="places_not_found">Gearslip nie znalazł Twojej lokalizacji. Sprawdź, czy lokalizacja jest włączona.</string>
+    <string name="places_clear">Wyczyść</string>
 </resources>

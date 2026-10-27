@@ -825,4 +825,16 @@
     <string name="status_projecting_detail">Transmitindo para a central multimídia.</string>
     <string name="status_disconnected">Desconectado</string>
     <string name="status_disconnected_detail">A central multimídia não está mais conectada.</string>
+    <string name="places_title">Lugares salvos</string>
+    <string name="places_sub">Diga “navigate home” em qualquer app de mapas</string>
+    <string name="places_intro">Diga “navigate home”, “take me to work” ou “navigate to” com um nome seu, e o Gearslip envia o endereço para o seu app de mapas. Por enquanto os comandos de voz são só em inglês.</string>
+    <string name="places_home">Casa</string>
+    <string name="places_work">Trabalho</string>
+    <string name="places_other">Lugar %1$d</string>
+    <string name="places_name">Nome</string>
+    <string name="places_address">Endereço</string>
+    <string name="places_here">Usar onde estou</string>
+    <string name="places_finding">Procurando…</string>
+    <string name="places_not_found">O Gearslip não encontrou onde você está. Veja se a localização está ligada.</string>
+    <string name="places_clear">Limpar</string>
 </resources>

@@ -43,7 +43,7 @@ import app.seb3thehacker.gearslip.BuildConfig
 import app.seb3thehacker.gearslip.CertProvider
 import app.seb3thehacker.gearslip.stats.UsageStats
 
-private enum class Screen { HOME, LOGS, SETTINGS, CAR_PREVIEW, CERT_SETUP, SETUP_GUIDE, USAGE_NOTES, HELP, WHATS_NEW, RECOMMENDED_APPS, CAR_GROUP }
+private enum class Screen { HOME, LOGS, SETTINGS, CAR_PREVIEW, CERT_SETUP, SETUP_GUIDE, USAGE_NOTES, HELP, WHATS_NEW, RECOMMENDED_APPS, CAR_GROUP, SAVED_PLACES }
 
 /** Three screens and a back stack of depth one: no navigation library needed. */
 @Composable
@@ -127,7 +127,13 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                     onOpenCarPreview = { backTo = Screen.HOME; screen = Screen.CAR_PREVIEW },
                     onOpenLogs = { backTo = Screen.HOME; screen = Screen.LOGS },
                     onDisconnect = onDisconnect,
-                    onOpenCarGroup = { carGroup = it; screen = Screen.CAR_GROUP },
+                    onOpenCarGroup = {
+                        if (it == CarGroup.PLACES) {
+                            screen = Screen.SAVED_PLACES
+                        } else {
+                            carGroup = it; screen = Screen.CAR_GROUP
+                        }
+                    },
                 )
                 Screen.CAR_GROUP -> CarGroupScreen(carGroup, onBack = { screen = Screen.HOME })
                 Screen.WHATS_NEW -> WhatsNewScreen(onBack = { screen = backTo })
@@ -139,6 +145,7 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                     atUsageNotes = settingsAtUsageNotes,
                 )
                 Screen.RECOMMENDED_APPS -> RecommendedAppsScreen(onBack = { screen = Screen.SETTINGS })
+                Screen.SAVED_PLACES -> SavedPlacesScreen(onBack = { screen = Screen.HOME })
                 Screen.CAR_PREVIEW -> CarPreviewScreen(onBack = { screen = backTo })
                 Screen.HELP -> HelpScreen(
                     onBack = { screen = backTo },

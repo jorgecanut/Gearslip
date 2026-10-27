@@ -833,4 +833,16 @@
     <string name="status_projecting_detail">Streamování do autorádia.</string>
     <string name="status_disconnected">Odpojeno</string>
     <string name="status_disconnected_detail">Autorádio už není připojené.</string>
+    <string name="places_title">Uložená místa</string>
+    <string name="places_sub">Řekněte „navigate home“ v jakékoli mapové aplikaci</string>
+    <string name="places_intro">Řekněte „navigate home“, „take me to work“ nebo „navigate to“ s vlastním názvem a Gearslip pošle adresu do mapové aplikace. Hlasové příkazy zatím fungují jen anglicky.</string>
+    <string name="places_home">Domov</string>
+    <string name="places_work">Práce</string>
+    <string name="places_other">Místo %1$d</string>
+    <string name="places_name">Název</string>
+    <string name="places_address">Adresa</string>
+    <string name="places_here">Použít mou polohu</string>
+    <string name="places_finding">Hledám…</string>
+    <string name="places_not_found">Gearslip nenašel vaši polohu. Zkontrolujte, že je poloha zapnutá.</string>
+    <string name="places_clear">Vymazat</string>
 </resources>

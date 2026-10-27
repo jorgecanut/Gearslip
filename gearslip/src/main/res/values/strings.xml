@@ -861,4 +861,16 @@
     <string name="status_projecting_detail">Streaming to the head unit.</string>
     <string name="status_disconnected">Disconnected</string>
     <string name="status_disconnected_detail">The head unit is no longer connected.</string>
+    <string name="places_title">Saved places</string>
+    <string name="places_sub">Say “navigate home” in any map app</string>
+    <string name="places_intro">Say “navigate home”, “take me to work” or “navigate to” a name of your own, and Gearslip sends that address to your map app.</string>
+    <string name="places_home">Home</string>
+    <string name="places_work">Work</string>
+    <string name="places_other">Place %1$d</string>
+    <string name="places_name">Name</string>
+    <string name="places_address">Address</string>
+    <string name="places_here">Use where I am</string>
+    <string name="places_finding">Finding you…</string>
+    <string name="places_not_found">Gearslip couldn’t find where you are. Check that location is on.</string>
+    <string name="places_clear">Clear</string>
 </resources>
