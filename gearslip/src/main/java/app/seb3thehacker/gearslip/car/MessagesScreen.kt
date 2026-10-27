@@ -70,7 +70,7 @@ fun MessagesScreen(packageName: String) {
 
     LaunchedEffect(history) { CarNotifications.dismissPopupFrom(packageName) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), navigator::back)
             entry?.icon?.let { Image(it, contentDescription = null, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))) }

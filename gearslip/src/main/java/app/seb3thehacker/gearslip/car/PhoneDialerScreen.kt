@@ -14,6 +14,7 @@ import app.seb3thehacker.gearslip.GearslipLog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -138,7 +139,7 @@ fun PhoneDialerScreen() {
     var hasPermissions by remember { mutableStateOf(hasCallPermissions(context)) }
     var tab by remember { mutableStateOf(TAB_CONTACTS) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // The tabs share the title's row, so the list and keypad get the height back.
         ScreenHeader(stringResource(R.string.carset_phone)) {
             if (hasPermissions) {
@@ -155,7 +156,7 @@ fun PhoneDialerScreen() {
         }
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (tab == TAB_CONTACTS) ContactsList(context) else Keypad(context)
+            if (tab == TAB_CONTACTS) ContactsList(context) else Box(Modifier.padding(bottom = 16.dp)) { Keypad(context) }
         }
     }
 }
@@ -292,7 +293,7 @@ private fun ContactsList(context: Context) {
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(filtered) { contact ->
                         ContactRow(contact) { pendingCall = contact }
                     }

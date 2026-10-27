@@ -92,7 +92,7 @@ fun CarSettingsScreen() {
     var chosen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     androidx.compose.runtime.LaunchedEffect(chosen) { listState.scrollToItem(0) }
-    Row(Modifier.fillMaxSize().padding(start = 16.dp, top = 12.dp, bottom = 12.dp)) {
+    Row(Modifier.fillMaxSize().padding(start = 16.dp, top = 12.dp)) {
     SettingsRail(listOf(stringResource(R.string.car_group_screen), stringResource(R.string.car_group_nav_bar), stringResource(R.string.car_group_sound), stringResource(R.string.car_group_warnings), stringResource(R.string.car_group_more)), chosen) { chosen = it }
         LazyColumn(
             Modifier.weight(1f).fillMaxHeight(),
@@ -370,7 +370,7 @@ private fun SettingsRail(groups: List<String>, chosen: Int, onChoose: (Int) -> U
     val scheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(24.dp)
     Surface(
-        Modifier.width(250.dp).fillMaxHeight().gsPanelShadow(shape),
+        Modifier.width(250.dp).padding(bottom = 12.dp).fillMaxHeight().gsPanelShadow(shape),
         shape = shape,
         color = scheme.surfaceContainer,
     ) {

@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +28,7 @@ import androidx.compose.ui.unit.dp
 fun VehicleDataScreen() {
     val readings by CarSensors.readings.collectAsState()
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 16.dp)) {
         ScreenHeader("Vehicle data")
         Text(
             "Raw sensor channel from the connected head unit. Field meaning is a best guess - " +
@@ -46,7 +47,7 @@ fun VehicleDataScreen() {
             return@Column
         }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(readings, key = { it.typeId }) { reading -> ReadingRow(reading) }
         }
     }

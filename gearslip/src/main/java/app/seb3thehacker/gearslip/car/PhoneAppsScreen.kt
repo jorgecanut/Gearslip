@@ -54,7 +54,7 @@ fun PhoneAppsScreen() {
         value = PhoneApps.cached() ?: withContext(Dispatchers.IO) { PhoneApps.installed(context).also { PhoneApps.warm(context) } }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 20.dp, end = 20.dp, top = 12.dp)) {
         ScreenHeader(stringResource(R.string.app_screen_sharing))
         Spacer(Modifier.height(12.dp))
         if (!TouchRelayService.enabled) {
@@ -65,7 +65,7 @@ fun PhoneAppsScreen() {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 108.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
