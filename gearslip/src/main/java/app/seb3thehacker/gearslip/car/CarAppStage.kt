@@ -134,7 +134,9 @@ private fun AppSurface(
     LaunchedEffect(template, size, measured, measuredStable, cardsAtEnd) {
         if (width > 0 && height > 0) {
             val visible = visibleAreaFor(template, width, height, measured, cardsAtEnd)
-            val stable = if (!isContentTemplate(template)) {
+            // Waze seems to centre its car in the stable area rather than the visible one, so it
+            // gets the cards taken out of that too. Test: see whether its car moves out from under them.
+            val stable = if (!isContentTemplate(template) && connection.appPackage != "com.waze") {
                 visibleAreaFor(template, width, height, measuredStable, cardsAtEnd)
             } else {
                 visible

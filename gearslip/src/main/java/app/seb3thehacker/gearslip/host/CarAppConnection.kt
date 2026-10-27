@@ -600,6 +600,7 @@ class CarAppConnection(private val context: Context) {
     fun reportAreas(visible: Rect, stable: Rect) {
         areas = visible to stable
         val callback = surfaceCallback ?: return
+        GearslipLog.i("host: areas for $appPackage: visible=${visible.toShortString()} stable=${stable.toShortString()}")
         runCatching { callback.onStableAreaChanged(stable, noop("onStableAreaChanged")) }
         runCatching { callback.onVisibleAreaChanged(visible, noop("onVisibleAreaChanged")) }
     }
