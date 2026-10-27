@@ -110,7 +110,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (phase == CarMedia.Phase.READY && !searching) AlbumGlow(art, Modifier.fillMaxSize(), wide = true)
         if (phase != CarMedia.Phase.READY) {
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().padding(bottom = LocalNavBarInset.current)) {
                 AppIdentity(app, onExit, Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
                 when (phase) {
                     CarMedia.Phase.REJECTED -> when (rejection) {
@@ -143,7 +143,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
         }
 
         if (searching) {
-            SearchPanel(
+            Box(Modifier.padding(bottom = LocalNavBarInset.current)) { SearchPanel(
                 appLabel = app.label,
                 media = media,
                 canPickForYou = now.canSearch,
@@ -161,7 +161,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                     tab = Tab.NOW_PLAYING
                 },
                 onClose = { searching = false },
-            )
+            ) }
             return@Surface
         }
 
@@ -194,7 +194,9 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
             }
         }
 
-        BoxWithConstraints(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp)) {
+        BoxWithConstraints(
+            Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp + LocalNavBarInset.current),
+        ) {
             // A small screen, or a big one at Extra large size, has no room for two columns: the
             // app and the tabs share one bar, and a list takes the whole width. The nav bar keeps
             // the controls, so nothing is lost.
@@ -233,15 +235,10 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                     }
                 }
                 Column(Modifier.weight(1.2f).fillMaxHeight()) {
-                    // Each tab takes a share of the row, but a long word (a translation, a big
-                    // text size) can still scroll the row rather than be cut off.
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(Modifier.weight(1f, fill = false), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            tabs(Modifier.widthIn(min = 96.dp))
-                        }
+                    // The tabs share the row evenly; a long word (a translation, a big text size)
+                    // shrinks to fit its tab instead.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        tabs(Modifier.weight(1f))
                         searchButton()
                     }
                     search?.let { SearchStatus(it, app.label, media::dismissSearch) }
@@ -424,8 +421,8 @@ private fun MediaTab(label: String, selected: Boolean, modifier: Modifier, onCli
             style = MaterialTheme.typography.titleSmall,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 12.dp),
+            autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = MaterialTheme.typography.titleSmall.fontSize),
+            modifier = Modifier.padding(horizontal = 8.dp),
         )
     }
 }

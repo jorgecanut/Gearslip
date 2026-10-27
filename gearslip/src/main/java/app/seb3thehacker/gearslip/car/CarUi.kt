@@ -294,8 +294,9 @@ fun CarUi() {
                                     .fillMaxSize()
                                     .graphicsLayer { if (fromHome) alpha = enter.value }
                                     .background(MaterialTheme.colorScheme.background)
-                                    // The bar never hides here, so keep the screen clear of it.
-                                    .padding(bottom = if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp)
+                                    // The bar never hides here, so keep the screen clear of it. The
+                                    // player runs on under the see-through bar and keeps clear itself.
+                                    .padding(bottom = if (!keyboardVisible && !fullscreen && screen != CarScreen.Media) NAV_BAR_HEIGHT else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
@@ -308,7 +309,9 @@ fun CarUi() {
                                     when (screen) {
                                         CarScreen.Home -> Unit
                                         CarScreen.Apps -> CarLauncher()
-                                        CarScreen.Media -> mediaApp?.let { MediaScreen(it) { navigator.back() } }
+                                        CarScreen.Media -> CompositionLocalProvider(
+                                            LocalNavBarInset provides if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp,
+                                        ) { mediaApp?.let { MediaScreen(it) { navigator.back() } } }
                                         CarScreen.Browse -> BrowseAppScreen(navigator)
                                         CarScreen.Settings -> CarSettingsScreen()
                                         CarScreen.Dashboard -> CarDashboardScreen()

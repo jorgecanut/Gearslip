@@ -167,8 +167,13 @@ internal fun CarNavBar(navigator: CarNavigator) {
     val running = rememberRunningApps()
 
     // A full-width strip along the bottom, casting the theme's panel shadow up onto the map so the
-    // bar sits above it rather than beside it.
-    Surface(Modifier.gsBarShadow(), color = MaterialTheme.colorScheme.surfaceContainer) {
+    // bar sits above it rather than beside it. Over the player it's see-through instead, so the
+    // player's background and the cover's glow carry on behind it.
+    val overPlayer = navigator.current == CarScreen.Media
+    Surface(
+        if (overPlayer) Modifier else Modifier.gsBarShadow(),
+        color = if (overPlayer) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
+    ) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(NAV_BAR_HEIGHT).padding(horizontal = 10.dp)) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 // Home and Apps are two different places now, not a toggle on one button - the
