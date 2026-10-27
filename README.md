@@ -11,13 +11,18 @@ An Android Auto alternative built for everyone.
 
 [![Translation status](https://hosted.weblate.org/widget/gearslip/app/svg-badge.svg)](https://hosted.weblate.org/engage/gearslip/)
 
+Gearslip speaks English, Arabic, Chinese, Czech, Dutch, French, German, Italian, Japanese,
+Korean, Polish, Portuguese, Russian, Spanish, Swedish, Turkish, and Ukrainian. Most of these
+started as machine translations, so some read awkwardly.
+[Fix or add your language on Weblate](https://hosted.weblate.org/engage/gearslip/).
+
 Questions, ideas?
 [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5KqKpc9FfX_wHp1jFCcwAtPrndIn_oGIyMk?via=matrix.org).
 
 ## Which cars work
 
-Most cars work. Starting around 2020, some cars added newer security standards that reject
-Gearslip's certificate, and Gearslip can't run in those cars. [CARS.md](CARS.md) lists the
+Most cars work. Starting around 2020, some cars added newer security checks that reject
+the aasdk certificate, and in those cars Gearslip needs a certificate of your own. [CARS.md](CARS.md) lists the
 cars drivers have confirmed.
 
 ## What Gearslip is
@@ -92,13 +97,15 @@ screen-sharing mode.
   Gearslip's own player. TIDAL lets only approved apps browse its library.
 - **Calls use the car's Bluetooth,** as they do in Android Auto. Pair the phone with the
   car to hear calls through its speakers.
-- **Music reaches the car over Bluetooth or USB.** Setup asks which. Bluetooth is the
-  default: Android never asks for permission, and your map app's voice reaches the car
-  too. USB sounds a little clearer, with no delay, but each drive Android asks you to
-  share your screen, which lets Gearslip send the sound. Gearslip never reads the screen; capturing playback is
-  the only way an ordinary app can pass another app's audio along.
+- **Music reaches the car over Bluetooth or through Gearslip.** Setup asks which.
+  Bluetooth is the default: Android never asks for permission, and your map app's voice
+  reaches the car too. Through Gearslip, the sound travels over the car connection, cable
+  or wireless. It sounds a little clearer, with no delay, but each drive Android asks you
+  to share your screen, which lets Gearslip send the sound. Gearslip never reads the
+  screen; capturing playback is the only way an ordinary app can pass another app's audio
+  along.
 - **Gearslip needs no adb, root, or Shizuku.** Every feature relies on an ordinary
-  Android permission or an on-device consent dialog. For USB audio, setup offers two
+  Android permission or an on-device consent dialog. For audio through Gearslip, setup offers two
   optional adb commands: one removes the audio dialog for good, and the other keeps
   notifications visible while audio plays.
 - **Updates come from GitHub.** Once a day, Gearslip checks this repository's latest
@@ -128,7 +135,7 @@ turn them on, in setup or in Settings.
   those boxes cover: the Android version and whether the phone runs GrapheneOS, the phone
   model, whether a car connected that day, and each car's head unit, model, year, screen
   size, and connection result, with whether that drive used the cable or wireless and
-  whether music went over USB or Bluetooth. If you tick it, how each drive went: how far
+  whether music went through Gearslip or over Bluetooth. If you tick it, how each drive went: how far
   the connection got, how long it lasted, and how it ended. Settings shows the exact note. Untick a phone detail, and
   the server drops the copy it kept.
 - **What they leave out.** Your name, accounts, location, contacts, messages, and
