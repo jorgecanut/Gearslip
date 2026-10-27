@@ -1,20 +1,24 @@
-Gearslip 0.3.12 gives the car screen a fresh look and fixes the wireless loop 0.3.02 caused on some head units.
+Gearslip 0.3.31 brings saved places, a new music player and sixteen languages.
 
 ## New
-- Navigation cards sit down the left side, with a bigger turn card that shows your lane. The map keeps the right side.
-- The car screen and the phone app take their colors from your phone's Material You palette.
-- The car's settings sit on the phone's home screen, each group on its own screen.
-- Put the home screen's player left or right of the map.
-- The browser shows the page title, and it has an address bar, forward, reload, and a start page.
-- If Gearslip lacks call permissions, the car's Phone screen asks for them on the phone.
+- Save Home, Work and three places of your own under Saved places in the Car card on the phone's home screen. Say "navigate home" or "take me to work", and your map app gets the address.
+- Calls show on the car's own screens, and the car's phone button answers them.
+- A new music player: Now playing with a big cover, Browse with covers, and Up next. Beside the map, the player floats as a card; drag its edge to resize it.
+- Lyrics come from BetterLyrics, LRCLIB or KuGou, whichever has the song.
+- A Dark mode setting: black, black and colour, deep colour or grey. Black is the default.
+- Gearslip speaks Arabic, Chinese, Czech, Dutch, French, German, Italian, Japanese, Korean, Polish, Portuguese, Russian, Spanish, Swedish, Turkish and Ukrainian. Most started as machine translations, so fix your language on [Weblate](https://hosted.weblate.org/engage/gearslip/).
+- With experimental features on, car apps get the car's speed, fuel, range and compass, and cars with an instrument cluster screen get a turn card there.
+- A Manage storage screen in App info clears lyrics, voice models and old logs.
 
 ## Changed
-- Gearslip uses Car App Library 1.8. Map apps show the right turn arrows and route times, and Vela works fully.
-- Setup ends with recommended apps, then the button picker, then usage notes.
+- The nav bar floats on every screen.
+- The car's settings all sit under the Car card on the phone's home screen.
+- The Light app theme makes the phone app light too.
+- With the player beside the map, the map app's own buttons fold behind one button, so everything fits.
+- The USB audio choice is now called Through Gearslip.
+- Setup and Settings explain that some newer cars reject the built-in certificate and need your own.
 
 ## Fixed
-- Some head units, such as ZLink adapters, sent their Wi-Fi details twice. Gearslip rejoined the network each time and dropped the connection. It now ignores the repeat.
-- Gearslip no longer crashes when a wireless connection ends.
-- Opening a second music app without playing anything keeps the player on the song that's still playing.
-- Vela's speed sign is full size again.
-- RF Sentinel and other non-media car apps get their own tile in the launcher.
+- Older head units that take only AAC audio no longer drop the connection when music starts.
+- Long screens such as Settings, Messages and Vehicle data scroll all the way down.
+- Settings opens faster.
