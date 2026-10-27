@@ -675,29 +675,29 @@ private fun CoverArt(art: android.graphics.Bitmap?, modifier: Modifier, alignmen
 }
 
 /**
- * Now playing beside the big cover: the title in large type, then the seek bar and every control,
- * all settled at the bottom. On a wide screen the transport and like, shuffle and repeat share
- * one row; narrower, they take a row each.
+ * Now playing beside the big cover: the title, artist and seek bar along the top, and the
+ * controls in two rows under them, as big as the height left over allows - the transport, then
+ * like, shuffle, repeat and the app's own buttons.
  */
 @Composable
 private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) {
     BoxWithConstraints(modifier) {
-        val oneRow = maxWidth >= 820.dp
-        // Short of height (a small screen, or Extra large size), everything steps down a size.
+        // Short of height (a small screen, or Extra large size), the title steps down a size.
         val compact = maxHeight < 360.dp
         val showTimes = maxHeight >= 260.dp
-        val gap = if (compact) 8.dp else 16.dp
-        Column(
-            Modifier.fillMaxSize().padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(gap, Alignment.Bottom),
-        ) {
-            // The title gives up its height first and scrolls, so the controls never leave the screen.
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+        val titleRoom = maxHeight * 0.4f
+        Column(Modifier.fillMaxSize().padding(start = 4.dp, end = 4.dp, bottom = 4.dp)) {
+            // The title gives up its height first and scrolls, so the controls keep theirs.
+            Column(Modifier.heightIn(max = titleRoom).verticalScroll(rememberScrollState())) {
                 Text(
                     now.title.ifEmpty { stringResource(R.string.media_nothing_playing) },
                     style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 22.sp, maxFontSize = MaterialTheme.typography.displaySmall.fontSize, stepSize = 2.sp),
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = if (compact) 20.sp else 22.sp,
+                        maxFontSize = MaterialTheme.typography.displaySmall.fontSize,
+                        stepSize = 2.sp,
+                    ),
                 )
                 Text(
                     listOf(now.artist, now.album).filter { it.isNotEmpty() }.joinToString(" · "),
@@ -713,17 +713,17 @@ private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) 
                     )
                 }
             }
-            PlayerProgress(now, media, Modifier.fillMaxWidth(), showTimes = showTimes)
-            val skip = if (compact) 48.dp else 64.dp
-            val mode = if (compact) 46.dp else 54.dp
-            if (oneRow) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TransportRow(now, media, skip = if (compact) skip else 66.dp, modifier = Modifier.weight(1f))
-                    PlayModeRow(now, media, size = mode, modifier = Modifier.weight(1f), maxOther = 2)
+            PlayerProgress(now, media, Modifier.fillMaxWidth().padding(top = if (compact) 4.dp else 12.dp), showTimes = showTimes)
+            // What's left goes to the buttons: play takes about half of it, the row below a third,
+            // and neither grows past what a row of them fits across.
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                val gap = (maxHeight * 0.08f).coerceIn(6.dp, 20.dp)
+                val play = minOf(maxHeight * 0.5f, maxWidth / 3.2f, 128.dp).coerceAtLeast(56.dp)
+                val mode = minOf(maxHeight * 0.32f, maxWidth / 6.5f, 80.dp).coerceAtLeast(44.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(gap), horizontalAlignment = Alignment.CenterHorizontally) {
+                    TransportRow(now, media, skip = play / 1.5f, playScale = 1.5f, modifier = Modifier.fillMaxWidth())
+                    PlayModeRow(now, media, size = mode, modifier = Modifier.fillMaxWidth(), maxOther = 2)
                 }
-            } else {
-                TransportRow(now, media, skip = skip, modifier = Modifier.fillMaxWidth())
-                PlayModeRow(now, media, size = mode, modifier = Modifier.fillMaxWidth(), maxOther = 2)
             }
         }
     }

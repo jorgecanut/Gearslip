@@ -96,10 +96,10 @@ internal fun formatDuration(ms: Long): String {
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%d:%02d".format(minutes, seconds)
 }
 
-/** Previous, play/pause, next. [skip] sizes the outer two; play is a step bigger. */
+/** Previous, play/pause, next. [skip] sizes the outer two; play is [playScale] times bigger. */
 @Composable
-internal fun TransportRow(now: NowPlaying, media: CarMedia, skip: Dp, modifier: Modifier = Modifier) {
-    val play = skip * 1.25f
+internal fun TransportRow(now: NowPlaying, media: CarMedia, skip: Dp, modifier: Modifier = Modifier, playScale: Float = 1.25f) {
+    val play = skip * playScale
     Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         GsIconButton(
             MediaIcons.Previous, stringResource(R.string.player_previous), media::previous,
