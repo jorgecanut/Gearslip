@@ -165,6 +165,10 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
             return@Surface
         }
 
+        // The page runs down under the see-through nav bar, so the cover's glow carries on behind
+        // it; the content stops at the bar's top edge. Lists run right to it; the rest keeps a gap.
+        val barTop = LocalNavBarInset.current
+        val barInset = barTop + 8.dp
         val tabs: @Composable (Modifier) -> Unit = { tabModifier ->
             MediaTab(stringResource(R.string.media_now_playing), tab == Tab.NOW_PLAYING, tabModifier) { tab = Tab.NOW_PLAYING }
             MediaTab(stringResource(R.string.media_up_next), tab == Tab.QUEUE, tabModifier) { tab = Tab.QUEUE }
@@ -186,21 +190,19 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
         val tabContent: @Composable (Modifier) -> Unit = { contentModifier ->
             Box(contentModifier) {
                 when (tab) {
-                    Tab.NOW_PLAYING -> StageControls(now, media, Modifier.fillMaxSize())
-                    Tab.BROWSE -> BrowsePanel(browse, media, app.label, Modifier.fillMaxSize())
-                    Tab.QUEUE -> QueuePanel(queue, now, media, Modifier.fillMaxSize())
-                    Tab.LYRICS -> LyricsPanel(now, Modifier.fillMaxSize())
+                    Tab.NOW_PLAYING -> StageControls(now, media, Modifier.fillMaxSize().padding(bottom = barInset))
+                    Tab.BROWSE -> BrowsePanel(browse, media, app.label, Modifier.fillMaxSize().padding(bottom = barTop))
+                    Tab.QUEUE -> QueuePanel(queue, now, media, Modifier.fillMaxSize().padding(bottom = barTop))
+                    Tab.LYRICS -> LyricsPanel(now, Modifier.fillMaxSize().padding(bottom = barInset))
                 }
             }
         }
 
-        BoxWithConstraints(
-            Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp + LocalNavBarInset.current),
-        ) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 10.dp)) {
             // A small screen, or a big one at Extra large size, has no room for two columns: the
             // app and the tabs share one bar, and a list takes the whole width. The nav bar keeps
             // the controls, so nothing is lost.
-            if (maxWidth < NARROW_WIDTH || maxHeight < NARROW_HEIGHT) {
+            if (maxWidth < NARROW_WIDTH || maxHeight - barInset < NARROW_HEIGHT) {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         Modifier.fillMaxWidth(),
@@ -215,7 +217,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
                         searchButton()
                     }
                     search?.let { SearchStatus(it, app.label, media::dismissSearch) }
-                    if (tab == Tab.NOW_PLAYING) NowPlayingPage(now, media, Modifier.weight(1f).fillMaxWidth(), padded = false)
+                    if (tab == Tab.NOW_PLAYING) NowPlayingPage(now, media, Modifier.weight(1f).fillMaxWidth().padding(bottom = barInset), padded = false)
                     else tabContent(Modifier.weight(1f).fillMaxWidth())
                 }
                 return@BoxWithConstraints
@@ -225,7 +227,7 @@ fun MediaScreen(app: MediaApp, onExit: () -> Unit) {
             // and the art (or, beside a list, the compact player) on the left; the tabs across the
             // top of the right column, over whatever the tab shows.
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column(Modifier.weight(0.8f).fillMaxHeight()) {
+                Column(Modifier.weight(0.8f).fillMaxHeight().padding(bottom = barInset)) {
                     AppIdentity(app, onExit)
                     Spacer(Modifier.height(12.dp))
                     if (tab == Tab.NOW_PLAYING) {
@@ -686,7 +688,7 @@ private fun StageControls(now: NowPlaying, media: CarMedia, modifier: Modifier) 
         val compact = maxHeight < 360.dp
         val showTimes = maxHeight >= 260.dp
         val titleRoom = maxHeight * 0.4f
-        Column(Modifier.fillMaxSize().padding(start = 4.dp, end = 4.dp, bottom = 4.dp)) {
+        Column(Modifier.fillMaxSize().padding(start = 4.dp, end = 4.dp, top = if (compact) 6.dp else 16.dp, bottom = 4.dp)) {
             // The title gives up its height first and scrolls, so the controls keep theirs.
             Column(Modifier.heightIn(max = titleRoom).verticalScroll(rememberScrollState())) {
                 Text(

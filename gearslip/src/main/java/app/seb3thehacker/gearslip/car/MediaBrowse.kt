@@ -124,7 +124,11 @@ private fun BrowseList(entries: List<MediaEntry>, media: CarMedia) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val onlyGrid = sections.size == 1 && sections[0].grid && sections[0].heading == null
         val columns = ((maxWidth + SHELF_GAP) / (SHELF_COVER + SHELF_GAP)).toInt().coerceAtLeast(2)
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             sections.forEachIndexed { i, section ->
                 val heading = section.heading
                 if (heading != null && sections.getOrNull(i - 1)?.heading != heading) {
@@ -234,7 +238,11 @@ internal fun QueuePanel(queue: List<QueueTrack>, now: NowPlaying, media: CarMedi
                 stringResource(if (now.title.isEmpty()) R.string.media_queue_empty_idle else R.string.media_queue_empty_playing),
             )
         } else {
-            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(upNext, key = { it.queueId }) { track -> QueueRow(track, media) }
             }
         }
