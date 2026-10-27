@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import android.content.Context
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.isSystemInDarkTheme
 import app.seb3thehacker.gearslip.car.CarSettings
 import app.seb3thehacker.gearslip.car.BluetoothAudioCheck
 import android.provider.Settings
@@ -202,7 +201,7 @@ private fun BluetoothMissingCard() {
     val context = LocalContext.current
     // Yellow, not the theme's error red: music is missing, but nothing is broken. Material has no
     // warning colour, so these are fixed amber tones for light and dark.
-    val dark = isSystemInDarkTheme()
+    val dark = gearslipDark()
     val container = if (dark) Color(0xFF4A3B00) else Color(0xFFFFE08A)
     val content = if (dark) Color(0xFFFFE08A) else Color(0xFF3A2E00)
     Spacer(Modifier.height(16.dp))

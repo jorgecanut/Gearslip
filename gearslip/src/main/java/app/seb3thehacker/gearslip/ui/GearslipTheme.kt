@@ -17,9 +17,20 @@ import app.seb3thehacker.gearslip.car.theme.withTintedSurfaces
 @Composable
 fun GearslipTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val dark = isSystemInDarkTheme()
+    val dark = gearslipDark()
     // The car's Dark mode setting, so the phone and the car screen stay one look.
     val darkStyle by app.seb3thehacker.gearslip.car.CarSettings.darkStyle.collectAsState()
     val scheme = (if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)).withTintedSurfaces(dark, darkStyle)
     MaterialTheme(colorScheme = scheme, content = content)
+}
+
+/** Whether the phone app is dark: the car's App theme setting, so Light means light everywhere. */
+@Composable
+fun gearslipDark(): Boolean {
+    val theme by app.seb3thehacker.gearslip.car.CarSettings.appTheme.collectAsState()
+    return when (theme) {
+        app.seb3thehacker.gearslip.car.AppTheme.PHONE -> isSystemInDarkTheme()
+        app.seb3thehacker.gearslip.car.AppTheme.LIGHT -> false
+        app.seb3thehacker.gearslip.car.AppTheme.DARK -> true
+    }
 }

@@ -3,7 +3,6 @@ package app.seb3thehacker.gearslip.ui
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.SideEffect
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.background
@@ -105,7 +104,7 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
     // On a debug build, Home's yellow header runs up behind the status bar, whose icons then go dark.
     val debugHeader = BuildConfig.DEBUG && screen == Screen.HOME
     val view = LocalView.current
-    val darkTheme = isSystemInDarkTheme()
+    val darkTheme = gearslipDark()
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
         WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = debugHeader || !darkTheme
