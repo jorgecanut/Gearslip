@@ -47,7 +47,7 @@
     <string name="guide_audio_bluetooth">Bluetooth</string>
     <string name="guide_recommended">Recommended</string>
     <string name="guide_audio_bluetooth_body">No prompt each drive, and your map app\'s voice reaches the car.</string>
-    <string name="guide_audio_usb">USB</string>
+    <string name="guide_audio_usb">Through Gearslip</string>
     <string name="guide_audio_usb_body">Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound.</string>
     <string name="guide_optional">OPTIONAL</string>
     <string name="guide_already_allowed">Already allowed.</string>
@@ -174,7 +174,7 @@
     <string name="choice_open_home">Home</string>
     <string name="summary_player_left">Player on the left</string>
     <string name="summary_player_right">Player on the right</string>
-    <string name="summary_usb_audio">USB audio</string>
+    <string name="summary_usb_audio">Audio through Gearslip</string>
     <string name="summary_bluetooth_audio">Bluetooth audio</string>
     <string name="summary_directions_on">Directions on</string>
     <string name="summary_directions_off">Directions off</string>
@@ -220,7 +220,7 @@
     <string name="car_audio_bt">Bluetooth (Recommended)</string>
     <string name="car_audio_bt_sub">No prompt each drive, and your map app\'s voice reaches the car</string>
     <string name="car_audio_usb_sub">Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound</string>
-    <string name="car_audio_usb_footer">Run the command in Help once, and USB stops asking.</string>
+    <string name="car_audio_usb_footer">Run the command in Help once, and Android stops asking.</string>
     <string name="car_audio_bt_footer">Calls go over Bluetooth either way.</string>
 
     <!-- Car screen size -->
@@ -258,7 +258,7 @@
     <string name="help_full_list">See the full list</string>
     <string name="help_first_drive">Before your first drive</string>
     <string name="help_in_car">In the car</string>
-    <string name="help_usb_audio">USB audio</string>
+    <string name="help_usb_audio">Audio through Gearslip</string>
 
     <!--  -->
     <string name="help_aa_off">Turn off Android Auto.</string>
@@ -416,7 +416,7 @@
 
     <!--  -->
     <string name="audio_bt_body">Android treats the music Gearslip sends to the car like sharing your screen, so it asks every drive, over a cable or wireless. Over Bluetooth it never asks. You can change this later in Settings.</string>
-    <string name="audio_keep_usb">Or keep USB and stop the question for good: plug the phone into a computer with USB debugging on, and run this once.</string>
+    <string name="audio_keep_usb">Or keep the sound going through Gearslip and stop the question for good: plug the phone into a computer with USB debugging on, and run this once.</string>
     <string name="audio_mic_body">Android lets an app send other apps\' sound to the car only if it has the microphone permission. It\'s turned off for Gearslip, so music plays on the phone. Turn it on under Permissions, then Microphone.</string>
 
     <!-- Phone keyboard -->
@@ -461,7 +461,7 @@
     <string name="carset_no_profile">No vehicle profile matched</string>
 
     <!--  -->
-    <string name="carset_audio_note">USB sends the phone\'s sound through Gearslip. Android asks to share your screen each drive, and a few apps block it. Bluetooth plays as the phone normally would, and Android never asks.</string>
+    <string name="carset_audio_note">Through Gearslip sends the phone\'s sound over the car connection, cable or wireless. Android asks to share your screen each drive, and a few apps block it. Bluetooth plays as the phone normally would, and Android never asks.</string>
     <string name="carset_directions_note">Gearslip reads each turn aloud through the car\'s speakers, and the music dips while it speaks. Turn it off if your map app\'s own voice already plays in the car.</string>
     <string name="carset_phone_speech_note">Listens through the phone\'s own speech service instead of Gearslip\'s. On most phones that\'s Google\'s, which may send your voice to Google. GrapheneOS has none, so Gearslip keeps using its own.</string>
     <string name="carset_vehicle_data_note">Adds a Vehicle data tile: a live, raw dump of the head unit\'s sensor channel. Field labels (speed, RPM, fuel...) are carried over from other reverse-engineering projects and unverified against this car - treat them as a guess, not a fact, until you\'ve watched one change for yourself.</string>

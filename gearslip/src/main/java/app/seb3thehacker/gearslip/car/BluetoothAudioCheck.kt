@@ -98,7 +98,7 @@ object BluetoothAudioCheck {
         if (!armed) return
         val context = appContext ?: return
         if (CarSettings.pipeAudio.value) {
-            set(false, "USB audio is on")
+            set(false, "audio goes through Gearslip")
             return
         }
         if (!CarSettings.bluetoothWarning.value) {
