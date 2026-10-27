@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.ui
 
+import app.seb3thehacker.gearslip.R
 import android.content.Context
 import app.seb3thehacker.gearslip.CertProvider
 import java.text.DateFormat
@@ -28,20 +29,20 @@ data class CertSummary(
             val identity = CertProvider.loadSupplied(context)
                 ?: return CertSummary(
                     CertProvider.Kind.SELF_SIGNED,
-                    "None loaded (self-signed; cars reject it)",
+                    context.getString(R.string.cert_none),
                     null, null, null,
                 )
             val cert = identity.certificate
             val name = friendlyName(cert.subjectX500Principal.name)
-            val prefix = when (identity.kind) {
-                    CertProvider.Kind.IMPORTED -> "Imported"
-                    CertProvider.Kind.DOWNLOADED -> "Downloaded"
-                    CertProvider.Kind.ADB_STAGED -> "Staged over adb"
-                    CertProvider.Kind.SELF_SIGNED -> "Self-signed"
+            val headline = when (identity.kind) {
+                    CertProvider.Kind.IMPORTED -> R.string.cert_kind_imported
+                    CertProvider.Kind.DOWNLOADED -> R.string.cert_kind_downloaded
+                    CertProvider.Kind.ADB_STAGED -> R.string.cert_kind_adb
+                    CertProvider.Kind.SELF_SIGNED -> R.string.cert_kind_self
                 }
             return CertSummary(
                 identity.kind,
-                "$prefix: $name",
+                context.getString(headline, name),
                 cert.subjectX500Principal.name,
                 cert.issuerX500Principal.name,
                 DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(cert.notAfter.time)),

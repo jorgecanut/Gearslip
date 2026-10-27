@@ -1,5 +1,9 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import app.seb3thehacker.gearslip.R
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -38,7 +42,7 @@ class WeatherData(
 
 sealed interface WeatherState {
     data object Loading : WeatherState
-    data class Unavailable(val reason: String) : WeatherState
+    data class Unavailable(@param:StringRes val reason: Int) : WeatherState
     data class Ready(val data: WeatherData) : WeatherState
 }
 
@@ -78,7 +82,7 @@ object Weather {
             if (flow.value !is WeatherState.Ready) {
                 val allowed = hasLocationPermission(context)
                 flow.value = WeatherState.Unavailable(
-                    if (allowed) "Waiting for a location fix." else "Allow location for Gearslip on the phone to see the weather.",
+                    if (allowed) R.string.weather_waiting_fix else R.string.weather_allow_location,
                 )
             }
             return
@@ -92,7 +96,7 @@ object Weather {
             // No place name: logs get shared in bug reports.
             GearslipLog.i("weather: loaded")
         }
-        else if (flow.value !is WeatherState.Ready) flow.value = WeatherState.Unavailable("Could not reach the weather service.")
+        else if (flow.value !is WeatherState.Ready) flow.value = WeatherState.Unavailable(R.string.weather_unreachable)
     }
 
     // --- location -------------------------------------------------------------------------
@@ -196,6 +200,26 @@ object Weather {
             fetchedAt = System.currentTimeMillis(),
         )
     }
+
+    /** Open-Meteo's WMO weather codes, in words on the screen. [describe] is the English the assistant says. */
+    @StringRes
+    fun conditionRes(code: Int): Int = when (code) {
+        0 -> R.string.weather_clear
+        1 -> R.string.weather_mostly_clear
+        2 -> R.string.weather_partly_cloudy
+        3 -> R.string.weather_overcast
+        45, 48 -> R.string.weather_fog
+        in 51..57 -> R.string.weather_drizzle
+        in 61..67 -> R.string.weather_rain
+        in 71..77 -> R.string.weather_snow
+        in 80..82 -> R.string.weather_rain_showers
+        in 85..86 -> R.string.weather_snow_showers
+        in 95..99 -> R.string.weather_thunderstorm
+        else -> 0
+    }
+
+    @Composable
+    fun condition(code: Int): String = conditionRes(code).let { if (it == 0) "-" else stringResource(it) }
 
     /** Open-Meteo's WMO weather codes, in words. */
     fun describe(code: Int): String = when (code) {

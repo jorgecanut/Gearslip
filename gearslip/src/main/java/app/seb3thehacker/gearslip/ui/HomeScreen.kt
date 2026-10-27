@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.speech.SpeechModels
 
 import androidx.compose.material3.LinearProgressIndicator
@@ -19,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import android.content.Context
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.isSystemInDarkTheme
 import app.seb3thehacker.gearslip.car.CarSettings
 import app.seb3thehacker.gearslip.car.BluetoothAudioCheck
 import android.provider.Settings
@@ -82,7 +83,12 @@ fun HomeScreen(
             Column(
                 Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .padding(padding),
+            ) {
+            HomeHeader(onOpenSettings)
+            Column(
+                Modifier
+                    .weight(1f)
                     .padding(horizontal = 24.dp),
             ) {
                 Column(
@@ -90,30 +96,6 @@ fun HomeScreen(
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    Spacer(Modifier.height(24.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            "Gearslip",
-                            style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        IconButton(
-                            onClick = onOpenSettings,
-                            modifier = Modifier.size(56.dp),
-                        ) {
-                            Icon(Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(40.dp))
-                        }
-                    }
-                    Text(
-                        "v${LocalContext.current.appVersionName()}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     Spacer(Modifier.height(16.dp))
                     StatusCard(status)
                     if (live) BluetoothMissingCard()
@@ -134,24 +116,57 @@ fun HomeScreen(
                 // Sits at the bottom, where a thumb reaches it.
                 Column(Modifier.padding(vertical = 16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HomeShortcut(Icons.Filled.Info, "Help", onOpenHelp, Modifier.weight(1f))
+                        HomeShortcut(Icons.Filled.Info, stringResource(R.string.home_help), onOpenHelp, Modifier.weight(1f))
                         // The preview draws the car screen on the phone, so it waits until no car is using it.
-                        if (!live) HomeShortcut(Icons.Filled.PlayArrow, "Preview", onOpenCarPreview, Modifier.weight(1f))
-                        HomeShortcut(Icons.AutoMirrored.Filled.List, "Logs", onOpenLogs, Modifier.weight(1f))
+                        if (!live) HomeShortcut(Icons.Filled.PlayArrow, stringResource(R.string.home_preview), onOpenCarPreview, Modifier.weight(1f))
+                        HomeShortcut(Icons.AutoMirrored.Filled.List, stringResource(R.string.home_logs), onOpenLogs, Modifier.weight(1f))
                     }
                     if (live) {
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                            Text("Disconnect")
+                            Text(stringResource(R.string.home_disconnect))
                         }
                     }
                 }
+            }
             }
         }
         // Sharing just went on from the "it worked" ask: a little thanks.
         if (celebrate) ConfettiFall(onDone = WorkedPrompt::celebrated)
         // The usage notes ask comes first; the donation ask waits until that's answered.
         if (workedCar == null) DonateDialog(live)
+    }
+}
+
+/** Debug builds wear a yellow header, behind the status bar too, so they're never mistaken for a release install. */
+internal val DebugYellow = Color(0xFFF5C518)
+private val OnDebugYellow = Color(0xFF2A2200)
+
+/** The app's name, version and Settings, fixed above Home's scrolling cards. */
+@Composable
+private fun HomeHeader(onOpenSettings: () -> Unit) {
+    val debug = BuildConfig.DEBUG
+    val content = if (debug) OnDebugYellow else MaterialTheme.colorScheme.onBackground
+    Surface(color = if (debug) DebugYellow else Color.Transparent, contentColor = content) {
+        Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Gearslip",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onOpenSettings, modifier = Modifier.size(56.dp)) {
+                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title), modifier = Modifier.size(32.dp))
+                }
+            }
+            val version = "v${LocalContext.current.appVersionName()}"
+            Text(
+                if (debug) stringResource(R.string.home_debug_build, version) else version,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (debug) content else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -186,16 +201,15 @@ private fun BluetoothMissingCard() {
     val context = LocalContext.current
     // Yellow, not the theme's error red: music is missing, but nothing is broken. Material has no
     // warning colour, so these are fixed amber tones for light and dark.
-    val dark = isSystemInDarkTheme()
+    val dark = gearslipDark()
     val container = if (dark) Color(0xFF4A3B00) else Color(0xFFFFE08A)
     val content = if (dark) Color(0xFFFFE08A) else Color(0xFF3A2E00)
     Spacer(Modifier.height(16.dp))
     Surface(color = container, contentColor = content, shape = MaterialTheme.shapes.extraLarge) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Bluetooth isn't connected", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.home_bt_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Text(
-                "Music plays over Bluetooth, but your phone isn't connected to the car. Connect it " +
-                    "here or from the car's Bluetooth menu.",
+                stringResource(R.string.home_bt_body),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Button(
@@ -206,7 +220,7 @@ private fun BluetoothMissingCard() {
                     }
                 },
                 modifier = Modifier.padding(top = 4.dp),
-            ) { Text("Bluetooth settings") }
+            ) { Text(stringResource(R.string.bluetooth_settings)) }
         }
     }
 }
@@ -219,7 +233,7 @@ private fun VoiceDownloadCard() {
     Spacer(Modifier.height(16.dp))
     SettingsCard {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Downloading voice, $percent%", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.home_voice_downloading, percent), style = MaterialTheme.typography.bodyLarge)
             LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
         }
     }
@@ -263,9 +277,23 @@ private fun StatusCard(status: SessionStatus.Snapshot) {
                 ) {}
             }
             Column {
-                Text(status.headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                // The steady states read from strings.xml; a stage or a failure comes with its own text.
+                val headline = when (status.phase) {
+                    SessionStatus.Phase.IDLE -> stringResource(R.string.status_idle)
+                    SessionStatus.Phase.CONNECTING -> stringResource(R.string.status_connecting)
+                    SessionStatus.Phase.PROJECTING -> stringResource(R.string.status_projecting)
+                    SessionStatus.Phase.DISCONNECTED -> stringResource(R.string.status_disconnected)
+                    SessionStatus.Phase.FAILED -> status.headline
+                }
+                val detail = when (status.phase) {
+                    SessionStatus.Phase.IDLE -> stringResource(R.string.status_idle_detail)
+                    SessionStatus.Phase.PROJECTING -> stringResource(R.string.status_projecting_detail)
+                    SessionStatus.Phase.DISCONNECTED -> stringResource(R.string.status_disconnected_detail)
+                    else -> status.detail
+                }
+                Text(headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-                Text(status.detail, style = MaterialTheme.typography.bodyMedium)
+                Text(detail, style = MaterialTheme.typography.bodyMedium)
             }
         }
         // The other way in: wireless, right under the cable's instructions.

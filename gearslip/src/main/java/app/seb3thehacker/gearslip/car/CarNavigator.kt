@@ -1,5 +1,9 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.runtime.Composable
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +45,11 @@ sealed interface CarScreen {
 enum class SidePanel { NONE, CONTROLS, LYRICS }
 
 /** One step on the breadcrumb trail: the screen it shows and the word for it in the trail. */
-data class Crumb(val screen: CarScreen, val label: String)
+data class Crumb(val screen: CarScreen, val label: String, @param:StringRes val labelRes: Int = 0) {
+    /** [labelRes] when the step is one of Gearslip's own, translated; [label] for an app's own name. */
+    @Composable
+    fun shown(): String = if (labelRes != 0) stringResource(labelRes) else label
+}
 
 /**
  * Where the car UI is, and how it got there. A car touchscreen has no hardware back button, so
@@ -57,6 +65,7 @@ class CarNavigator(startId: String) {
         Crumb(
             if (CarApps.find(startId) != null) CarScreen.App(startId) else CarScreen.Home,
             "Home",
+            R.string.crumb_home,
         ),
     )
 
@@ -69,15 +78,15 @@ class CarNavigator(startId: String) {
 
     /** Pushes a new step, unless it's the same screen already on top - tapping the button for
      * where you already are shouldn't grow the trail. */
-    private fun push(screen: CarScreen, label: String) {
+    private fun push(screen: CarScreen, label: String, @StringRes labelRes: Int = 0) {
         if (stack.last().screen == screen) return
-        stack.add(Crumb(screen, label))
+        stack.add(Crumb(screen, label, labelRes))
     }
 
     /** The one way back to a clean slate: resets the whole trail to just Home. */
     fun home() {
         stack.clear()
-        stack.add(Crumb(CarScreen.Home, "Home"))
+        stack.add(Crumb(CarScreen.Home, "Home", R.string.crumb_home))
     }
 
     /**
@@ -90,8 +99,9 @@ class CarNavigator(startId: String) {
         private set
 
     /**
-     * The pill's dock button: moves the player beside the map, going Home first if need be. With
-     * lyrics already there it swaps them for the controls; with the controls there it closes.
+     * The pill's dock button, an open/close switch for the panel: moves the player beside the map,
+     * going Home first if need be, or closes the panel when something is already there. Switching
+     * between the player and lyrics is done inside the panel itself.
      */
     fun togglePlayerDock() {
         if (current != CarScreen.Home) {
@@ -99,8 +109,10 @@ class CarNavigator(startId: String) {
             home()
             return
         }
-        sidePanel = if (sidePanel == SidePanel.CONTROLS) SidePanel.NONE else SidePanel.CONTROLS
+        sidePanel = if (sidePanel == SidePanel.NONE) SidePanel.CONTROLS else SidePanel.NONE
     }
+
+    fun showSidePlayer() { sidePanel = SidePanel.CONTROLS }
 
     fun showSideLyrics() { sidePanel = SidePanel.LYRICS }
 
@@ -114,17 +126,17 @@ class CarNavigator(startId: String) {
 
     fun dismissAppMenu() { appMenu = null }
 
-    fun media() { push(CarScreen.Media, "Media") }
+    fun media() { push(CarScreen.Media, "Media", R.string.crumb_media) }
 
     fun browse(label: String) { push(CarScreen.Browse, label) }
 
-    fun apps() { push(CarScreen.Apps, "Apps") }
+    fun apps() { push(CarScreen.Apps, "Apps", R.string.crumb_apps) }
 
-    fun settings() { push(CarScreen.Settings, "Settings") }
+    fun settings() { push(CarScreen.Settings, "Settings", R.string.settings_title) }
 
-    fun dashboard() { push(CarScreen.Dashboard, "Dashboard") }
+    fun dashboard() { push(CarScreen.Dashboard, "Dashboard", R.string.crumb_dashboard) }
 
-    fun weather() { push(CarScreen.Weather, "Weather") }
+    fun weather() { push(CarScreen.Weather, "Weather", R.string.crumb_weather) }
 
     fun vehicleData() { push(CarScreen.VehicleData, "Vehicle data") }
 
@@ -132,10 +144,10 @@ class CarNavigator(startId: String) {
 
     /** The list lives on the dashboard; only a reply gets a screen of its own. */
     fun notifications(replyTo: String? = null) {
-        if (replyTo == null) dashboard() else push(CarScreen.Notifications(replyTo), "Reply")
+        if (replyTo == null) dashboard() else push(CarScreen.Notifications(replyTo), "Reply", R.string.crumb_reply)
     }
 
-    fun open(id: String) { push(CarScreen.App(id), CarApps.find(id)?.label ?: id) }
+    fun open(id: String) { push(CarScreen.App(id), CarApps.find(id)?.label ?: id, CarApps.find(id)?.labelRes ?: 0) }
 
     /** Jumps straight to a step already on the trail, dropping everything after it - what
      * tapping a breadcrumb does. Index 0 (Home) is always on the trail, so this always succeeds. */

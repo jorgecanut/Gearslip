@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.media.session.PlaybackState
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.compose.foundation.layout.Arrangement
@@ -94,23 +96,23 @@ internal fun formatDuration(ms: Long): String {
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%d:%02d".format(minutes, seconds)
 }
 
-/** Previous, play/pause, next. [skip] sizes the outer two; play is a step bigger. */
+/** Previous, play/pause, next. [skip] sizes the outer two; play is [playScale] times bigger. */
 @Composable
-internal fun TransportRow(now: NowPlaying, media: CarMedia, skip: Dp, modifier: Modifier = Modifier) {
-    val play = skip * 1.25f
+internal fun TransportRow(now: NowPlaying, media: CarMedia, skip: Dp, modifier: Modifier = Modifier, playScale: Float = 1.25f) {
+    val play = skip * playScale
     Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         GsIconButton(
-            MediaIcons.Previous, "Previous", media::previous,
+            MediaIcons.Previous, stringResource(R.string.player_previous), media::previous,
             enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_PREVIOUS), size = skip, iconSize = skip * 0.58f, shape = CircleShape,
         )
         GsIconButton(
             if (now.playing) MediaIcons.Pause else Icons.Filled.PlayArrow,
-            if (now.playing) "Pause" else "Play",
+            stringResource(if (now.playing) R.string.player_pause else R.string.media_play),
             media::togglePlay,
             tone = GsTone.Primary, size = play, iconSize = play * 0.58f, shape = CircleShape,
         )
         GsIconButton(
-            MediaIcons.Next, "Next", media::next,
+            MediaIcons.Next, stringResource(R.string.player_next), media::next,
             enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_NEXT), size = skip, iconSize = skip * 0.58f, shape = CircleShape,
         )
     }
@@ -147,7 +149,7 @@ internal fun PlayModeRow(
         } else {
             GsIconButton(
                 if (liked == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                if (liked == true) "Unlike" else "Like",
+                stringResource(if (liked == true) R.string.player_unlike else R.string.player_like),
                 media::toggleLike,
                 enabled = liked != null,
                 tone = if (liked == true) GsTone.Primary else GsTone.Neutral,
@@ -159,7 +161,7 @@ internal fun PlayModeRow(
             CustomActionButton(shuffleAction, media, size, toggle = true)
         } else {
             GsIconButton(
-                MediaIcons.Shuffle, if (shuffleOn) "Shuffle off" else "Shuffle on",
+                MediaIcons.Shuffle, stringResource(if (shuffleOn) R.string.player_shuffle_off else R.string.player_shuffle_on),
                 media::toggleShuffle,
                 enabled = shuffleKnown,
                 tone = if (shuffleOn) GsTone.Primary else GsTone.Neutral,
@@ -172,7 +174,7 @@ internal fun PlayModeRow(
         } else {
             GsIconButton(
                 if (modes.repeat == PlaybackStateCompat.REPEAT_MODE_ONE) MediaIcons.RepeatOne else MediaIcons.Repeat,
-                "Repeat",
+                stringResource(R.string.player_repeat),
                 media::cycleRepeat,
                 enabled = repeatKnown,
                 tone = if (repeatOn) GsTone.Primary else GsTone.Neutral,
@@ -229,26 +231,48 @@ internal fun rememberArt(now: NowPlaying): android.graphics.Bitmap? {
 }
 
 /**
- * A background taken from the album art's main colour, in place of [fallback]. Only the hue and a
- * capped amount of its saturation come from the art; the lightness stays close to the theme's
- * own ([darkLightness] or [lightLightness]), so text drawn in the theme's colours reads the same
- * on any cover. Art with no real colour in it keeps [fallback]. Fades between songs rather than
- * jumping.
+ * Three soft pools of the cover's colours: top left, top right and the middle, read off a 3x3
+ * shrink of it. Still, and redrawn only while a new song's colours fade in, so it costs the video
+ * stream nothing between songs. Fainter on a light card, where colour shows more. [wide] is for
+ * a whole screen: the pools gather on its left, behind the cover, and reach less far across it.
  */
 @Composable
-internal fun rememberArtColor(
-    art: android.graphics.Bitmap?,
-    fallback: Color,
-    darkLightness: Float = 0.2f,
-    lightLightness: Float = 0.86f,
-): Color {
-    val dark = fallback.luminance() < 0.5f
-    val tint by produceState<ArtColor.Tint?>(null, art) {
-        value = art?.let { withContext(Dispatchers.Default) { runCatching { ArtColor.of(it) }.getOrNull() } }
+internal fun AlbumGlow(art: android.graphics.Bitmap?, modifier: Modifier, wide: Boolean = false) {
+    val spots by produceState<List<Color>>(emptyList(), art) {
+        value = art?.let { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { glowColours(it) } }.orEmpty()
     }
-    val target = tint?.let {
-        if (dark) Color.hsl(it.hue, it.saturation.coerceIn(0.3f, 0.5f), darkLightness)
-        else Color.hsl(it.hue, it.saturation.coerceIn(0.35f, 0.55f), lightLightness)
-    } ?: fallback
-    return animateColorAsState(target, tween(600), label = "art colour").value
+    val strength = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) 0.30f else 0.18f
+    val fade = tween<Color>(600)
+    val first by androidx.compose.animation.animateColorAsState(spots.getOrNull(0)?.copy(alpha = strength) ?: Color.Transparent, fade, label = "glow")
+    val second by androidx.compose.animation.animateColorAsState(spots.getOrNull(1)?.copy(alpha = strength) ?: Color.Transparent, fade, label = "glow")
+    val third by androidx.compose.animation.animateColorAsState(spots.getOrNull(2)?.copy(alpha = strength * 0.8f) ?: Color.Transparent, fade, label = "glow")
+    androidx.compose.foundation.Canvas(modifier) {
+        fun pool(colour: Color, x: Float, y: Float, reach: Float) {
+            if (colour.alpha <= 0f) return
+            drawRect(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    listOf(colour, Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * x, size.height * y),
+                    radius = size.width * reach,
+                ),
+            )
+        }
+        if (wide) {
+            pool(third, 0.22f, 0.8f, 0.35f)
+            pool(first, 0.1f, 0.25f, 0.42f)
+            pool(second, 0.3f, 0.45f, 0.38f)
+        } else {
+            pool(third, 0.5f, 0.5f, 0.85f)
+            pool(first, 0.2f, 0.1f, 0.9f)
+            pool(second, 0.85f, 0.22f, 0.8f)
+        }
+    }
+}
+
+/** The cover's colours at its top left, top right and middle. */
+private fun glowColours(art: android.graphics.Bitmap): List<Color> {
+    // A hardware bitmap can't be scaled or read on the CPU, so copy it out first.
+    val readable = if (art.config == android.graphics.Bitmap.Config.HARDWARE) art.copy(android.graphics.Bitmap.Config.ARGB_8888, false) else art
+    val small = android.graphics.Bitmap.createScaledBitmap(readable ?: return emptyList(), 3, 3, true)
+    return listOf(small.getPixel(0, 0), small.getPixel(2, 0), small.getPixel(1, 1)).map { Color(it).copy(alpha = 1f) }
 }

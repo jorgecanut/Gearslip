@@ -64,6 +64,12 @@ data class ControlLook(
      * from; a flat look takes the dot.
      */
     val holdMarker: HoldMarkerStyle = HoldMarkerStyle.PEEL,
+    /**
+     * The shadow a panel floating over the map casts onto it (the docked player, the lyrics), and
+     * the nav bar casts up. 0 for none, so a flat look stays flat.
+     */
+    val panelShadow: Dp = 0.dp,
+    val panelShadowAlpha: Float = 0f,
     /** Replaces this look when the UI is light, for effects that only work on one background. */
     val light: ControlLook? = null,
 )
@@ -72,7 +78,11 @@ object GsThemes {
     val Keycap = GsTheme(
         id = "keycap",
         name = "Keycap",
-        control = ControlLook(lip = 4.dp, pressedScale = 1f, holdMarker = HoldMarkerStyle.PEEL),
+        // Short and dark, like the keys' own solid base.
+        control = ControlLook(
+            lip = 4.dp, pressedScale = 1f, holdMarker = HoldMarkerStyle.PEEL,
+            panelShadow = 4.dp, panelShadowAlpha = 0.45f,
+        ),
     )
 
     val Tactile = GsTheme(
@@ -89,6 +99,8 @@ object GsThemes {
             pressedDim = 0.12f,
             pressedScale = 1f,
             holdMarker = HoldMarkerStyle.PEEL,
+            panelShadow = 12.dp,
+            panelShadowAlpha = 0.42f,
             // A wide soft shadow bands once the car's video stream compresses it on a light
             // background, so light mode gets a tight one and leans on the bevel instead.
             light = ControlLook(
@@ -102,6 +114,8 @@ object GsThemes {
                 pressedDim = 0.12f,
                 pressedScale = 1f,
                 holdMarker = HoldMarkerStyle.PEEL,
+                panelShadow = 4.dp,
+                panelShadowAlpha = 0.22f,
             ),
         ),
     )

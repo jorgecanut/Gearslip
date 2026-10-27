@@ -26,7 +26,7 @@ object WorkedPrompt {
     private var loaded = false
     private val flow = MutableStateFlow<String?>(null)
 
-    /** The car's name while the ask is waiting for an answer, otherwise null. */
+    /** The car's name while the ask is waiting for an answer (empty when the car didn't say), otherwise null. */
     fun pending(context: Context): StateFlow<String?> {
         if (!loaded) {
             loaded = true
@@ -99,17 +99,14 @@ object WorkedPrompt {
     private fun saved(context: Context): JSONObject? =
         prefs(context).getString(KEY_CAR, null)?.let { runCatching { JSONObject(it) }.getOrNull() }
 
-    /** "your 2019 Clio", "your Renault Media Nav", or "your car" when it didn't say. */
+    /** "2019 Clio", "Renault Media Nav", or empty when the car didn't say. */
     private fun carName(car: JSONObject): String {
         val model = car.optString("car").trim()
         val year = car.optString("year").trim().takeIf { it.isNotEmpty() && it != "0" }
         val unit = "${car.optString("make")} ${car.optString("model")}".trim()
         return when {
-            model.isNotEmpty() -> "your " + listOfNotNull(year, model).joinToString(" ")
-            unit.isNotEmpty() -> "your $unit"
-            else -> "your car"
+            model.isNotEmpty() -> listOfNotNull(year, model).joinToString(" ")
+            else -> unit
         }
     }
-
-    const val TITLE_START = "Gearslip worked with "
 }

@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.shape.CircleShape
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.layout.Arrangement
@@ -63,7 +65,7 @@ private fun IncomingCall(s: CallUiState.Ringing, onAnswer: () -> Unit, onDecline
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                "Incoming call",
+                stringResource(R.string.call_incoming),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -76,13 +78,13 @@ private fun IncomingCall(s: CallUiState.Ringing, onAnswer: () -> Unit, onDecline
             )
             Spacer(Modifier.height(56.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(48.dp)) {
-                CallButton(Icons.Filled.Close, "Decline", MaterialTheme.colorScheme.error, enabled = s.canDecline, onClick = onDecline)
-                CallButton(Icons.Filled.Call, "Answer", MaterialTheme.colorScheme.primary, enabled = true, onClick = onAnswer)
+                CallButton(Icons.Filled.Close, stringResource(R.string.call_decline), MaterialTheme.colorScheme.error, enabled = s.canDecline, onClick = onDecline)
+                CallButton(Icons.Filled.Call, stringResource(R.string.call_answer), MaterialTheme.colorScheme.primary, enabled = true, onClick = onAnswer)
             }
             if (!s.canDecline) {
                 Spacer(Modifier.height(20.dp))
                 Text(
-                    "Already ringing out loud - answer here, or let it ring.",
+                    stringResource(R.string.call_ringing),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

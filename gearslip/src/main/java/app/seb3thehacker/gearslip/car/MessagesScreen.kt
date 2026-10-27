@@ -1,5 +1,8 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.content.Intent
 import android.provider.Settings
@@ -8,6 +11,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,14 +65,14 @@ fun MessagesScreen(packageName: String) {
     val navigator = LocalCarNavigator.current
     val context = LocalContext.current.applicationContext
     val entry = remember(packageName) { findEntry(MESSAGING_PREFIX + packageName) }
-    val label = entry?.label ?: history.firstOrNull { it.packageName == packageName }?.appLabel ?: "Messages"
+    val label = entry?.label ?: history.firstOrNull { it.packageName == packageName }?.appLabel ?: stringResource(R.string.msg_messages)
     val threads = history.filter { it.packageName == packageName }
 
     LaunchedEffect(history) { CarNotifications.dismissPopupFrom(packageName) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", navigator::back)
+            GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), navigator::back)
             entry?.icon?.let { Image(it, contentDescription = null, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))) }
             Text(label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
@@ -82,7 +87,7 @@ fun MessagesScreen(packageName: String) {
 
         if (threads.isEmpty()) {
             Text(
-                "No recent messages. New $label messages appear here as they arrive on the phone.",
+                stringResource(R.string.msg_none_recent, label),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -104,6 +109,7 @@ fun MessagesScreen(packageName: String) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConversationCard(n: CarNotification, onRead: () -> Unit, onReply: () -> Unit, onMarkRead: () -> Unit) {
     var expanded by rememberSaveable(n.key) { mutableStateOf(false) }
@@ -143,39 +149,47 @@ private fun ConversationCard(n: CarNotification, onRead: () -> Unit, onReply: ()
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
+                    if (n.replied) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = stringResource(R.string.notif_replied),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                        )
+                    }
                 }
                 if (!expanded && lines.size > COLLAPSED_LINES) {
                     Text(
-                        "${lines.size - COLLAPSED_LINES} earlier",
+                        pluralStringResource(R.plurals.msg_earlier, lines.size - COLLAPSED_LINES, lines.size - COLLAPSED_LINES),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 shown.forEach { MessageLine(it, showSender = n.isGroup) }
+                // Below the messages and side by side, so the text keeps the card's whole width.
+                FlowRow(
+                    Modifier.padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    GsButton(onClick = onRead, tone = GsTone.Neutral) {
+                        ReadGlyph(Modifier.size(20.dp))
+                        Text(stringResource(R.string.msg_read), Modifier.padding(start = 8.dp))
+                    }
+                    if (n.reply != null) {
+                        GsButton(onClick = onReply, tone = GsTone.Tonal) {
+                            ReplyGlyph(Modifier.size(20.dp))
+                            Text(stringResource(R.string.crumb_reply), Modifier.padding(start = 8.dp))
+                        }
+                        GsButton(onClick = { quick = !quick }, tone = GsTone.Neutral) {
+                            Text(stringResource(if (quick) R.string.msg_hide_quick else R.string.msg_quick))
+                        }
+                    }
+                    if (n.markRead != null) {
+                        GsButton(onClick = onMarkRead, tone = GsTone.Neutral) { Text(stringResource(R.string.msg_mark_read)) }
+                    }
+                }
                 if (quick) QuickReplies(n, Modifier.padding(top = 6.dp))
-            }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (n.replied) {
-                    Icon(Icons.Filled.Check, contentDescription = "Replied", tint = MaterialTheme.colorScheme.primary)
-                }
-                GsButton(onClick = onRead, tone = GsTone.Neutral) {
-                    ReadGlyph(Modifier.size(20.dp))
-                    Text("Read", Modifier.padding(start = 8.dp))
-                }
-                if (n.reply != null) {
-                    GsButton(onClick = onReply, tone = GsTone.Tonal) {
-                        ReplyGlyph(Modifier.size(20.dp))
-                        Text("Reply", Modifier.padding(start = 8.dp))
-                    }
-                }
-                if (n.reply != null) {
-                    GsButton(onClick = { quick = !quick }, tone = GsTone.Neutral) {
-                        Text(if (quick) "Hide quick replies" else "Quick reply")
-                    }
-                }
-                if (n.markRead != null) {
-                    GsButton(onClick = onMarkRead, tone = GsTone.Neutral) { Text("Mark read") }
-                }
             }
         }
     }
@@ -184,8 +198,8 @@ private fun ConversationCard(n: CarNotification, onRead: () -> Unit, onReply: ()
 @Composable
 private fun MessageLine(line: ChatLine, showSender: Boolean) {
     val who = when {
-        line.sender == null -> "You: "
-        showSender -> "${line.sender}: "
+        line.sender == null -> stringResource(R.string.msg_you)
+        showSender -> stringResource(R.string.msg_sender, line.sender)
         else -> ""
     }
     Text(

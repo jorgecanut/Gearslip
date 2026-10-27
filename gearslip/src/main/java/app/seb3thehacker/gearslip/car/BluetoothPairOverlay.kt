@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,32 +47,28 @@ internal fun BluetoothPairOverlay() {
             val locationOff by LocationCheck.off.collectAsState()
             val locationDismissed by LocationCheck.carDismissed.collectAsState()
             if (missing && bluetoothAudio && warn && !dismissed) PairCard(
-                title = "Bluetooth isn't connected",
-                body = "Music plays over Bluetooth, but your phone isn't connected to the car. " +
-                    "Connect it from the car's Bluetooth menu or your phone's.",
-                secondary = "Don't show again" to BluetoothAudioCheck::neverAgain,
-                primary = "OK" to BluetoothAudioCheck::dismissOnCar,
+                title = stringResource(R.string.home_bt_title),
+                body = stringResource(R.string.overlay_bt_body),
+                secondary = stringResource(R.string.overlay_dont_show) to BluetoothAudioCheck::neverAgain,
+                primary = stringResource(R.string.overlay_ok) to BluetoothAudioCheck::dismissOnCar,
             ) else if (locationOff && !locationDismissed) PairCard(
-                title = "Location is off",
-                body = "Map apps can't show where you are or give directions. Turn on location " +
-                    "in your phone's quick settings when you're parked.",
-                secondary = "Don't show again" to LocationCheck::neverAgain,
-                primary = "OK" to LocationCheck::dismissOnCar,
+                title = stringResource(R.string.overlay_location_off),
+                body = stringResource(R.string.overlay_location_body),
+                secondary = stringResource(R.string.overlay_dont_show) to LocationCheck::neverAgain,
+                primary = stringResource(R.string.overlay_ok) to LocationCheck::dismissOnCar,
             )
         }
         CarBluetooth.Prompt.ASK -> PairCard(
-            title = "Pair with this car?",
-            body = (if (bluetoothAudio) "Calls and music play" else "Calls play") +
-                " through the car's speakers once your phone and the car are paired. Your phone " +
-                "then asks you to confirm a code.",
-            secondary = "Not now" to CarBluetooth::notNow,
-            primary = "Pair" to CarBluetooth::pair,
+            title = stringResource(R.string.overlay_pair_title),
+            body = stringResource(if (bluetoothAudio) R.string.overlay_pair_body_music else R.string.overlay_pair_body),
+            secondary = stringResource(R.string.worked_not_now) to CarBluetooth::notNow,
+            primary = stringResource(R.string.overlay_pair) to CarBluetooth::pair,
         )
         CarBluetooth.Prompt.PAIRING -> PairCard(
-            title = "Confirm on your phone",
-            body = "Check the code on your phone and tap Pair. The car may ask too.",
+            title = stringResource(R.string.overlay_confirm_title),
+            body = stringResource(R.string.overlay_confirm_body),
             secondary = null,
-            primary = "Hide" to CarBluetooth::hide,
+            primary = stringResource(R.string.carset_hide) to CarBluetooth::hide,
         )
     }
 }

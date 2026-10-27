@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -100,31 +102,30 @@ internal fun DonateDialog(live: Boolean) {
     AlertDialog(
         onDismissRequest = { DonatePrompt.answer(context, donated = false) },
         icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
-        title = { Text("Glad that drive worked") },
+        title = { Text(stringResource(R.string.donate_title)) },
         text = {
             Text(
-                "Gearslip is free, with no ads and no tracking. If it gets you on the road, your " +
-                    "support keeps it going.",
+                stringResource(R.string.donate_body),
             )
         },
         confirmButton = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { give(GearslipLinks.LIBERAPAY) }, Modifier.fillMaxWidth()) {
-                    Text("Support on Liberapay")
+                    Text(stringResource(R.string.donate_liberapay))
                 }
                 OutlinedButton(onClick = { give(GearslipLinks.BUY_ME_A_COFFEE) }, Modifier.fillMaxWidth()) {
-                    Text("Buy me a coffee")
+                    Text(stringResource(R.string.donate_bmac))
                 }
                 if (GearslipLinks.PAYMENT_LINK.isNotEmpty()) {
                     OutlinedButton(onClick = { give(GearslipLinks.PAYMENT_LINK) }, Modifier.fillMaxWidth()) {
-                        Text("Give once by card")
+                        Text(stringResource(R.string.donate_card))
                     }
                 }
                 OutlinedButton(onClick = { monero = true }, Modifier.fillMaxWidth()) {
                     Text("Monero")
                 }
                 TextButton(onClick = { DonatePrompt.answer(context, donated = false) }, Modifier.fillMaxWidth()) {
-                    Text("Not now")
+                    Text(stringResource(R.string.worked_not_now))
                 }
             }
         },

@@ -37,6 +37,10 @@ class MediaEntry(
     val iconBitmap: Bitmap?,
     val browsable: Boolean,
     val playable: Boolean,
+    /** Shown as a cover in a grid rather than a row, as the app asked. */
+    val grid: Boolean = false,
+    /** The heading the app files this under, when it splits a list into sections. */
+    val group: String? = null,
 )
 
 /** [icon] is a drawable id inside the media app's own package, not Gearslip's; 0 for none. */
@@ -271,7 +275,10 @@ class CarMedia(private val context: Context) {
                 GearslipLog.w("media: ${app.label} went away")
                 _phase.value = Phase.REJECTED
             }
-        }, null)
+        }, Bundle().apply {
+            // Tells the app it may ask for grids and section headings, as it would of Android Auto.
+            putBoolean(STYLE_SUPPORTED, true)
+        })
         browser = mb
         GearslipLog.i("media: connecting to ${app.label}'s library")
         runCatching { mb.connect() }.onFailure {
@@ -372,6 +379,8 @@ class CarMedia(private val context: Context) {
         GearslipLog.i("media: connected to ${app.label}, root=${mb.root}")
         attach(MediaController(context, mb.sessionToken))
         rootId = mb.root
+        childStyles.clear()
+        mb.extras?.let { childStyles[mb.root] = it.getInt(STYLE_BROWSABLE, 0) to it.getInt(STYLE_PLAYABLE, 0) }
         path.clear()
         _phase.value = Phase.READY
         open(mb.root)
@@ -457,7 +466,7 @@ class CarMedia(private val context: Context) {
                 if (parentId != subscribed) return
                 _browse.value = BrowseState(
                     trail = path.map { it.second },
-                    entries = children.map(::entryOf),
+                    entries = children.map { entryOf(it, childStyles[parentId]) },
                     loading = false,
                     // An empty top level is an app keeping its library to itself, not an empty one.
                     unavailable = path.isEmpty() && children.isEmpty(),
@@ -471,8 +480,21 @@ class CarMedia(private val context: Context) {
         })
     }
 
-    private fun entryOf(item: MediaBrowser.MediaItem): MediaEntry {
+    /**
+     * How a folder asked for its children to be shown, browsable ones and playable ones: by
+     * folder id, read off the folder itself (or the root's extras) before it's opened.
+     */
+    private val childStyles = HashMap<String, Pair<Int, Int>>()
+
+    private fun entryOf(item: MediaBrowser.MediaItem, parentStyle: Pair<Int, Int>?): MediaEntry {
         val d = item.description
+        val extras = d.extras
+        if (extras != null && item.isBrowsable) {
+            childStyles[item.mediaId.orEmpty()] = extras.getInt(STYLE_BROWSABLE, 0) to extras.getInt(STYLE_PLAYABLE, 0)
+        }
+        // The item's own hint first, then what its folder asked for its kind of child.
+        val style = extras?.getInt(STYLE_SINGLE_ITEM, 0)?.takeIf { it != 0 }
+            ?: (if (item.isBrowsable) parentStyle?.first else parentStyle?.second) ?: 0
         return MediaEntry(
             id = item.mediaId.orEmpty(),
             title = d.title?.toString().orEmpty(),
@@ -481,6 +503,8 @@ class CarMedia(private val context: Context) {
             iconBitmap = d.iconBitmap,
             browsable = item.isBrowsable,
             playable = item.isPlayable,
+            grid = style == STYLE_GRID || style == STYLE_CATEGORY_GRID,
+            group = extras?.getString(STYLE_GROUP_TITLE)?.takeIf { it.isNotBlank() },
         )
     }
 
@@ -803,3 +827,12 @@ class CarMedia(private val context: Context) {
         const val SEARCH_NOTICE_MS = 6_000L
     }
 }
+
+/** Android Auto's browse layout hints, which any app built for it already sends. */
+private const val STYLE_SUPPORTED = "android.media.browse.CONTENT_STYLE_SUPPORTED"
+private const val STYLE_BROWSABLE = "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
+private const val STYLE_PLAYABLE = "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT"
+private const val STYLE_SINGLE_ITEM = "android.media.browse.CONTENT_STYLE_SINGLE_ITEM_HINT"
+private const val STYLE_GROUP_TITLE = "android.media.browse.CONTENT_STYLE_GROUP_TITLE_HINT"
+private const val STYLE_GRID = 2
+private const val STYLE_CATEGORY_GRID = 4

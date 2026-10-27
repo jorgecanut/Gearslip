@@ -4,7 +4,6 @@ import android.os.Build
 import app.seb3thehacker.gearslip.audio.AudioLink
 import app.seb3thehacker.gearslip.audio.CarAudio
 import app.seb3thehacker.gearslip.audio.CarMic
-import app.seb3thehacker.gearslip.call.CarPhoneStatus
 import app.seb3thehacker.gearslip.media.CarMediaStatus
 import app.seb3thehacker.gearslip.car.BluetoothAudioCheck
 import app.seb3thehacker.gearslip.car.LocationCheck
@@ -102,12 +101,13 @@ class GearslipRunner(
     @Volatile private var inputKeycodes: List<Int> = emptyList()
     @Volatile private var sensorChannelId: Int = -1
     @Volatile private var mediaStatus: CarMediaStatus? = null
+    @Volatile private var phoneStatus: app.seb3thehacker.gearslip.call.CarPhoneStatus? = null
+    @Volatile private var clusterVideo: ClusterVideo? = null
     @Volatile private var clusterNav: ClusterNav? = null
     private var sensorTypes: List<Int> = emptyList()
     @Volatile private var audioLink: AudioLink? = null
     @Volatile private var guidanceLink: AudioLink? = null
     @Volatile private var vendorChannelId = -1
-    @Volatile private var phoneStatus: CarPhoneStatus? = null
     /**
      * The car's music sink takes AAC and nothing else (a 2014 GalReceiver). Fixes tried on only
      * that kind of car so far are kept to it, so cars that already work aren't changed under them.
@@ -205,6 +205,7 @@ class GearslipRunner(
         guidanceLink?.close()
         guidanceLink = null
         CarSensors.clear()
+        app.seb3thehacker.gearslip.car.CarData.clear()
         CarMic.current = null
         CarBluetooth.onCarDisconnected()
         phoneStatus?.stop()
@@ -213,6 +214,8 @@ class GearslipRunner(
         LocationCheck.onCarDisconnected()
         mediaStatus?.stop()
         mediaStatus = null
+        clusterVideo?.stop()
+        clusterVideo = null
         clusterNav?.stop()
         clusterNav = null
         lastSensorNight = null
@@ -260,10 +263,12 @@ class GearslipRunner(
                 clusterNav?.onMessage(messageId, body)
             } else if (frame.channel == mediaStatus?.channelId) {
                 mediaStatus?.onMessage(messageId, body)
-            } else if (frame.channel == guidanceLink?.channelId) {
-                guidanceLink?.onMessage(messageId, body)
             } else if (frame.channel == phoneStatus?.channelId) {
                 phoneStatus?.onMessage(messageId, body)
+            } else if (frame.channel == clusterVideo?.channelId) {
+                clusterVideo?.onMessage(messageId, body)
+            } else if (frame.channel == guidanceLink?.channelId) {
+                guidanceLink?.onMessage(messageId, body)
             } else if (frame.channel == CarBluetooth.channelId) {
                 CarBluetooth.onMessage(messageId, body)
             } else if (frame.channel == vendorChannelId) {
@@ -492,6 +497,7 @@ class GearslipRunner(
         log.i("head unit: $info")
         SessionReport.headUnit(info.toString())
         SessionReport.headUnitInfo = info
+        app.seb3thehacker.gearslip.car.CarData.onModel(info.carModel, info.carYear)
         vehicleProfile = runCatching { vehicleProfileFor(info) }.getOrNull()
         val profile = vehicleProfile
         SessionReport.profile(profile?.name)
@@ -542,9 +548,10 @@ class GearslipRunner(
         startSensorChannel(serviceDiscoveryResponse)
         startMicChannel(serviceDiscoveryResponse)
         startMediaStatusChannel(serviceDiscoveryResponse)
+        startPhoneStatusChannel(serviceDiscoveryResponse)
+        startClusterVideo(serviceDiscoveryResponse)
         startClusterNavChannel(serviceDiscoveryResponse)
         startBluetooth(serviceDiscoveryResponse)
-        startPhoneStatusChannel(serviceDiscoveryResponse)
         startVendorChannel(serviceDiscoveryResponse)
 
         val input = ServiceDiscovery.findInputService(serviceDiscoveryResponse, video.displayId)
@@ -661,6 +668,32 @@ class GearslipRunner(
         openChannel(channel)
     }
 
+    /** The turn card on the instrument cluster, for a car with a cluster screen: experimental, off by default. */
+    private fun startClusterVideo(serviceDiscoveryResponse: ByteArray) {
+        val sink = ServiceDiscovery.findClusterVideoService(serviceDiscoveryResponse) ?: return
+        log.i("cluster video sink: channel=${sink.serviceId} display=${sink.displayId} type=${sink.displayType}")
+        if (!CarSettings.experimentalFeaturesEnabled.value || !CarSettings.clusterVideoEnabled.value) {
+            log.i("cluster screen is off in the car's Settings (experimental) - leaving that sink alone")
+            return
+        }
+        val context = app.seb3thehacker.gearslip.car.CarEnvironment.appContext ?: return
+        clusterVideo = ClusterVideo(context, sink) { id, body -> send(id, body, encrypted = true, channel = sink.serviceId) }
+        openChannel(sink.serviceId)
+    }
+
+    /** Calls, for the car's own screens: the cluster, the steering wheel display. */
+    private fun startPhoneStatusChannel(serviceDiscoveryResponse: ByteArray) {
+        val channel = ServiceDiscovery.findPhoneStatusChannel(serviceDiscoveryResponse) ?: run {
+            log.i("no phone status channel - the car's own screens won't show calls")
+            return
+        }
+        log.i("phone status channel: $channel")
+        phoneStatus = app.seb3thehacker.gearslip.call.CarPhoneStatus(channel) { id, body ->
+            send(id, body, encrypted = true, channel = channel)
+        }
+        openChannel(channel)
+    }
+
     /** Bluetooth pairing, for calls: the channel only opens if the driver asks to pair. */
     /**
      * GM's own channel ("com.gm.vip"), opened in GM cars only. Issue #18: a 2021 Bolt ends every
@@ -697,18 +730,6 @@ class GearslipRunner(
             // Android Auto says hello on this channel every drive, even when already paired; see CarBluetooth.
             announce = aacOnlyCar,
         )
-    }
-
-    /** The phone's calls, for the car: see [CarPhoneStatus]. AAC-only cars for now. */
-    private fun startPhoneStatusChannel(serviceDiscoveryResponse: ByteArray) {
-        val channel = ServiceDiscovery.findPhoneStatusChannel(serviceDiscoveryResponse) ?: return
-        if (!aacOnlyCar) {
-            log.i("phone status channel: $channel (left closed on this car)")
-            return
-        }
-        log.i("phone status channel: $channel")
-        phoneStatus = CarPhoneStatus(channel) { id, body -> send(id, body, encrypted = true, channel = channel) }
-        openChannel(channel)
     }
 
     /** Turn-by-turn for the instrument cluster: the next turn, its road, and how far. */
@@ -813,6 +834,7 @@ class GearslipRunner(
 
             MSG_SENSOR_EVENT_INDICATION -> {
                 CarSensors.onEvent(body)
+                app.seb3thehacker.gearslip.car.CarData.onEvent(body)
                 logSensorEvent(body)
                 onNightSensor(body)
             }
@@ -1561,7 +1583,7 @@ class GearslipRunner(
         }
     }
 
-    private companion object {
+    internal companion object {
         /** The last car's service list, so a reconnect doesn't print the same 200 lines again. */
         @Volatile var lastDescribed: String? = null
 

@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.filled.Call
 import app.seb3thehacker.gearslip.call.CarCalls
 import app.seb3thehacker.gearslip.call.CallUiState
@@ -115,12 +116,12 @@ private fun BreadcrumbBar(navigator: CarNavigator) {
         Modifier.fillMaxWidth().height(40.dp).padding(start = 2.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", navigator::back, size = 32.dp, iconSize = 20.dp)
+        GsIconButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), navigator::back, size = 32.dp, iconSize = 20.dp)
         Spacer(Modifier.width(2.dp))
         trail.forEachIndexed { index, crumb ->
             val isLast = index == trail.lastIndex
             Text(
-                crumb.label,
+                crumb.shown(),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (isLast) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (isLast) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -164,7 +165,11 @@ internal fun CarNavBar(navigator: CarNavigator) {
     val frame by CarEnvironment.frame.collectAsState()
     val running = rememberRunningApps()
 
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    // A full-width strip along the bottom in the screens' own background, so it reads as part of
+    // the screen above rather than a panel on it. Over the player it's see-through, so the
+    // cover's glow carries on behind it.
+    val overPlayer = navigator.current == CarScreen.Media
+    Surface(color = if (overPlayer) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(NAV_BAR_HEIGHT).padding(horizontal = 10.dp)) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 // Home and Apps are two different places now, not a toggle on one button - the
@@ -280,7 +285,7 @@ private fun NavHomeButton(navigator: CarNavigator, entries: List<Entry>, running
             }
         } else {
             Icon(
-                ImageVector.vectorResource(R.drawable.navigation_24), contentDescription = "Home",
+                ImageVector.vectorResource(R.drawable.navigation_24), contentDescription = stringResource(R.string.crumb_home),
                 modifier = Modifier.padding(NAV_ITEM_PADDING).size(28.dp),
             )
         }
@@ -341,7 +346,7 @@ private fun NavAppIcon(
         onLongClick = onLongClick,
     ) {
         entry.icon?.let { Image(it, entry.label, Modifier.size(30.dp).clip(RoundedCornerShape(8.dp))) }
-        entry.builtIn?.let { Icon(it.glyph, entry.label, Modifier.size(26.dp)) }
+        entry.builtIn?.let { Icon(it.glyph, entry.shownLabel(), Modifier.size(26.dp)) }
         // Only running apps get the line along the bottom edge, the usual taskbar mark for it.
         if (open) {
             Box(
@@ -492,7 +497,7 @@ private fun NavCallPill(call: CallUiState.Active, modifier: Modifier = Modifier)
         ) {
             Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(20.dp))
             Text(
-                call.caller?.label ?: "On a call",
+                call.caller?.label ?: stringResource(R.string.navbar_on_call),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -507,12 +512,12 @@ private fun NavCallPill(call: CallUiState.Active, modifier: Modifier = Modifier)
             Spacer(Modifier.width(2.dp))
             GsIconButton(
                 if (muted) MediaIcons.MicOff else MediaIcons.Mic,
-                if (muted) "Unmute" else "Mute",
+                stringResource(if (muted) R.string.navbar_unmute else R.string.navbar_mute),
                 CarCalls::toggleMute,
                 tone = if (muted) GsTone.Primary else GsTone.Neutral, size = 36.dp, iconSize = 22.dp,
             )
             GsIconButton(
-                MediaIcons.CallEnd, "End call", { CarCalls.end(context) },
+                MediaIcons.CallEnd, stringResource(R.string.navbar_end_call), { CarCalls.end(context) },
                 colors = GsColors(scheme.error, scheme.onError), size = 36.dp, iconSize = 22.dp,
             )
         }
@@ -520,15 +525,16 @@ private fun NavCallPill(call: CallUiState.Active, modifier: Modifier = Modifier)
 }
 
 /** "Title - Artist" on one line. The text itself cuts it off, and only where the pill runs out of room. */
+@Composable
 private fun nowPlayingLabel(title: String, artist: String): String =
     listOf(title.trim(), artist.trim()).filter { it.isNotEmpty() }.joinToString(" - ")
-        .ifEmpty { "Nothing playing" }
+        .ifEmpty { stringResource(R.string.media_nothing_playing) }
 
 /**
  * The player in the nav bar, on every screen. Art and title open the full media screen;
  * play/pause and skip work right here. The dock button moves the player into the column beside
  * the map on Home (see [CarHome]), and the pill steps aside there while it's docked - unless the
- * column is showing lyrics instead, when the pill stays and its dock button swaps them back.
+ * column is showing lyrics instead, when the pill stays and its dock button closes them.
  */
 @Composable
 private fun NavNowPlaying(navigator: CarNavigator, selected: Boolean, modifier: Modifier = Modifier) {
@@ -604,24 +610,34 @@ private fun NavNowPlaying(navigator: CarNavigator, selected: Boolean, modifier: 
                 }
                 if (!showTitle) {
                     GsIconButton(
-                        MediaIcons.Previous, "Previous", media::previous,
+                        MediaIcons.Previous, stringResource(R.string.player_previous), media::previous,
                         enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_PREVIOUS), size = 36.dp, iconSize = 22.dp,
                     )
                 }
                 GsIconButton(
                     if (now.playing) MediaIcons.Pause else Icons.Filled.PlayArrow,
-                    if (now.playing) "Pause" else "Play",
+                    stringResource(if (now.playing) R.string.player_pause else R.string.media_play),
                     media::togglePlay,
                     tone = GsTone.Primary, size = 36.dp, iconSize = 22.dp,
                 )
                 if (!showTitle) {
                     GsIconButton(
-                        MediaIcons.Next, "Next", media::next,
+                        MediaIcons.Next, stringResource(R.string.player_next), media::next,
                         enabled = now.canDo(PlaybackState.ACTION_SKIP_TO_NEXT), size = 36.dp, iconSize = 22.dp,
                     )
                 }
+                // Drawn on the side the panel opens on, and filled in while it's open.
+                val playerLeft by CarSettings.playerLeft.collectAsState()
+                val docked = navigator.current == CarScreen.Home && navigator.sidePanel != SidePanel.NONE
                 GsIconButton(
-                    MediaIcons.DockRight, "Move the player beside the map", navigator::togglePlayerDock,
+                    when {
+                        playerLeft && docked -> MediaIcons.DockLeftOpen
+                        playerLeft -> MediaIcons.DockLeft
+                        docked -> MediaIcons.DockRightOpen
+                        else -> MediaIcons.DockRight
+                    },
+                    stringResource(if (docked) R.string.navbar_close_panel else R.string.navbar_dock_player),
+                    navigator::togglePlayerDock,
                     size = 36.dp, iconSize = 22.dp,
                 )
             }

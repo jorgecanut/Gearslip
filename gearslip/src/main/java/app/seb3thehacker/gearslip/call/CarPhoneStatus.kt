@@ -1,83 +1,108 @@
 package app.seb3thehacker.gearslip.call
 
+import android.os.SystemClock
+import android.view.KeyEvent
 import app.seb3thehacker.gearslip.GearslipLog
 import app.seb3thehacker.gearslip.Protobuf
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import app.seb3thehacker.gearslip.Wire
+import app.seb3thehacker.gearslip.car.CarKeys
 
 /**
- * The car's phone status channel (PhoneStatusService), which real Android Auto keeps up to date
- * with every call. Without it a call on an AAC-only 2014 head unit was a stranger's: the car
- * switched to its own phone screen and stopped acking video until the session died. Told about
- * the call, a car can show it inside the projection instead.
+ * Tells the car about calls, so its own screens show them: the instrument cluster, the steering
+ * wheel display, the car's phone page. Android Auto does the same over the car's
+ * PhoneStatusService (Service field 10):
  *
- *   -> CHANNEL_OPEN_REQUEST   <- CHANNEL_OPEN_RESPONSE
- *   -> PhoneStatus { repeated Call calls = 1; }
- *      Call { PhoneState phone_state = 1; uint32 call_duration_seconds = 2;
- *             string caller_number = 3; string caller_id = 4; }
- *      PhoneState: IN_CALL 1, ON_HOLD 2, INACTIVE 3, INCOMING 4
+ *   -> PhoneStatusUpdate { repeated PhoneCall calls = 1 }
+ *        PhoneCall { state = 1 (1 in call, 4 incoming, 6 muted); duration_seconds = 2;
+ *                    number = 3; name = 4 }
+ *   <- PhoneStatusInput { input = 1 { action = 1 (7 call) }; caller = 2; name = 3 }
  *
- * Opened only on cars whose music sink takes AAC alone, the one kind it has been tried on.
+ * Read once a second from [CarCalls]. An update goes when the call changes, and every second
+ * while one is going, so the car's timer counts along; no calls goes once, as an empty list.
+ * The car's own call button answers through [CarKeys], like the steering wheel's.
  */
 class CarPhoneStatus(
     val channelId: Int,
-    private val send: (messageId: Int, body: ByteArray) -> Unit,
+    private val sendOnChannel: (messageId: Int, body: ByteArray) -> Unit,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var watch: Job? = null
-    @Volatile private var open = false
+    @Volatile private var running = false
+    private var sent: String? = null
 
     fun onMessage(messageId: Int, body: ByteArray) {
         when (messageId) {
             MSG_CHANNEL_OPEN_RESPONSE -> {
-                val status = Protobuf.readInt32Field(body, 1) ?: 0
+                val status = Protobuf.readInt32Field(body, 1)
                 GearslipLog.i("phone status: <- ChannelOpenResponse: status=$status")
-                if (status != 0) return
-                open = true
-                watch = scope.launch { CarCalls.state.collect(::report) }
+                if (status == 0) start()
             }
-            // PhoneStatusInput: the car's own answer/hang-up buttons. Logged only, by size.
-            else -> GearslipLog.i("phone status: <- message id=$messageId (${body.size} bytes)")
+            MSG_INPUT -> onInput(body)
+            else -> GearslipLog.i("phone status: <- unhandled message id=$messageId (${body.size} bytes)")
         }
     }
 
-    private fun report(state: CallUiState) {
-        if (!open) return
-        val call = when (state) {
+    private fun start() {
+        if (running) return
+        running = true
+        Thread({
+            while (running) {
+                runCatching { tick() }.onFailure { GearslipLog.w("phone status: ${it.message}") }
+                Thread.sleep(TICK_MS)
+            }
+        }, "gearslip-phone-status").start()
+    }
+
+    fun stop() {
+        running = false
+    }
+
+    private fun tick() {
+        val call = when (val state = CarCalls.state.value) {
             CallUiState.None -> null
-            is CallUiState.Ringing -> callBody(PHONE_STATE_INCOMING, 0, state.caller)
-            is CallUiState.Active -> callBody(
-                PHONE_STATE_IN_CALL,
-                ((android.os.SystemClock.uptimeMillis() - state.since) / 1000).toInt().coerceAtLeast(0),
+            is CallUiState.Ringing -> Call(STATE_INCOMING, 0, state.caller)
+            is CallUiState.Active -> Call(
+                if (CarCalls.muted.value) STATE_MUTED else STATE_IN_CALL,
+                ((SystemClock.uptimeMillis() - state.since) / 1000).coerceAtLeast(0),
                 state.caller,
             )
         }
-        val body = call?.let { Protobuf.bytesField(1, it) } ?: ByteArray(0)
-        runCatching { send(MSG_PHONE_STATUS, body) }
-        // Which state only: the caller stays out of the log.
-        GearslipLog.i("phone status: -> ${state.javaClass.simpleName}")
+        // Only a call that's going changes from one second to the next.
+        val key = call?.let { "${it.state}|${it.caller?.number}|${it.caller?.name}|${if (it.state == STATE_INCOMING) 0 else it.seconds}" } ?: ""
+        if (key == sent) return
+        val changed = call?.state != lastState
+        sent = key
+        lastState = call?.state
+        val body = call?.let { Protobuf.bytesField(1, it.encode()) } ?: ByteArray(0)
+        sendOnChannel(MSG_STATUS, body)
+        if (changed) GearslipLog.i("phone status: -> ${call?.let { STATE_NAMES[it.state] } ?: "no calls"}")
     }
 
-    private fun callBody(phoneState: Int, seconds: Int, caller: Caller?): ByteArray =
-        Protobuf.varintField(1, phoneState.toLong()) +
-            Protobuf.varintField(2, seconds.toLong()) +
-            (caller?.number?.takeIf { it.isNotBlank() }?.let { Protobuf.stringField(3, it) } ?: ByteArray(0)) +
-            (caller?.name?.let { Protobuf.stringField(4, it) } ?: ByteArray(0))
+    private var lastState: Int? = null
 
-    fun stop() {
-        open = false
-        watch?.cancel()
-        scope.cancel()
+    private class Call(val state: Int, val seconds: Long, val caller: Caller?) {
+        fun encode(): ByteArray {
+            var body = Protobuf.varintField(1, state.toLong()) + Protobuf.varintField(2, seconds)
+            caller?.number?.takeIf { it.isNotBlank() }?.let { body += Protobuf.stringField(3, it) }
+            caller?.name?.takeIf { it.isNotBlank() }?.let { body += Protobuf.stringField(4, it) }
+            return body
+        }
     }
 
-    private companion object {
-        const val MSG_CHANNEL_OPEN_RESPONSE = 8
-        const val MSG_PHONE_STATUS = 32769
-        const val PHONE_STATE_IN_CALL = 1
-        const val PHONE_STATE_INCOMING = 4
+    /** The car's own phone buttons. Only "call" does anything: it answers, as the wheel's does. */
+    private fun onInput(body: ByteArray) {
+        val action = Wire.bytes(Wire.fields(body), 1)?.let { Wire.varint(Wire.fields(it), 1)?.toInt() }
+        GearslipLog.i("phone status: <- input action=${action ?: "?"}")
+        if (action == ACTION_CALL) CarKeys.onKey(KeyEvent.KEYCODE_CALL, down = true, longPress = false)
+    }
+
+    companion object {
+        private const val TICK_MS = 1_000L
+        private const val MSG_CHANNEL_OPEN_RESPONSE = 8
+        private const val MSG_STATUS = 32769 // 0x8001
+        private const val MSG_INPUT = 32770 // 0x8002
+        private const val STATE_IN_CALL = 1
+        private const val STATE_INCOMING = 4
+        private const val STATE_MUTED = 6
+        private const val ACTION_CALL = 7
+        private val STATE_NAMES = mapOf(STATE_IN_CALL to "in a call", STATE_INCOMING to "ringing", STATE_MUTED to "in a call, muted")
     }
 }

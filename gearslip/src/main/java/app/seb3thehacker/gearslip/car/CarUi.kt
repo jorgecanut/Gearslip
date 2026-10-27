@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.filled.Call
 import app.seb3thehacker.gearslip.call.CarCalls
 import app.seb3thehacker.gearslip.call.CallUiState
@@ -62,6 +63,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.animation.animateContentSize
 import android.media.session.PlaybackState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -110,6 +113,7 @@ fun CarUi() {
     val phoneDark by CarEnvironment.phoneDark.collectAsState()
     val appTheme by CarSettings.appTheme.collectAsState()
     val uiThemeId by CarSettings.uiTheme.collectAsState()
+    val darkStyle by CarSettings.darkStyle.collectAsState()
     val mediaApp by CarServices.mediaApp.collectAsState()
     val darkOutside by CarEnvironment.darkOutside.collectAsState()
     val appContext = LocalContext.current.applicationContext
@@ -118,7 +122,7 @@ fun CarUi() {
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
     }
-    val colors = (if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)).withTintedSurfaces(dark)
+    val colors = (if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)).withTintedSurfaces(dark, darkStyle)
     val base = LocalDensity.current
     val insets by CarEnvironment.insets.collectAsState()
     val navigator = remember { CarNavigator(CarSettings.openOnConnect.value) }
@@ -222,8 +226,10 @@ fun CarUi() {
                     },
                 color = MaterialTheme.colorScheme.background,
             ) {
-                // Insets are in video-frame pixels, so convert with the un-scaled density.
-                val pad = with(base) {
+                // Insets are video-frame pixels. Resolve them with the live (size-scaled) density,
+                // which padding() also uses, so the safe-area margin stays one fixed physical size
+                // at every size setting instead of growing with it and eating the screen's sides.
+                val pad = with(LocalDensity.current) {
                     PaddingValues(
                         start = insets.left.toDp(), top = insets.top.toDp(),
                         end = insets.right.toDp(), bottom = insets.bottom.toDp(),
@@ -232,12 +238,11 @@ fun CarUi() {
                 val screen = navigator.current
                 val safetyWarningSeen by CarSettings.hasSeenSafetyWarning.collectAsState()
                 val keyboardVisible by CarKeyboardVisibility.state
-                // Off "Always show", the bar floats over the map rather than taking a row of its
-                // own: hiding it then leaves the map's surface the size it was. Resizing it would
-                // hand the map app a new surface each time, and some go black on that.
+                // The bar always lies over the map and every other screen rather than taking a row
+                // of its own: hiding it then leaves the map's surface the size it was.
+                // Resizing it would hand the map app a new surface each time, and some go black on that.
                 val navBarMode by CarSettings.navBarMode.collectAsState()
                 val appTemplate by CarServices.nav.template.collectAsState()
-                val floatingBar = navBarMode != NavBarMode.SHOW
                 val barMayHide = screen == CarScreen.Home && when (navBarMode) {
                     NavBarMode.SHOW -> false
                     NavBarMode.HIDE_NAVIGATING -> appTemplate is androidx.car.app.navigation.model.NavigationTemplate
@@ -248,7 +253,8 @@ fun CarUi() {
                 // A call keeps the bar up whatever the setting: End and Mute live on it.
                 val onCall = CarCalls.state.collectAsState().value is CallUiState.Active
                 val barShown = !keyboardVisible && (!barMayHide || controlsWake.navBarAwake || onCall)
-                val homeInset = if (floatingBar && barShown) NAV_BAR_HEIGHT else 0.dp
+                // Up to the bar's top edge, so the map's cards and the player end above it.
+                val homeInset = if (barShown) NAV_BAR_HEIGHT else 0.dp
                 // Only the screen that asked: going Home or anywhere else ends it.
                 val fullscreen = CarFullscreen.active && screen != CarScreen.Home
                 Box(Modifier.fillMaxSize().padding(pad)) {
@@ -268,39 +274,53 @@ fun CarUi() {
                     // The keyboard takes the nav bar's row instead of squeezing in above it -
                     // nothing on the nav bar is useful mid-type, and the screen is too small to
                     // show both.
-                    if (!floatingBar && !keyboardVisible) CarNavBar(navigator)
                 }
                 // Every other screen, and everything that pops up, in a layer over Home rather
                 // than inside its area: full screen grows this layer over the nav bar's row while
                 // Home, and the map's surface in it, keeps its size.
+                // Each new screen fades in while rising a little, once, over a fifth of a second.
+                // Coming from Home the backdrop fades in with it, over the map; between two other
+                // screens it stays put, so the map never flashes through.
+                val lastScreen = remember { arrayOf<CarScreen>(CarScreen.Home) }
+                val fromHome = remember(screen) { lastScreen[0] == CarScreen.Home }
+                SideEffect { lastScreen[0] = screen }
+                val enter = remember(screen) { androidx.compose.animation.core.Animatable(0f) }
+                LaunchedEffect(screen) { enter.animateTo(1f, androidx.compose.animation.core.tween(180)) }
                 if (safetyWarningSeen) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(bottom = if (!floatingBar && !keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp),
-                    ) {
+                    Box(Modifier.fillMaxSize()) {
                         if (screen != CarScreen.Home) {
                             Box(
                                 Modifier
                                     .fillMaxSize()
+                                    .graphicsLayer { if (fromHome) alpha = enter.value }
                                     .background(MaterialTheme.colorScheme.background)
-                                    // The floating bar never hides here, so keep the screen clear of it.
-                                    .padding(bottom = if (floatingBar && !keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp)
+                                    // The bar never hides here, so keep the screen clear of it. The
+                                    // player runs on under the see-through bar and keeps clear itself.
+                                    .padding(bottom = if (!keyboardVisible && !fullscreen && screen != CarScreen.Media) NAV_BAR_HEIGHT else 0.dp)
                                     // Keeps touches that miss this screen's controls off the map.
                                     .pointerInput(Unit) { detectTapGestures { } },
                             ) {
-                                when (screen) {
-                                    CarScreen.Home -> Unit
-                                    CarScreen.Apps -> CarLauncher()
-                                    CarScreen.Media -> mediaApp?.let { MediaScreen(it) { navigator.back() } }
-                                    CarScreen.Browse -> BrowseAppScreen(navigator)
-                                    CarScreen.Settings -> CarSettingsScreen()
-                                    CarScreen.Dashboard -> CarDashboardScreen()
-                                    CarScreen.Weather -> WeatherScreen()
-                                    CarScreen.VehicleData -> VehicleDataScreen()
-                                    is CarScreen.Notifications -> NotificationsScreen(screen.replyTo)
-                                    is CarScreen.Messages -> MessagesScreen(screen.packageName)
-                                    is CarScreen.App -> CarApps.find(screen.id)?.content?.invoke()
+                                Box(
+                                    Modifier.fillMaxSize().graphicsLayer {
+                                        if (!fromHome) alpha = enter.value
+                                        translationY = (1f - enter.value) * 16.dp.toPx()
+                                    },
+                                ) {
+                                    when (screen) {
+                                        CarScreen.Home -> Unit
+                                        CarScreen.Apps -> CarLauncher()
+                                        CarScreen.Media -> CompositionLocalProvider(
+                                            LocalNavBarInset provides if (!keyboardVisible && !fullscreen) NAV_BAR_HEIGHT else 0.dp,
+                                        ) { mediaApp?.let { MediaScreen(it) { navigator.back() } } }
+                                        CarScreen.Browse -> BrowseAppScreen(navigator)
+                                        CarScreen.Settings -> CarSettingsScreen()
+                                        CarScreen.Dashboard -> CarDashboardScreen()
+                                        CarScreen.Weather -> WeatherScreen()
+                                        CarScreen.VehicleData -> VehicleDataScreen()
+                                        is CarScreen.Notifications -> NotificationsScreen(screen.replyTo)
+                                        is CarScreen.Messages -> MessagesScreen(screen.packageName)
+                                        is CarScreen.App -> CarApps.find(screen.id)?.content?.invoke()
+                                    }
                                 }
                             }
                         }
@@ -325,7 +345,7 @@ fun CarUi() {
                             // whatever the screen drew there.
                             DebugBuildBadge(Modifier.align(Alignment.BottomEnd).padding(bottom = homeInset))
                         }
-                        if (floatingBar || fullscreen) {
+                        run {
                             androidx.compose.animation.AnimatedVisibility(
                                 if (fullscreen) CarFullscreen.revealed || onCall else barShown,
                                 Modifier.align(Alignment.BottomCenter),
@@ -343,7 +363,7 @@ fun CarUi() {
                                 GsButton(onClick = CarFullscreen::exit, modifier = Modifier.height(48.dp)) {
                                     Icon(MediaIcons.FullscreenExit, contentDescription = null, modifier = Modifier.size(22.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Exit full screen", style = MaterialTheme.typography.titleMedium)
+                                    Text(stringResource(R.string.carui_exit_fullscreen), style = MaterialTheme.typography.titleMedium)
                                 }
                             }
                         }
@@ -388,22 +408,20 @@ private fun CarSafetyWizard(onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Drive safely", style = ChromeType.headline, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.carui_drive_safely), style = ChromeType.headline, fontWeight = FontWeight.Bold)
                     Text(
-                        "Gearslip is unofficial software: it is not made or reviewed by any " +
-                            "carmaker, and it can fail without warning.",
+                        stringResource(R.string.carui_unofficial),
                         style = ChromeType.body,
                     )
                     Text(
-                        "Never interact with this screen while driving. Set the route or the " +
-                            "song before you go, then keep your attention on the road.",
+                        stringResource(R.string.carui_never_interact),
                         style = ChromeType.body,
                     )
                 }
             }
             Spacer(Modifier.height(24.dp))
             GsButton(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text("I understand", style = ChromeType.body)
+                Text(stringResource(R.string.carui_understand), style = ChromeType.body)
             }
         }
     }
@@ -434,7 +452,7 @@ private fun BrowseAppScreen(navigator: CarNavigator) {
     }
     val failed = status.phase == CarAppConnection.Phase.REJECTED || status.phase == CarAppConnection.Phase.FAILED
     if (failed || timedOut) {
-        AppWontStart(status.app ?: "This app", leave)
+        AppWontStart(status.app ?: stringResource(R.string.carui_this_app), leave)
         return
     }
     CarAppStage(CarServices.browse, status, frame, onDisconnect = leave)
@@ -450,13 +468,13 @@ private fun AppWontStart(app: String, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("$app doesn't work with Gearslip yet.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.carui_app_unsupported, app), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            "It didn't start. Some apps only run on Google's Android Auto.",
+            stringResource(R.string.carui_app_unsupported_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        GsButton(onClick = onBack, tone = GsTone.Tonal) { Text("Back") }
+        GsButton(onClick = onBack, tone = GsTone.Tonal) { Text(stringResource(R.string.back)) }
     }
 }
 

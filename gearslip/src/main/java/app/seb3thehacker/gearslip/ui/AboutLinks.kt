@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -11,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +47,7 @@ internal object GearslipLinks {
     const val MATRIX = "https://matrix.to/#/!mf0_mgBd5KqKpc9FfX_wHp1jFCcwAtPrndIn_oGIyMk?via=matrix.org"
     const val SOURCE = "https://github.com/twinksoftware/gearslip"
     const val CARS = "$SOURCE/blob/main/CARS.md"
+    const val TRANSLATE = "https://hosted.weblate.org/engage/gearslip/"
 
     /** This version's release notes on GitHub; every release is tagged v plus its version name. */
     val RELEASE_NOTES = "$SOURCE/releases/tag/v${app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME}"
@@ -59,14 +63,14 @@ internal object GearslipLinks {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("monero:$MONERO")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
-            Toast.makeText(context, "No Monero wallet app found. Copy the address instead.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.about_no_wallet), Toast.LENGTH_LONG).show()
         }
     }
 
     fun copyMonero(context: Context) {
         context.getSystemService(ClipboardManager::class.java)
             ?.setPrimaryClip(ClipData.newPlainText("Monero address", MONERO))
-        Toast.makeText(context, "Monero address copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.about_monero_copied), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -84,7 +88,7 @@ internal fun DonateRows() {
     SettingsRow(
         "Liberapay",
         Modifier.clickable { GearslipLinks.open(context, GearslipLinks.LIBERAPAY) },
-        subtitle = "Give weekly or monthly",
+        subtitle = stringResource(R.string.about_give_regularly),
         icon = Icons.Filled.Favorite,
         trailing = arrow,
     )
@@ -92,16 +96,16 @@ internal fun DonateRows() {
     SettingsRow(
         "Buy Me a Coffee",
         Modifier.clickable { GearslipLinks.open(context, GearslipLinks.BUY_ME_A_COFFEE) },
-        subtitle = "Give once or monthly, by card. Buy Me a Coffee keeps 5%",
+        subtitle = stringResource(R.string.about_bmac_sub),
         icon = Icons.Filled.Favorite,
         trailing = arrow,
     )
     if (GearslipLinks.PAYMENT_LINK.isNotEmpty()) {
         SettingsDivider()
         SettingsRow(
-            "Give once",
+            stringResource(R.string.about_give_once),
             Modifier.clickable { GearslipLinks.open(context, GearslipLinks.PAYMENT_LINK) },
-            subtitle = "Any amount, by card",
+            subtitle = stringResource(R.string.about_any_amount),
             icon = Icons.Filled.Favorite,
             trailing = arrow,
         )
@@ -112,7 +116,7 @@ internal fun DonateRows() {
         SettingsRow(
             "Monero",
             Modifier.clickable { moneroOpen = true },
-            subtitle = "Open your wallet or copy the address",
+            subtitle = stringResource(R.string.about_monero_sub),
             icon = Icons.Filled.Favorite,
             trailing = arrow,
         )
@@ -127,10 +131,10 @@ internal fun MoneroDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
-        title = { Text("Support with Monero") },
+        title = { Text(stringResource(R.string.about_monero_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Send any amount to this address from your Monero wallet.")
+                Text(stringResource(R.string.about_monero_body))
                 SelectionContainer {
                     Text(
                         GearslipLinks.MONERO,
@@ -143,20 +147,20 @@ internal fun MoneroDialog(onDismiss: () -> Unit) {
         confirmButton = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { GearslipLinks.openMoneroWallet(context) }, Modifier.fillMaxWidth()) {
-                    Text("Open in wallet")
+                    Text(stringResource(R.string.about_open_wallet))
                 }
                 OutlinedButton(onClick = { GearslipLinks.copyMonero(context) }, Modifier.fillMaxWidth()) {
-                    Text("Copy address")
+                    Text(stringResource(R.string.about_copy_address))
                 }
                 TextButton(onClick = onDismiss, Modifier.fillMaxWidth()) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
         },
     )
 }
 
-/** The About section's links: the chat room, the source code, and credits. */
+/** The About section's links: the chat room, translations, the source code, and credits. */
 @Composable
 internal fun AboutLinkRows() {
     val context = LocalContext.current
@@ -168,25 +172,32 @@ internal fun AboutLinkRows() {
         )
     }
     SettingsRow(
-        "Join the chat on Matrix",
+        stringResource(R.string.about_matrix),
         Modifier.clickable { GearslipLinks.open(context, GearslipLinks.MATRIX) },
-        subtitle = "Talk with other drivers about cars, apps, and Gearslip",
+        subtitle = stringResource(R.string.about_matrix_sub),
         icon = Icons.AutoMirrored.Filled.Send,
         trailing = arrow,
     )
     SettingsDivider()
     SettingsRow(
-        "Source code",
+        stringResource(R.string.about_translate),
+        Modifier.clickable { GearslipLinks.open(context, GearslipLinks.TRANSLATE) },
+        subtitle = stringResource(R.string.about_translate_sub),
+        icon = Icons.Filled.Edit,
+        trailing = arrow,
+    )
+    SettingsDivider()
+    SettingsRow(
+        stringResource(R.string.about_source),
         Modifier.clickable { GearslipLinks.open(context, GearslipLinks.SOURCE) },
-        subtitle = "Read or change Gearslip's code under the AGPL",
+        subtitle = stringResource(R.string.about_source_sub),
         icon = Icons.Filled.Build,
         trailing = arrow,
     )
     SettingsDivider()
     SettingsRow(
-        "Voice credits",
-        subtitle = "Speech recognition by sherpa-onnx (Apache 2.0), with Kroko ASR by Banafo " +
-            "(CC BY-SA 4.0), and Parakeet and Canary by NVIDIA (CC BY 4.0)",
+        stringResource(R.string.about_voice_credits),
+        subtitle = stringResource(R.string.about_voice_credits_sub),
         icon = Icons.Filled.Favorite,
     )
 }

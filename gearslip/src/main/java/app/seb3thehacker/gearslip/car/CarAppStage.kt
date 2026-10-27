@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -11,6 +13,8 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import kotlin.math.hypot
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,10 +77,28 @@ fun CarAppStage(
             if (status.surfaceRequested) {
                 AppSurface(connection, frame, template, Modifier.fillMaxSize())
             }
+            // The docked player floats over one side of the map: the chrome keeps clear of it,
+            // and the app hears that side is covered, so its map centres in the rest.
+            val panel = LocalSidePanelInset.current
+            val panelAtStart = LocalCardsAtEnd.current
             TemplateChrome(
                 template,
-                Modifier.fillMaxSize().padding(top = if (embedded) 0.dp else CHROME_BAR, bottom = navBar),
+                Modifier.fillMaxSize().padding(
+                    top = if (embedded) 0.dp else CHROME_BAR,
+                    bottom = navBar,
+                    start = if (panelAtStart) panel else 0.dp,
+                    end = if (panelAtStart) 0.dp else panel,
+                ),
             )
+            if (panel > 0.dp) {
+                Box(
+                    Modifier
+                        .align(if (panelAtStart) Alignment.CenterStart else Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .width(panel)
+                        .covers("side-panel", if (panelAtStart) CoverEdge.START else CoverEdge.END),
+                )
+            }
             BottomCover(navBar, Modifier.align(Alignment.BottomCenter))
         }
         if (!embedded) ChromeBar(status, onDisconnect, Modifier.align(Alignment.TopCenter))
@@ -106,12 +128,16 @@ private fun AppSurface(
     val measured = bounds?.takeIf { width > 0 && height > 0 }?.let { cover?.visibleWithin(it, width, height) }
     // The card column moves the map's centre but isn't taken out of the stable area: apps size
     // their own overlays from it, and Vela's speedometer shrank to fit the strip right of the cards.
-    val measuredStable = bounds?.takeIf { width > 0 && height > 0 }?.let { cover?.visibleWithin(it, width, height, skip = CoverEdge.START) }
-    LaunchedEffect(template, size, measured, measuredStable) {
+    val cardsAtEnd = LocalCardsAtEnd.current
+    val cardEdge = cardEdge
+    val measuredStable = bounds?.takeIf { width > 0 && height > 0 }?.let { cover?.visibleWithin(it, width, height, skip = cardEdge) }
+    LaunchedEffect(template, size, measured, measuredStable, cardsAtEnd) {
         if (width > 0 && height > 0) {
-            val visible = visibleAreaFor(template, width, height, measured)
-            val stable = if (!isContentTemplate(template)) {
-                visibleAreaFor(template, width, height, measuredStable)
+            val visible = visibleAreaFor(template, width, height, measured, cardsAtEnd)
+            // Waze seems to centre its car in the stable area rather than the visible one, so it
+            // gets the cards taken out of that too. Test: see whether its car moves out from under them.
+            val stable = if (!isContentTemplate(template) && connection.appPackage != "com.waze") {
+                visibleAreaFor(template, width, height, measuredStable, cardsAtEnd)
             } else {
                 visible
             }
@@ -227,14 +253,14 @@ private fun ChromeBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                status.app ?: "Car app",
+                status.app ?: stringResource(R.string.stage_car_app),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
             GsIconButton(
                 androidx.compose.material.icons.Icons.Filled.Close,
-                "Close ${status.app ?: "the app"}",
+                status.app?.let { stringResource(R.string.stage_close, it) } ?: stringResource(R.string.stage_close_app),
                 onDisconnect,
                 size = 36.dp,
                 iconSize = 20.dp,

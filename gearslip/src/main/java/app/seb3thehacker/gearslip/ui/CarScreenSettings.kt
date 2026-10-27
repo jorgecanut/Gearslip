@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,19 +43,18 @@ internal fun CarScreenSection() {
 
     if (editingCar) {
         SizeDialog(
-            title = "Car screen size",
-            note = "Use this if the car's picture looks stretched. Enter the screen's real size, " +
-                "such as 1280x480. It takes effect the next time you connect.",
+            title = stringResource(R.string.screen_car_size),
+            note = stringResource(R.string.screen_car_size_note),
             initial = size,
-            clearLabel = "Use the car's",
+            clearLabel = stringResource(R.string.screen_use_cars),
             onDismiss = { editingCar = false },
             onSave = { CarSettings.setScreenSize(it); editingCar = false },
         )
     }
     if (editingPreview) {
         SizeDialog(
-            title = "Preview size",
-            note = "The size the car preview draws at, such as 1920x720.",
+            title = stringResource(R.string.screen_preview_size),
+            note = stringResource(R.string.screen_preview_note),
             initial = previewCustom,
             clearLabel = null,
             onDismiss = { editingPreview = false },
@@ -65,62 +66,62 @@ internal fun CarScreenSection() {
     }
 
     SettingsSection(
-        "Car screen",
-        footer = "Gearslip uses the size the car reports unless you set one.",
+        stringResource(R.string.screen_car_screen),
+        footer = stringResource(R.string.screen_footer),
     ) {
         SettingsRow(
-            "Screen size",
+            stringResource(R.string.screen_size),
             Modifier.clickable { editingCar = true },
-            subtitle = size?.let { "$it, set by you" } ?: "From the car",
+            subtitle = size?.let { stringResource(R.string.screen_set_by_you, it.toString()) } ?: stringResource(R.string.screen_from_car),
         )
         if (size != null) {
             SettingsDivider()
             SettingsRow(
-                "Crop the edges",
+                stringResource(R.string.screen_crop),
                 Modifier.selectable(fit == ScreenFit.CROP, role = Role.RadioButton) { CarSettings.setScreenFit(ScreenFit.CROP) },
-                subtitle = "For a car that cuts off the top and bottom, or the sides",
+                subtitle = stringResource(R.string.screen_crop_sub),
                 trailing = { RadioButton(selected = fit == ScreenFit.CROP, onClick = null) },
             )
             SettingsDivider()
             SettingsRow(
-                "Squash to fit",
+                stringResource(R.string.screen_squash),
                 Modifier.selectable(fit == ScreenFit.SQUASH, role = Role.RadioButton) { CarSettings.setScreenFit(ScreenFit.SQUASH) },
-                subtitle = "For a car that squeezes the whole picture, so circles look like ovals",
+                subtitle = stringResource(R.string.screen_squash_sub),
                 trailing = { RadioButton(selected = fit == ScreenFit.SQUASH, onClick = null) },
             )
         }
     }
 
-    SettingsSection("Car preview size") {
+    SettingsSection(stringResource(R.string.screen_preview_title)) {
         SettingsRow(
-            "Last car",
+            stringResource(R.string.screen_last_car),
             Modifier.selectable(preview == PreviewSize.LAST_CAR, role = Role.RadioButton) {
                 CarSettings.setPreviewSize(PreviewSize.LAST_CAR)
             },
-            subtitle = "The size of the last car you connected to",
+            subtitle = stringResource(R.string.screen_last_car_sub),
             trailing = { RadioButton(selected = preview == PreviewSize.LAST_CAR, onClick = null) },
         )
         SettingsDivider()
         SettingsRow(
-            "This screen",
+            stringResource(R.string.screen_this_screen),
             Modifier.selectable(preview == PreviewSize.FILL, role = Role.RadioButton) {
                 CarSettings.setPreviewSize(PreviewSize.FILL)
             },
-            subtitle = "Fills this device's screen, for a head unit running Gearslip itself",
+            subtitle = stringResource(R.string.screen_this_screen_sub),
             trailing = { RadioButton(selected = preview == PreviewSize.FILL, onClick = null) },
         )
         SettingsDivider()
         SettingsRow(
-            "Custom",
+            stringResource(R.string.screen_custom),
             Modifier.selectable(preview == PreviewSize.CUSTOM, role = Role.RadioButton) {
                 if (previewCustom == null) editingPreview = true else CarSettings.setPreviewSize(PreviewSize.CUSTOM)
             },
-            subtitle = previewCustom?.toString() ?: "Enter a size",
+            subtitle = previewCustom?.toString() ?: stringResource(R.string.screen_enter_size),
             trailing = { RadioButton(selected = preview == PreviewSize.CUSTOM, onClick = null) },
         )
         if (preview == PreviewSize.CUSTOM) {
             SettingsDivider()
-            SettingsRow("Change the custom size", Modifier.clickable { editingPreview = true })
+            SettingsRow(stringResource(R.string.screen_change_custom), Modifier.clickable { editingPreview = true })
         }
     }
 }
@@ -145,14 +146,14 @@ private fun SizeDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(note)
-                OutlinedTextField(width, { width = it.filter(Char::isDigit) }, label = { Text("Width") }, singleLine = true, keyboardOptions = number)
-                OutlinedTextField(height, { height = it.filter(Char::isDigit) }, label = { Text("Height") }, singleLine = true, keyboardOptions = number)
+                OutlinedTextField(width, { width = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.screen_width)) }, singleLine = true, keyboardOptions = number)
+                OutlinedTextField(height, { height = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.screen_height)) }, singleLine = true, keyboardOptions = number)
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(parsed) }, enabled = parsed != null) { Text("Save") } },
+        confirmButton = { TextButton(onClick = { onSave(parsed) }, enabled = parsed != null) { Text(stringResource(R.string.save)) } },
         dismissButton = {
             if (clearLabel != null) TextButton(onClick = { onSave(null) }) { Text(clearLabel) }
-            else TextButton(onClick = onDismiss) { Text("Cancel") }
+            else TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

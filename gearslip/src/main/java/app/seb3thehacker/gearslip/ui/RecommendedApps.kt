@@ -1,5 +1,8 @@
 package app.seb3thehacker.gearslip.ui
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
@@ -43,22 +46,22 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 
 /** A free app that runs on Gearslip's car screen, and where to get it. */
-private class RecommendedApp(val name: String, val packageName: String, val url: String, val about: String)
+private class RecommendedApp(val name: String, val packageName: String, val url: String, @param:StringRes val about: Int)
 
 private val recommended = listOf(
-    "Maps" to listOf(
-        RecommendedApp("Organic Maps", "app.organicmaps", "https://github.com/organicmaps/organicmaps", "Offline maps and routing."),
-        RecommendedApp("Vela Maps", "app.vela", "https://github.com/PimpinPumpkin/Vela", "Turn-by-turn navigation without Google."),
+    R.string.recommended_maps to listOf(
+        RecommendedApp("Organic Maps", "app.organicmaps", "https://github.com/organicmaps/organicmaps", R.string.recommended_about_organic),
+        RecommendedApp("Vela Maps", "app.vela", "https://github.com/PimpinPumpkin/Vela", R.string.recommended_about_vela),
     ),
-    "Music" to listOf(
-        RecommendedApp("ViVi Music", "com.vivi.vivimusic", "https://github.com/vivizzz007/vivi-music", "A YouTube Music player."),
-        RecommendedApp("Metrolist", "com.metrolist.music", "https://github.com/MetrolistGroup/Metrolist", "A YouTube Music player."),
+    R.string.recommended_music to listOf(
+        RecommendedApp("ViVi Music", "com.vivi.vivimusic", "https://github.com/vivizzz007/vivi-music", R.string.recommended_about_ytm),
+        RecommendedApp("Metrolist", "com.metrolist.music", "https://github.com/MetrolistGroup/Metrolist", R.string.recommended_about_ytm),
     ),
-    "Podcasts" to listOf(
-        RecommendedApp("AntennaPod", "de.danoeh.antennapod", "https://github.com/AntennaPod/AntennaPod", "Podcasts, chapters and all."),
+    R.string.recommended_podcasts to listOf(
+        RecommendedApp("AntennaPod", "de.danoeh.antennapod", "https://github.com/AntennaPod/AntennaPod", R.string.recommended_about_antennapod),
     ),
-    "Other cool apps" to listOf(
-        RecommendedApp("RF Sentinel", "com.rfsentinel.app", "https://github.com/CIS-C0/RFSentinel", "Spots trackers and cameras nearby."),
+    R.string.recommended_other to listOf(
+        RecommendedApp("RF Sentinel", "com.rfsentinel.app", "https://github.com/CIS-C0/RFSentinel", R.string.recommended_about_rfsentinel),
     ),
 )
 
@@ -70,10 +73,10 @@ fun RecommendedAppsScreen(onBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Recommended apps") },
+                title = { Text(stringResource(R.string.recommended_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -87,7 +90,7 @@ fun RecommendedAppsScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                RECOMMENDED_INTRO,
+                stringResource(R.string.recommended_intro),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -98,11 +101,8 @@ fun RecommendedAppsScreen(onBack: () -> Unit) {
     }
 }
 
-/** Hidden for now: off, neither Settings nor the setup guide shows the list. The code stays. */
+/** The list's entry in Settings, hidden for now. The setup guide always ends on the list. */
 internal const val SHOW_RECOMMENDED_APPS = false
-
-internal const val RECOMMENDED_INTRO =
-    "These free apps run on Gearslip's car screen. Each button opens the app's page on GitHub."
 
 /** The same green as the launcher's "works" check. */
 private val INSTALLED_GREEN = Color(0xFF43A047)
@@ -115,7 +115,7 @@ internal fun RecommendedAppsList(modifier: Modifier = Modifier) {
         for ((section, apps) in recommended) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    section,
+                    stringResource(section),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -145,12 +145,12 @@ private fun AppRow(app: RecommendedApp, onOpen: () -> Unit) {
             // Colours set outright: the setup guide draws this on its own background, with no
             // Surface to hand down a content colour, and unset text came out dark on dark.
             Text(app.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(app.about, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(app.about), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (icon != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = INSTALLED_GREEN, modifier = Modifier.size(16.dp))
                     Text(
-                        "Installed",
+                        stringResource(R.string.recommended_installed),
                         style = MaterialTheme.typography.labelLarge,
                         color = INSTALLED_GREEN,
                         modifier = Modifier.padding(start = 6.dp),

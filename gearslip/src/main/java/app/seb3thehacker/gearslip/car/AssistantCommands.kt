@@ -95,7 +95,12 @@ object AssistantCommands {
         heard: String,
     ): String? {
         // "use Organic Maps to get to X", "open OsmAnd and navigate to X": the app comes first.
-        var text = heard
+        // "take me home", "go home": no "to", so no trigger would catch them.
+        var text = if (Regex("^(?:(?:take|bring|get|drive) me|go|drive|head|get|directions|go back|head back) home$").matches(heard)) {
+            "navigate to home"
+        } else {
+            heard
+        }
         var leadingApp: String? = null
         Regex("^(?:use|using|with|open|in|on) (.+?) (?:to |and )(.+)$").find(text)?.let { m ->
             if (after(m.groupValues[2], NAVIGATE_TRIGGERS) != null) {
@@ -135,6 +140,20 @@ object AssistantCommands {
         val (place, nearby) = plainPlace(destination)
         destination = place
         if (destination.isBlank()) return "Where to?"
+        // "home", "work", or a name from Saved places: its address is the search.
+        var spoken: String? = null
+        SavedPlaces.match(context, destination)?.let { (slot, saved) ->
+            val name = when (slot) {
+                SavedPlaces.HOME -> "home"
+                SavedPlaces.WORK -> "work"
+                else -> saved.label
+            }
+            if (saved.address.isBlank()) {
+                return "You haven't saved a $name address yet. Add it under Saved places in Gearslip's settings on your phone."
+            }
+            destination = saved.address
+            spoken = if (slot == SavedPlaces.HOME) "home" else "to $name"
+        }
 
         val chosen = chosenApp ?: when {
             navApps.size == 1 -> navApps.first()
@@ -144,6 +163,7 @@ object AssistantCommands {
 
         CarServices.connectNav(template, frame, destination)
         navigator.home()
+        spoken?.let { return "Navigating $it with ${chosen.label}." }
         return if (nearby) "Finding the nearest $destination with ${chosen.label}." else "Navigating to $destination with ${chosen.label}."
     }
 

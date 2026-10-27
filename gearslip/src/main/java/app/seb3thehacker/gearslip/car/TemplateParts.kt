@@ -1,5 +1,8 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.input.pointer.changedToUp
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -34,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -228,6 +232,8 @@ internal fun RightEdgeControls(
     modifier: Modifier = Modifier,
     /** For the stack of map buttons alone, without the row of the app's own above it. */
     mapActionsModifier: Modifier = Modifier,
+    /** End normally; Start when the app's cards have moved to the far edge and these to the near one. */
+    alignment: Alignment.Horizontal = Alignment.End,
 ) {
     val connection = LocalCarAppConnection.current
     val actions = actionStrip?.actions.orEmpty().filter { it.isDrawable() }
@@ -244,6 +250,11 @@ internal fun RightEdgeControls(
     // Kept up while the knob is on one of them, or the ring would fade out along with the button.
     var holdsFocus by remember { mutableStateOf(false) }
     val visible = awake || pan || holdsFocus
+    // With the player beside the map there is no room for the app's row and the map controls
+    // both, so the app's own buttons fold behind one; opening it swaps them in for the map's.
+    val folded = LocalSidePanelInset.current > 0.dp && actions.size > 1
+    var open by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(visible, folded) { if (!visible || !folded) open = false }
     val alpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (visible) 1f else RESTING_ALPHA,
         animationSpec = androidx.compose.animation.core.tween(if (visible) 150 else 500),
@@ -262,18 +273,45 @@ internal fun RightEdgeControls(
                     }
                 }
             },
-        horizontalAlignment = Alignment.End,
+        horizontalAlignment = alignment,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (actions.isNotEmpty()) {
+        if (folded) {
+            val scheme = MaterialTheme.colorScheme
+            GsIconButton(
+                Icons.Filled.MoreVert,
+                stringResource(R.string.car_group_more),
+                onClick = { open = !open },
+                colors = GsColors(if (open) scheme.primary else scheme.surfaceContainerHighest, if (open) scheme.onPrimary else scheme.onSurface),
+                size = ICON_BUTTON_SIZE,
+                iconSize = ICON_BUTTON_GLYPH,
+                shape = androidx.compose.foundation.shape.CircleShape,
+            )
+            if (open) {
+                // A tap on any of them closes the stack again; the tap still reaches the button.
+                Column(
+                    Modifier.pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                if (awaitPointerEvent(PointerEventPass.Initial).changes.any { it.changedToUp() }) open = false
+                            }
+                        }
+                    },
+                    horizontalAlignment = alignment,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    actions.forEach { ActionButton(it) }
+                }
+            }
+        } else if (actions.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 actions.forEach { ActionButton(it) }
             }
         }
-        if (mapActions.isNotEmpty()) {
+        if (mapActions.isNotEmpty() && !(folded && open)) {
             Column(
                 mapActionsModifier,
-                horizontalAlignment = Alignment.End,
+                horizontalAlignment = alignment,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 mapActions.forEach { ActionButton(it) }
@@ -423,7 +461,7 @@ internal fun AutoStartButton(action: Action, modifier: Modifier = Modifier) {
             ) {
                 if (hasGlyph) CarGlyph(action.icon, Modifier.size(24.dp).align(Alignment.CenterStart))
                 Text(
-                    action.title.text().ifEmpty { "Start" },
+                    action.title.text().ifEmpty { stringResource(R.string.template_start) },
                     style = ChromeType.title,
                     maxLines = 1,
                 )

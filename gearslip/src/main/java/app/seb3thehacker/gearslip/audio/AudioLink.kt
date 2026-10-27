@@ -53,6 +53,10 @@ class AudioLink(
     private var bytes = 0L
     private var dropped = 0
     @Volatile private var configTimer: Thread? = null
+    /** Underflows the car reported this drive, and the silence still to slip in ahead of the next chunk. */
+    private var underflows = 0
+    @Volatile private var padMs = 0
+    @Volatile private var pendingPadMs = 0
     private val ackLock = Object()
     /** Only for a sink that takes AAC and nothing else; PCM sinks get the capture as it is. */
     @Volatile private var aac: AacEncoder? = null
@@ -181,6 +185,8 @@ class AudioLink(
                 }
             }
 
+            MSG_UNDERFLOW -> onUnderflow()
+
             MSG_ACK -> {
                 val acked = Wire.varint(Wire.fields(body), 2)?.toInt() ?: 1
                 synchronized(ackLock) {
@@ -223,6 +229,26 @@ class AudioLink(
         // A ducking request leaves the music playing; a loss means another source has the speakers.
         if (had && (state == FOCUS_STATE_LOSS || state == FOCUS_STATE_LOSS_TRANSIENT)) onTakenBack()
     }
+
+    /**
+     * The car ran out of sound to play (AudioUnderflowNotification, no body): its buffer emptied
+     * before the next chunk arrived, which the driver hears as a gap. Capture runs in real time, so
+     * the car's buffer only ever holds what the window lets through. A little silence slipped in
+     * ahead of the next chunk puts it that far ahead, so the next slow patch is soaked up rather
+     * than heard. Capped, as each step adds a little delay to the music.
+     */
+    private fun onUnderflow() {
+        underflows++
+        val step = if (started && padMs < MAX_PAD_MS) PAD_STEP_MS else 0
+        padMs += step
+        pendingPadMs += step
+        if (underflows <= 3 || underflows % 20 == 0) {
+            GearslipLog.w("$tag: <- AudioUnderflow ($underflows this drive) - running ${padMs}ms ahead now")
+        }
+    }
+
+    /** Silence for [ms], whole frames of this sink's format. */
+    private fun silence(ms: Int): ByteArray = ByteArray(sampleRate * ms / 1000 * channels * 2)
 
     override fun start() {
         if (!ready || started) return
@@ -381,10 +407,23 @@ class AudioLink(
         GearslipLog.i("$tag: -> Stop, AudioFocusRequest(RELEASE) after $chunks chunks / $bytes bytes")
         chunks = 0
         bytes = 0
+        // A new stream starts with the car's buffer empty again: earn the lead back if it's needed.
+        padMs = 0
+        pendingPadMs = 0
     }
 
     override fun write(pcm: ByteArray, size: Int) {
         if (!started) return
+        val pad = pendingPadMs
+        if (pad > 0) {
+            pendingPadMs = 0
+            val quiet = silence(pad)
+            writeNow(quiet, quiet.size)
+        }
+        writeNow(pcm, size)
+    }
+
+    private fun writeNow(pcm: ByteArray, size: Int) {
         val encoder = aac
         if (encoder == null) {
             send(pcm.copyOf(size))
@@ -470,6 +509,9 @@ class AudioLink(
         private const val MSG_CONFIG = 32771
         private const val MSG_ACK = 32772
         private const val MSG_SETUP_ANSWER = 255
+        private const val MSG_UNDERFLOW = 32779 // 0x800B, car to phone, no body
+        private const val PAD_STEP_MS = 60
+        private const val MAX_PAD_MS = 240
         private const val STATUS_READY = 2
         private const val FOCUS_GAIN = 1
         private const val FOCUS_GAIN_TRANSIENT_MAY_DUCK = 3

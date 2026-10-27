@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import android.graphics.Rect
 import androidx.compose.foundation.layout.widthIn
@@ -99,11 +101,12 @@ fun TemplateChrome(template: Template?, modifier: Modifier = Modifier) {
  * A template that isn't map-backed covers the surface completely, and reporting an empty
  * rectangle is how the app is told to stop bothering.
  */
-fun visibleAreaFor(template: Template?, width: Int, height: Int, measured: Rect? = null): Rect = when (template) {
+fun visibleAreaFor(template: Template?, width: Int, height: Int, measured: Rect? = null, cardsAtEnd: Boolean = false): Rect = when (template) {
     is NavigationTemplate -> measured ?: Rect(0, 0, width, height)
     is MapWithContentTemplate, is MapTemplate, is PlaceListNavigationTemplate,
     is RoutePreviewNavigationTemplate, is PlaceListMapTemplate,
-    -> measured ?: Rect((width * CARD_COLUMN_FRACTION).toInt(), 0, width, height)
+    -> measured ?: if (cardsAtEnd) Rect(0, 0, (width * (1 - CARD_COLUMN_FRACTION)).toInt(), height)
+    else Rect((width * CARD_COLUMN_FRACTION).toInt(), 0, width, height)
     null -> Rect(0, 0, width, height)
     else -> Rect(0, 0, 0, 0)
 }
@@ -153,6 +156,24 @@ internal class ChromeCover {
 internal val LocalChromeCover = compositionLocalOf<ChromeCover?> { null }
 
 /**
+ * The app's cards go to the far edge of the map and its buttons to the near one, set while the
+ * player is docked on the left: the player, the map and the cards each keep their own space
+ * instead of the cards crowding up against the player.
+ */
+internal val LocalCardsAtEnd = compositionLocalOf { false }
+
+/**
+ * How much of the map's width the docked player floats over, on the side opposite the cards. The
+ * map itself runs underneath at full size; the app is told this part is covered, and the chrome
+ * keeps clear of it.
+ */
+internal val LocalSidePanelInset = compositionLocalOf { 0.dp }
+
+/** The edge the app's cards cover, and the one its map buttons do. */
+internal val cardEdge @Composable get() = if (LocalCardsAtEnd.current) CoverEdge.END else CoverEdge.START
+internal val buttonEdge @Composable get() = if (LocalCardsAtEnd.current) CoverEdge.START else CoverEdge.END
+
+/**
  * The floating nav bar, as far as the app's map is concerned. Its full [height] at once rather
  * than following the slide, so the app is told once instead of every frame.
  */
@@ -196,12 +217,15 @@ private fun NavigationBars(
 ) {
     val connection = LocalCarAppConnection.current
     val pan by connection.panMode.collectAsState()
+    val atEnd = LocalCardsAtEnd.current
+    val cardEdge = cardEdge
+    val buttonEdge = buttonEdge
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
         val column = cardColumnWidth(maxWidth)
-        Row(Modifier.fillMaxSize()) {
+        val cards = @Composable {
             if (routing != null || estimate != null) {
                 Column(
-                    Modifier.width(column).fillMaxHeight().covers("nav-cards", CoverEdge.START).padding(12.dp),
+                    Modifier.width(column).fillMaxHeight().covers("nav-cards", cardEdge).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     routing?.let { RoutingCard(it, Modifier.fillMaxWidth()) }
@@ -209,13 +233,20 @@ private fun NavigationBars(
                     estimate?.let { TravelEstimateCard(it, Modifier.fillMaxWidth()) }
                 }
             }
-            Spacer(Modifier.weight(1f))
+        }
+        val buttons = @Composable {
             RightEdgeControls(
                 if (pan) null else template.actionStrip,
                 template.mapActionStrip,
                 Modifier.padding(12.dp),
-                mapActionsModifier = Modifier.covers("nav-buttons", CoverEdge.END),
+                mapActionsModifier = Modifier.covers("nav-buttons", buttonEdge),
+                alignment = if (atEnd) Alignment.Start else Alignment.End,
             )
+        }
+        Row(Modifier.fillMaxSize()) {
+            if (atEnd) buttons() else cards()
+            Spacer(Modifier.weight(1f))
+            if (atEnd) cards() else buttons()
         }
     }
 }
@@ -228,7 +259,7 @@ private fun NavigationBars(
 private fun RoutingCard(info: RoutingInfo, modifier: Modifier = Modifier) {
     if (info.isLoading) {
         ChromeSurface(modifier) {
-            Text("Finding a route…", Modifier.padding(horizontal = 18.dp, vertical = 16.dp), style = ChromeType.title)
+            Text(stringResource(R.string.nav_finding_route), Modifier.padding(horizontal = 18.dp, vertical = 16.dp), style = ChromeType.title)
         }
         return
     }
@@ -283,7 +314,7 @@ private fun RoutingCard(info: RoutingInfo, modifier: Modifier = Modifier) {
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Then", style = ChromeType.label, color = scheme.onSurfaceVariant)
+                    Text(stringResource(R.string.nav_then), style = ChromeType.label, color = scheme.onSurfaceVariant)
                     Spacer(Modifier.width(10.dp))
                     CarGlyph(next.maneuver?.icon, Modifier.size(28.dp))
                     val nextText = next.cue.text().ifEmpty { next.road.text() }
@@ -345,7 +376,7 @@ private fun LaneTile(lane: Lane) {
     ) {
         Icon(
             Icons.Filled.KeyboardArrowUp,
-            contentDescription = if (recommended) "Recommended lane" else "Lane",
+            contentDescription = stringResource(if (recommended) R.string.nav_lane_recommended else R.string.nav_lane),
             tint = if (recommended) MaterialTheme.colorScheme.onPrimaryContainer
             else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp).rotate(shown.turnDegrees()),
@@ -398,7 +429,7 @@ private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Mo
                     )
                 }
                 val detail = listOfNotNull(
-                    arrival.takeIf { it.isNotEmpty() }?.let { "Arrive $it" },
+                    arrival.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.nav_arrive, it) },
                     distance.takeIf { it.isNotEmpty() },
                 ).joinToString("  •  ")
                 if (detail.isNotEmpty()) {
@@ -413,7 +444,7 @@ private fun TravelEstimateCard(estimate: TravelEstimate, modifier: Modifier = Mo
             // pops the on-screen card, leaving the app still believing it is navigating.
             GsIconButton(
                 Icons.Filled.Close,
-                "Stop navigating",
+                stringResource(R.string.nav_stop),
                 { connection.stopNavigating() },
                 colors = GsColors(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.onSurface),
                 size = 52.dp,
@@ -445,12 +476,14 @@ private fun MapPaneLayout(
     // Pan mode hands the whole screen to the map, leaving only its own controls.
     val pan by connection.panMode.collectAsState()
     val edgeActions = (actionStrip?.actions.orEmpty() + mapActionStrip?.actions.orEmpty()).map { it.identity() }.toSet()
+    val atEnd = LocalCardsAtEnd.current
+    val cardEdge = cardEdge
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
         if (!pan) {
             ChromeSurface(
                 Modifier
-                    .align(Alignment.TopStart)
-                    .covers("map-pane", CoverEdge.START)
+                    .align(if (atEnd) Alignment.TopEnd else Alignment.TopStart)
+                    .covers("map-pane", cardEdge)
                     .padding(12.dp)
                     .width(cardColumnWidth(maxWidth) - 24.dp)
                     .let { if (fullHeight) it.height(maxHeight - 24.dp) else it.heightIn(max = maxHeight - 24.dp) },
@@ -463,7 +496,8 @@ private fun MapPaneLayout(
         RightEdgeControls(
             if (pan) null else actionStrip,
             mapActionStrip,
-            Modifier.align(Alignment.TopEnd).padding(12.dp),
+            Modifier.align(if (atEnd) Alignment.TopStart else Alignment.TopEnd).padding(12.dp),
+            alignment = if (atEnd) Alignment.Start else Alignment.End,
         )
     }
 }
@@ -543,7 +577,7 @@ private fun RoutePreviewChrome(template: RoutePreviewNavigationTemplate, modifie
                 )
                 Box(Modifier.weight(1f, fill = false)) {
                     if (template.isLoading) {
-                        Text("Finding routes…", Modifier.padding(14.dp), style = ChromeType.title)
+                        Text(stringResource(R.string.nav_finding_routes), Modifier.padding(14.dp), style = ChromeType.title)
                     } else {
                         ItemListColumn(template.itemList)
                     }
@@ -567,7 +601,7 @@ private fun ListPane(
     ChromeSurface(modifier, shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)) {
         Column {
             HeaderBar(title, startAction)
-            if (loading) Text("Loading…", Modifier.padding(14.dp), style = ChromeType.title)
+            if (loading) Text(stringResource(R.string.media_loading), Modifier.padding(14.dp), style = ChromeType.title)
             else ItemListColumn(itemList)
         }
     }

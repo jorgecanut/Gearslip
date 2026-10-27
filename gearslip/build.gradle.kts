@@ -38,9 +38,9 @@ android {
         applicationId = "app.seb3thehacker.gearslip"
         minSdk = 31
         targetSdk = 37
-        versionCode = 12
+        versionCode = 13
         // -PgearslipVersionName=0.1.99-test makes a build that thinks it's older, to try the updater.
-        versionName = project.findProperty("gearslipVersionName")?.toString() ?: "0.3.12-aacfix2"
+        versionName = project.findProperty("gearslipVersionName")?.toString() ?: "0.3.31-aacfix"
         manifestPlaceholders["appLabel"] = "Gearslip"
         // Where opted-in phones send their daily usage note: the stats-worker/ Worker's address,
         // set as gearslipStatsUrl in gradle.properties. Left empty, nothing is ever sent.
@@ -74,6 +74,9 @@ android {
             applicationIdSuffix = ".dev"
             signingConfigs.findByName("release")?.let { signingConfig = it }
             manifestPlaceholders["appLabel"] = "Gearslip Debug"
+            // English (XA) and Arabic (XB) under the phone's languages: stretched, accented and
+            // right-to-left text, which shows what's still hardcoded and what doesn't fit.
+            isPseudoLocalesEnabled = true
             // Shrunk with R8 like a release, so a debug install behaves like what ships (a keep
             // rule missing for release shows up here first). -PnoR8 skips it for a quicker build.
             if (!project.hasProperty("noR8")) {
@@ -86,6 +89,18 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    // Lists each language that has a translation in the app's locale config, so Android 13+
+    // offers it under the system's per-app languages. English is the unqualified default
+    // (res/resources.properties).
+    androidResources {
+        generateLocaleConfig = true
+    }
+
+    lint {
+        // Weblate fills languages in a string at a time; the rest fall back to English.
+        disable += "MissingTranslation"
     }
 
     compileOptions {

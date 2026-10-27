@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -300,7 +302,7 @@ private fun DetailRow(row: CarRow, placeName: String) {
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.Icon(Icons.Filled.Call, null, Modifier.size(20.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Call", style = ChromeType.body)
+                    Text(stringResource(R.string.dialer_call), style = ChromeType.body)
                 }
             }
         }

@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -52,8 +54,8 @@ fun PhoneAppsScreen() {
         value = PhoneApps.cached() ?: withContext(Dispatchers.IO) { PhoneApps.installed(context).also { PhoneApps.warm(context) } }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
-        ScreenHeader("Screen sharing")
+    Column(Modifier.fillMaxSize().padding(start = 20.dp, end = 20.dp, top = 12.dp)) {
+        ScreenHeader(stringResource(R.string.app_screen_sharing))
         Spacer(Modifier.height(12.dp))
         if (!TouchRelayService.enabled) {
             TouchRelayWarning()
@@ -63,7 +65,7 @@ fun PhoneAppsScreen() {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 108.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -94,11 +96,11 @@ private fun TouchRelayWarning() {
         ) {
             Icon(Icons.Filled.Warning, contentDescription = null)
             Text(
-                "Touch is off. Enable Gearslip under Settings > Accessibility on the phone.",
+                stringResource(R.string.phoneapps_touch_off),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
-            GsButton(onClick = { PhoneApps.openAccessibilitySettings(context) }) { Text("Open") }
+            GsButton(onClick = { PhoneApps.openAccessibilitySettings(context) }) { Text(stringResource(R.string.guide_open)) }
         }
     }
 }

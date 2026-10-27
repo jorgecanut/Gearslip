@@ -1,5 +1,6 @@
 package app.seb3thehacker.gearslip.car
 
+import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import android.content.Context
 import app.seb3thehacker.gearslip.AppSettings
 import app.seb3thehacker.gearslip.audio.CarAudio
@@ -64,14 +65,17 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_AUTOPLAY = "car_autoplay"
     private const val KEY_PLAYER_TITLE = "car_player_title"
     private const val KEY_PLAYER_LEFT = "car_player_left"
+    private const val KEY_MORE_LYRICS = "car_more_lyrics"
     private const val KEY_THEME = "car_app_theme"
     private const val KEY_UI_THEME = "car_ui_theme"
+    private const val KEY_DARK_STYLE = "car_dark_style"
     private const val KEY_PINNED = "car_pinned_apps"
     private const val KEY_APP_ORDER = "car_app_order"
     private const val KEY_EXPERIMENTAL_FEATURES = "car_experimental_features"
     private const val KEY_SYSTEM_SPEECH = "car_system_speech"
     private const val KEY_CAR_SENSORS = "car_sensors_enabled"
     private const val KEY_ADAPTIVE_VIDEO = "adaptive_video_enabled"
+private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
     private const val KEY_DEBUG_BADGE = "debug_badge"
     private const val KEY_SEEN_SAFETY_WARNING = "car_seen_safety_warning"
     private const val KEY_UNITS = "car_units"
@@ -104,8 +108,13 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val autoplayFlow = MutableStateFlow(false)
     private val playerTitleFlow = MutableStateFlow(false)
     private val playerLeftFlow = MutableStateFlow(false)
+    private val moreLyricsFlow = MutableStateFlow(true)
     private val themeFlow = MutableStateFlow(AppTheme.PHONE)
     val appTheme: StateFlow<AppTheme> = themeFlow
+    private val darkStyleFlow = MutableStateFlow(DarkStyle.BLACK)
+
+    /** How dark the car's dark mode goes; black until the driver picks another. */
+    val darkStyle: StateFlow<DarkStyle> = darkStyleFlow
     private val uiThemeFlow = MutableStateFlow(GsThemes.default.id)
 
     /** Id of the [GsTheme] controls are drawn in; an unknown id falls back to the default. */
@@ -116,6 +125,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private val systemSpeechFlow = MutableStateFlow(false)
     private val carSensorsFlow = MutableStateFlow(false)
     private val adaptiveVideoFlow = MutableStateFlow(false)
+    private val clusterVideoFlow = MutableStateFlow(false)
     private val debugBadgeFlow = MutableStateFlow(true)
     private val seenSafetyWarningFlow = MutableStateFlow(false)
     private val unitsFlow = MutableStateFlow(Units.AUTO)
@@ -224,6 +234,9 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     /** The home screen's player sits left of the map instead of right of it. */
     val playerLeft: StateFlow<Boolean> = playerLeftFlow
 
+    /** Lyrics from BetterLyrics and KuGou as well as LRCLIB; off sends song details to LRCLIB only. */
+    val moreLyrics: StateFlow<Boolean> = moreLyricsFlow
+
     val scale: StateFlow<Float> = scaleFlow
     val openOnConnect: StateFlow<String> = openFlow
     val nightMode: StateFlow<NightMode> = nightFlow
@@ -282,6 +295,13 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
      */
     val adaptiveVideoEnabled: StateFlow<Boolean> = adaptiveVideoFlow
 
+    /**
+     * Gearslip's turn card on a car's instrument-cluster screen, for a car that offers one as a
+     * second video sink. Applies only while [experimentalFeaturesEnabled] is on too, and from the
+     * next connection; untested in a car so far.
+     */
+    val clusterVideoEnabled: StateFlow<Boolean> = clusterVideoFlow
+
     /** Debug builds only: the car screen's DEBUG BUILD badge, which screenshots for the README leave out. */
     val debugBadge: StateFlow<Boolean> = debugBadgeFlow
 
@@ -312,10 +332,14 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         themeFlow.value = runCatching {
             AppTheme.valueOf(AppSettings.getString(app, KEY_THEME, AppTheme.PHONE.name))
         }.getOrDefault(AppTheme.PHONE)
+        darkStyleFlow.value = runCatching {
+            DarkStyle.valueOf(AppSettings.getString(app, KEY_DARK_STYLE, DarkStyle.BLACK.name))
+        }.getOrDefault(DarkStyle.BLACK)
         uiThemeFlow.value = AppSettings.getString(app, KEY_UI_THEME, GsThemes.default.id)
         autoplayFlow.value = AppSettings.getString(app, KEY_AUTOPLAY, "false") == "true"
         playerTitleFlow.value = AppSettings.getString(app, KEY_PLAYER_TITLE, "false") == "true"
         playerLeftFlow.value = AppSettings.getString(app, KEY_PLAYER_LEFT, "false") == "true"
+        moreLyricsFlow.value = AppSettings.getString(app, KEY_MORE_LYRICS, "true") == "true"
         pipeAudioFlow.value = AppSettings.getString(app, KEY_PIPE_AUDIO, "true") == "true"
         // Until the driver sets it, on for USB audio and off for Bluetooth, where the map app's
         // own voice already reaches the car.
@@ -333,6 +357,7 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         systemSpeechFlow.value = AppSettings.getString(app, KEY_SYSTEM_SPEECH, "false") == "true"
         carSensorsFlow.value = AppSettings.getString(app, KEY_CAR_SENSORS, "false") == "true"
         adaptiveVideoFlow.value = AppSettings.getString(app, KEY_ADAPTIVE_VIDEO, "false") == "true"
+        clusterVideoFlow.value = AppSettings.getString(app, KEY_CLUSTER_VIDEO, "false") == "true"
         debugBadgeFlow.value = AppSettings.getString(app, KEY_DEBUG_BADGE, "true") == "true"
         seenSafetyWarningFlow.value = AppSettings.getString(app, KEY_SEEN_SAFETY_WARNING, "false") == "true"
         unitsFlow.value = runCatching {
@@ -378,6 +403,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
         AppSettings.putString(app, KEY_THEME, theme.name)
     }
 
+    fun setDarkStyle(style: DarkStyle) {
+        darkStyleFlow.value = style
+        AppSettings.putString(app, KEY_DARK_STYLE, style.name)
+    }
+
     fun setUiTheme(id: String) {
         uiThemeFlow.value = id
         AppSettings.putString(app, KEY_UI_THEME, id)
@@ -391,6 +421,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     fun setPlayerLeft(on: Boolean) {
         playerLeftFlow.value = on
         AppSettings.putString(app, KEY_PLAYER_LEFT, on.toString())
+    }
+
+    fun setMoreLyrics(on: Boolean) {
+        moreLyricsFlow.value = on
+        AppSettings.putString(app, KEY_MORE_LYRICS, on.toString())
     }
 
     fun setAutoplay(on: Boolean) {
@@ -439,6 +474,11 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     fun setAdaptiveVideoEnabled(on: Boolean) {
         adaptiveVideoFlow.value = on
         AppSettings.putString(app, KEY_ADAPTIVE_VIDEO, on.toString())
+    }
+
+    fun setClusterVideoEnabled(on: Boolean) {
+        clusterVideoFlow.value = on
+        AppSettings.putString(app, KEY_CLUSTER_VIDEO, on.toString())
     }
 
     fun setCarSensorsEnabled(on: Boolean) {

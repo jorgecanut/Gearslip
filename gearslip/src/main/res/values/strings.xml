@@ -1,4 +1,876 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="touch_relay_description">Lets Gearslip replay touches from the car screen onto the phone while mirroring. Gearslip does not read screen content.</string>
+
+    <!-- Setup guide -->
+    <string name="guide_usage_title">Help other drivers.</string>
+    <string name="guide_safety_title">Drive safely.</string>
+    <string name="guide_safety_body">Gearslip is unofficial. No carmaker made or checked it, and it can fail without warning. Set it up before you go, then keep your eyes on the road.</string>
+    <string name="guide_mic_title">Microphone.</string>
+    <string name="guide_mic_body">Gearslip uses it to send your music to the car and to hear you when you ask for something or reply to a message. What you say stays on the phone.</string>
+    <string name="guide_location_title">Location.</string>
+    <string name="guide_location_body">The car\'s map and nearby searches need it. Without it, the dashboard shows no map.</string>
+    <string name="guide_calendar_title">Calendar.</string>
+    <string name="guide_calendar_body">The car screen shows your next event. Gearslip only reads your calendar.</string>
+    <string name="guide_calls_title">Calls and contacts.</string>
+    <string name="guide_calls_body">The car shows who\'s calling by name, and its Phone app can dial a number or call one of your contacts. Gearslip only reads them.</string>
+    <string name="guide_bluetooth_title">Bluetooth.</string>
+    <string name="guide_bluetooth_body">The first time you plug in, Gearslip offers to pair your phone with the car, so calls play through its speakers.</string>
+    <string name="guide_notifications_title">Notifications.</string>
+    <string name="guide_notifications_body">While Gearslip is connected, it shows a notification with a button to stop. Without this, Android hides it.</string>
+    <string name="guide_messages_title">Messages.</string>
+    <string name="guide_messages_body">The car shows your messages, reads them aloud and lets you reply. Turn Gearslip on in the list this opens.</string>
+    <string name="guide_android_auto_title">Turn off Android Auto.</string>
+    <string name="guide_android_auto_body">Android Auto is still installed, and it fights Gearslip for the car\'s USB connection. Disable or uninstall it on the screen this opens.</string>
+    <string name="guide_default_title">Choose Gearslip.</string>
+    <string name="guide_default_body">If your phone asks which app to open when you plug into the car, pick Gearslip and tap Always.</string>
+    <string name="guide_audio_title">Car audio.</string>
+    <string name="guide_audio_body">Pick how music reaches the car. Calls go over Bluetooth either way.</string>
+    <string name="guide_voice_title">Voice.</string>
+    <string name="guide_voice_body">Ask for directions, music, or a call by voice. Your phone turns speech into text by itself, and nothing you say leaves it. It needs %1$d MB, downloaded once. Use Wi-Fi if you can.</string>
+    <string name="guide_audio_prompt_title">No audio prompt.</string>
+    <string name="guide_audio_prompt_body">Run this from a computer with USB debugging on, and Android trusts Gearslip with your audio for good. Without it, you tap Start once each drive.</string>
+    <string name="guide_readable_title">Readable notifications.</string>
+    <string name="guide_readable_body">While audio goes to the car, Android hides what notifications say, as if you were sharing your screen. This lets Gearslip show them during a drive and hide them again after.</string>
+    <string name="guide_answer_title">Answer calls.</string>
+    <string name="guide_answer_body">Make Gearslip your caller ID app, and the car can answer and decline calls. Without it, calls still ring, but only the phone can answer them.</string>
+    <string name="guide_apps_title">Good company.</string>
+    <string name="guide_buttons_title">Your buttons.</string>
+    <string name="guide_buttons_body">Pick how the car\'s buttons look. Change it any time in the car\'s settings.</string>
+    <string name="guide_open_notification_access">Open notification access</string>
+    <string name="guide_open_android_auto">Open Android Auto\'s app info</string>
+    <string name="guide_download_voice">Download voice</string>
+    <string name="guide_set_up">Set up</string>
+    <string name="guide_voice_downloading">Downloading, %1$d%%. You can carry on; it keeps going.</string>
+    <string name="guide_voice_ready">Voice is ready.</string>
+    <string name="guide_voice_failed">The download didn\'t finish. Tap Download voice to try again.</string>
+    <string name="guide_audio_bluetooth">Bluetooth</string>
+    <string name="guide_recommended">Recommended</string>
+    <string name="guide_audio_bluetooth_body">No prompt each drive, and your map app\'s voice reaches the car.</string>
+    <string name="guide_audio_usb">Through Gearslip</string>
+    <string name="guide_audio_usb_body">Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound.</string>
+    <string name="guide_optional">OPTIONAL</string>
+    <string name="guide_already_allowed">Already allowed.</string>
+    <string name="guide_scroll_more">Scroll for more  ↓</string>
+    <string name="guide_allow">Allow</string>
+    <string name="guide_skip">Skip for now</string>
+    <string name="guide_open">Open</string>
+    <string name="guide_next">Next</string>
+    <string name="guide_done">Done</string>
+    <string name="guide_back">Back</string>
+
+    <!-- Usage notes -->
+    <string name="usage_intro">Turn this on, and Gearslip sends a short note when you open it and after each drive. &lt;b&gt;The note holds no name, account, or location. A random number counts your phone once, and the server keeps no IP address.&lt;/b&gt; The notes show which cars work and where the others fail.</string>
+    <string name="usage_send">Send usage notes</string>
+    <string name="usage_also_share">Also share</string>
+    <string name="usage_share_android">Android version and system</string>
+    <string name="usage_share_phone">Phone model</string>
+    <string name="usage_share_cars">Each car and whether it connected</string>
+    <string name="usage_share_drives">Each drive and how it ended</string>
+    <string name="usage_what_sent">What gets sent</string>
+    <string name="usage_what_sent_sub">Every field, exactly as it goes out</string>
+    <string name="usage_hide_note">Hide the note</string>
+    <string name="usage_show_note">Show the note</string>
+    <string name="usage_example">Example, not sent: one drive adds this to \"sessions\"</string>
+    <string name="usage_no_server">This build has no stats server, so it sends nothing</string>
+    <string name="usage_debug_build">Debug build: notes are kept apart and never counted in the stats</string>
+    <string name="worked_title">Gearslip worked with your %1$s</string>
+    <string name="worked_title_unknown">Gearslip worked with your car</string>
+    <string name="worked_body">Share that so the next driver knows it works? No name, account, or location.</string>
+    <string name="worked_not_now">Not now</string>
+    <string name="worked_share">Share</string>
+
+
+
+    <!-- Recommended apps -->
+    <string name="recommended_intro">These free apps run on Gearslip\'s car screen. Each button opens the app\'s page on GitHub.</string>
+    <string name="recommended_title">Recommended apps</string>
+    <string name="back">Back</string>
+    <string name="recommended_installed">Installed</string>
+    <string name="recommended_maps">Maps</string>
+    <string name="recommended_music">Music</string>
+    <string name="recommended_podcasts">Podcasts</string>
+    <string name="recommended_other">Other cool apps</string>
+    <string name="recommended_about_organic">Offline maps and routing.</string>
+    <string name="recommended_about_vela">Turn-by-turn navigation without Google.</string>
+    <string name="recommended_about_ytm">A YouTube Music player.</string>
+    <string name="recommended_about_antennapod">Podcasts, chapters and all.</string>
+    <string name="recommended_about_rfsentinel">Spots trackers and cameras nearby.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_whats_new">What\'s new</string>
+    <string name="settings_whats_new_sub">Read the %1$s release notes on GitHub</string>
+    <string name="settings_support">Support Gearslip</string>
+    <string name="settings_support_footer">Gearslip is free, with no ads and no tracking. Your support keeps it going.</string>
+    <string name="settings_usage_notes">Usage notes</string>
+    <string name="settings_updates">Updates</string>
+    <string name="settings_about">About</string>
+    <string name="settings_replay">Replay the setup guide</string>
+    <string name="settings_replay_sub">Go through the first-run steps again</string>
+    <string name="settings_connection">Connection</string>
+    <string name="settings_use_in_car">Use Gearslip in the car</string>
+    <string name="settings_use_in_car_on">Gearslip answers when you plug into a car</string>
+    <string name="settings_use_in_car_off">Off: Android Auto can take the connection instead</string>
+    <string name="settings_apps">Apps</string>
+    <string name="settings_certificate">Certificate</string>
+    <string name="cert_next_connection">Changes take effect on the next connection.</string>
+    <string name="cert_checking">Checking…</string>
+    <string name="cert_valid_until">Valid until %1$s</string>
+    <string name="cert_hide_details">Hide details</string>
+    <string name="cert_show_details">Show details</string>
+    <string name="cert_subject">Subject</string>
+    <string name="cert_issuer">Issuer</string>
+    <string name="cert_downloading">Downloading…</string>
+    <string name="cert_download">Download from aasdk</string>
+    <string name="cert_downloaded">Certificate downloaded.</string>
+    <string name="cert_download_failed">Download failed: %1$s</string>
+    <string name="cert_download_sub">The certificate the open-source aasdk project publishes on GitHub. Most cars accept it, but some from around 2020 on reject it</string>
+    <string name="cert_import">Import my own file</string>
+    <string name="cert_import_sub">A .p12 file with its private key. Use your own when your car rejects the aasdk certificate</string>
+    <string name="cert_remove_imported">Remove imported certificate</string>
+    <string name="cert_remove_downloaded">Remove downloaded certificate</string>
+    <string name="cert_removed_imported">Removed the imported certificate.</string>
+    <string name="cert_removed_downloaded">Removed the downloaded certificate.</string>
+    <string name="cert_imported">Certificate imported.</string>
+    <string name="cert_import_failed">Could not import: wrong password, or not a PKCS#12 file with a private key.</string>
+    <string name="cert_password_title">Certificate password</string>
+    <string name="cert_password">Password</string>
+    <string name="cert_password_hint">Leave empty if the file has none.</string>
+    <string name="cert_import_button">Import</string>
+
+    <!-- Certificate summary -->
+    <string name="cancel">Cancel</string>
+    <string name="cert_none">None loaded (self-signed; cars reject it)</string>
+    <string name="cert_kind_imported">Imported: %1$s</string>
+    <string name="cert_kind_downloaded">Downloaded: %1$s</string>
+    <string name="cert_kind_adb">Staged over adb: %1$s</string>
+    <string name="cert_kind_self">Self-signed: %1$s</string>
+
+    <!-- Car settings on the phone -->
+    <string name="car_group_screen">Screen</string>
+    <string name="car_group_nav_bar">Nav bar and player</string>
+    <string name="car_group_sound">Sound and voice</string>
+    <string name="car_group_warnings">Warnings</string>
+    <string name="car_group_more">More</string>
+    <string name="choice_size_normal">Normal</string>
+    <string name="choice_size_large">Large</string>
+    <string name="choice_size_xlarge">Extra large</string>
+    <string name="choice_theme_phone">Follow phone</string>
+    <string name="choice_theme_light">Light</string>
+    <string name="choice_theme_dark">Dark</string>
+    <string name="choice_dark_black">Black</string>
+    <string name="choice_dark_black_colour">Black and colour</string>
+    <string name="choice_dark_deep_colour">Deep colour</string>
+    <string name="choice_dark_grey">Grey</string>
+    <string name="choice_auto">Auto</string>
+    <string name="choice_night_day">Day</string>
+    <string name="choice_night_night">Night</string>
+    <string name="choice_units_imperial">Imperial</string>
+    <string name="choice_units_metric">Metric</string>
+    <string name="choice_nav_show">Always show</string>
+    <string name="choice_nav_hide_navigating">Hide while navigating</string>
+    <string name="choice_nav_hide">Hide until tapped</string>
+    <string name="choice_open_home">Home</string>
+    <string name="summary_player_left">Player on the left</string>
+    <string name="summary_player_right">Player on the right</string>
+    <string name="summary_usb_audio">Audio through Gearslip</string>
+    <string name="summary_bluetooth_audio">Bluetooth audio</string>
+    <string name="summary_directions_on">Directions on</string>
+    <string name="summary_directions_off">Directions off</string>
+    <string name="summary_bluetooth_on">Bluetooth on</string>
+    <string name="summary_bluetooth_off">Bluetooth off</string>
+    <string name="summary_location_on">Location on</string>
+    <string name="summary_location_off">Location off</string>
+    <string name="web_page">Web page</string>
+    <string name="summary_experimental_shown">Experimental features shown</string>
+    <string name="summary_experimental_hidden">Experimental features hidden</string>
+    <string name="home_car">Car</string>
+    <string name="car_group_same">These are the same settings as Settings in the car. A change here shows there too.</string>
+    <string name="car_open_on_connect">Open on connect</string>
+    <string name="car_size">Size</string>
+    <string name="car_app_theme">App theme</string>
+    <string name="car_dark_mode">Dark mode</string>
+    <string name="car_buttons">Buttons</string>
+    <string name="car_map_day_night">Map day/night</string>
+    <string name="car_units">Units</string>
+    <string name="car_nav_bar">Nav bar</string>
+    <string name="car_player_nav_bar">Player in the nav bar</string>
+    <string name="car_skip_buttons">Skip buttons</string>
+    <string name="car_song_title">Song title</string>
+    <string name="car_player_beside_map">Player beside the map</string>
+    <string name="car_right">Right</string>
+    <string name="car_left">Left</string>
+    <string name="car_autoplay">Autoplay on connect</string>
+    <string name="car_more_lyrics">More lyrics sources</string>
+    <string name="car_more_lyrics_note">Also asks BetterLyrics and KuGou, which then get the song\'s name and artist. Off asks LRCLIB only.</string>
+    <string name="car_spoken_directions">Spoken directions</string>
+    <string name="car_spoken_directions_note">Turn it off if your map app\'s own voice already plays in the car.</string>
+    <string name="car_phone_speech">Use the phone\'s speech recognition</string>
+    <string name="car_phone_speech_note">On most phones that\'s Google\'s, which may send your voice to Google.</string>
+    <string name="car_warn_bluetooth">Warn when Bluetooth isn\'t connected</string>
+    <string name="car_warn_location">Warn when location is off</string>
+    <string name="car_experimental">Experimental features</string>
+    <string name="car_vehicle_data">Vehicle data</string>
+    <string name="car_vehicle_data_note">Adds a Vehicle data tile: a live dump of the car\'s sensors. The field names are guesses until you\'ve watched one change.</string>
+    <string name="car_adaptive_video">Adaptive video quality</string>
+    <string name="car_adaptive_video_note">Lowers the picture\'s quality when the car or its Wi-Fi can\'t keep up, and raises it again once it can. Applies on the next connection.</string>
+    <string name="web_page_note">Shown by the Browser app in the car. Empty opens DuckDuckGo. Applies on the next connection.</string>
+    <string name="car_audio">Car audio</string>
+    <string name="car_audio_bt">Bluetooth (Recommended)</string>
+    <string name="car_audio_bt_sub">No prompt each drive, and your map app\'s voice reaches the car</string>
+    <string name="car_audio_usb_sub">Clearer sound with no delay. Each drive, Android asks you to share your screen, which lets Gearslip send the sound</string>
+    <string name="car_audio_usb_footer">Run the command in Help once, and Android stops asking.</string>
+    <string name="car_audio_bt_footer">Calls go over Bluetooth either way.</string>
+
+    <!-- Car screen size -->
+    <string name="screen_car_size">Car screen size</string>
+    <string name="screen_use_cars">Use the car\'s</string>
+    <string name="screen_preview_size">Preview size</string>
+    <string name="screen_preview_note">The size the car preview draws at, such as 1920x720.</string>
+    <string name="screen_car_screen">Car screen</string>
+    <string name="screen_footer">Gearslip uses the size the car reports unless you set one.</string>
+    <string name="screen_size">Screen size</string>
+    <string name="screen_from_car">From the car</string>
+    <string name="screen_crop">Crop the edges</string>
+    <string name="screen_crop_sub">For a car that cuts off the top and bottom, or the sides</string>
+    <string name="screen_squash">Squash to fit</string>
+    <string name="screen_squash_sub">For a car that squeezes the whole picture, so circles look like ovals</string>
+    <string name="screen_preview_title">Car preview size</string>
+    <string name="screen_last_car">Last car</string>
+    <string name="screen_last_car_sub">The size of the last car you connected to</string>
+    <string name="screen_this_screen">This screen</string>
+    <string name="screen_this_screen_sub">Fills this device\'s screen, for a head unit running Gearslip itself</string>
+    <string name="screen_custom">Custom</string>
+    <string name="screen_enter_size">Enter a size</string>
+    <string name="screen_change_custom">Change the custom size</string>
+    <string name="screen_width">Width</string>
+    <string name="screen_height">Height</string>
+    <string name="save">Save</string>
+
+    <!--  -->
+    <string name="screen_car_size_note">Use this if the car\'s picture looks stretched. Enter the screen\'s real size, such as 1280x480. It takes effect the next time you connect.</string>
+    <string name="screen_set_by_you">%1$s, set by you</string>
+
+    <!-- Help -->
+    <string name="help_title">How to connect</string>
+    <string name="help_which_cars">Which cars work</string>
+    <string name="help_full_list">See the full list</string>
+    <string name="help_first_drive">Before your first drive</string>
+    <string name="help_in_car">In the car</string>
+    <string name="help_usb_audio">Audio through Gearslip</string>
+
+    <!--  -->
+    <string name="help_aa_off">Turn off Android Auto.</string>
+    <string name="help_aa_off_detail">Disable or uninstall the Android Auto app, so the car talks to Gearslip instead.</string>
+    <string name="help_cert">Load a certificate.</string>
+    <string name="help_cert_detail">In Settings, download the aasdk certificate, which most cars accept. If your car rejects it, import your own instead.</string>
+    <string name="help_mic">Allow the microphone.</string>
+    <string name="help_mic_detail">Android won\'t let an app pass music to the car without it. Gearslip listens only when you tap the mic or press the talk button on your wheel.</string>
+    <string name="help_plug_in">Plug in, or connect wirelessly.</string>
+    <string name="help_plug_in_detail">Gearslip opens by itself when the car connects. For wireless, pair the phone with the car first, then tap Connect wirelessly on Home.</string>
+    <string name="help_pair">Pair over Bluetooth for calls.</string>
+    <string name="help_pair_detail">Calls play through the car once your phone and the car are paired. Gearslip offers to pair the first time you plug in.</string>
+    <string name="help_answer">Answer calls from the car screen.</string>
+    <string name="help_answer_detail">Set Gearslip as your caller ID and spam app. Without it, calls still ring, but only the phone can answer them.</string>
+    <string name="help_prompt">Stop the audio prompt each drive.</string>
+    <string name="help_prompt_detail">Connect the phone to a computer with USB debugging on, and run this once. Skip it and you tap Start each time you set off.</string>
+    <string name="help_readable">Keep notifications readable.</string>
+    <string name="help_readable_detail">Android hides what notifications say while it shares audio. Run this too, and Gearslip lifts that only while music goes to the car.</string>
+    <string name="help_which_cars_body">Most cars accept the aasdk certificate. Starting around 2020, some cars added newer security checks that reject it, and in those cars Gearslip needs a certificate of your own.</string>
+
+    <!-- Updates -->
+    <string name="update_downloaded_ask">Downloaded. Android asks before it installs.</string>
+    <string name="update_install">Install</string>
+    <string name="update_download_now">Download it now. Android asks before it installs.</string>
+    <string name="update_try_again">Try again</string>
+    <string name="update_update">Update</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_latest">You have the latest version</string>
+    <string name="update_download">Download</string>
+    <string name="update_check_now">Check now</string>
+    <string name="update_check_auto">Check automatically</string>
+    <string name="update_once_a_day">Once a day</string>
+
+    <!--  -->
+    <string name="update_unplug_first">Unplug from the car to install. Installing closes Gearslip.</string>
+    <string name="update_card_title">Gearslip %1$s is out</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_debug_manual">Debug builds check only when you tap Check now</string>
+    <string name="update_checks_daily">Gearslip checks once a day</string>
+    <string name="update_version_out">Version %1$s is out</string>
+    <string name="update_version_ready">Version %1$s is ready to install</string>
+    <string name="update_dialog_status">Version %1$s. %2$s.</string>
+
+    <!-- About and support -->
+    <string name="about_give_regularly">Give weekly or monthly</string>
+    <string name="about_bmac_sub" formatted="false">Give once or monthly, by card. Buy Me a Coffee keeps 5%</string>
+    <string name="about_give_once">Give once</string>
+    <string name="about_any_amount">Any amount, by card</string>
+    <string name="about_monero_sub">Open your wallet or copy the address</string>
+    <string name="about_monero_title">Support with Monero</string>
+    <string name="about_monero_body">Send any amount to this address from your Monero wallet.</string>
+    <string name="about_open_wallet">Open in wallet</string>
+    <string name="about_copy_address">Copy address</string>
+    <string name="close">Close</string>
+    <string name="about_matrix">Join the chat on Matrix</string>
+    <string name="about_matrix_sub">Talk with other drivers about cars, apps, and Gearslip</string>
+    <string name="about_translate">Help translate Gearslip</string>
+    <string name="about_translate_sub">Fix or add your language on Weblate. Some translations started as machine translations.</string>
+    <string name="about_source">Source code</string>
+    <string name="about_source_sub">Read or change Gearslip\'s code under the AGPL</string>
+    <string name="about_voice_credits">Voice credits</string>
+
+    <!--  -->
+    <string name="about_no_wallet">No Monero wallet app found. Copy the address instead.</string>
+    <string name="about_monero_copied">Monero address copied</string>
+    <string name="about_voice_credits_sub">Speech recognition by sherpa-onnx (Apache 2.0), with Kroko ASR by Banafo (CC BY-SA 4.0), and Parakeet and Canary by NVIDIA (CC BY 4.0)</string>
+
+    <!-- Certificate setup -->
+    <string name="certsetup_title">Certificate Setup</string>
+    <string name="certsetup_installed">Certificate installed.</string>
+    <string name="certsetup_continue">Continue</string>
+    <string name="certsetup_failed">Download failed</string>
+    <string name="certsetup_retry">Retry</string>
+    <string name="certsetup_import_sub">A .p12 file with its private key. Use your own when your car rejects the aasdk certificate.</string>
+    <string name="certsetup_skip">Skip car connection setup</string>
+
+    <!--  -->
+    <string name="certsetup_loaded">Cars accept only Google-issued certificates, and you have one loaded.</string>
+    <string name="certsetup_choose">Cars accept only Google-issued certificates. Gearslip doesn\'t include one, so choose where yours comes from.</string>
+    <string name="certsetup_aasdk_sub">The open-source aasdk project publishes this certificate at github.com/opencardev/aasdk. Most cars accept it. Some from around 2020 on reject it, and then you need to import your own.</string>
+
+    <!-- Storage -->
+    <string name="storage_title">Gearslip storage</string>
+    <string name="storage_measuring">Measuring…</string>
+    <string name="storage_lyrics">Lyrics</string>
+    <string name="storage_clear">Clear</string>
+    <string name="storage_voice">Voice models</string>
+    <string name="storage_remove">Remove</string>
+    <string name="storage_logs">Old logs</string>
+    <string name="storage_other">Other temporary files</string>
+    <string name="storage_delete_all">Delete all Gearslip data</string>
+
+    <!--  -->
+    <string name="storage_total">Gearslip\'s data takes %1$s of the phone\'s storage.</string>
+    <plurals name="storage_lyrics_detail">
+        <item quantity="one">%1$d song · %2$s. Cleared lyrics download again when you open them.</item>
+        <item quantity="other">%1$d songs · %2$s. Cleared lyrics download again when you open them.</item>
+    </plurals>
+    <string name="storage_voice_detail">%1$s. Voice commands need them; download them again in Settings.</string>
+    <string name="storage_logs_detail">%1$s. Logs from earlier launches; this launch\'s log stays.</string>
+    <string name="storage_other_detail">%1$s. Downloaded updates and other files Gearslip can make again.</string>
+    <string name="storage_delete_armed">Tap Delete again to erase settings, certificates, voice models and logs. Gearslip closes, and starts from setup next time.</string>
+    <string name="storage_delete_sub">Settings, certificates, voice models, lyrics and logs.</string>
+    <string name="storage_delete">Delete</string>
+    <string name="storage_delete_ellipsis">Delete…</string>
+
+    <!-- Donate prompt -->
+    <string name="donate_title">Glad that drive worked</string>
+    <string name="donate_liberapay">Support on Liberapay</string>
+    <string name="donate_bmac">Buy me a coffee</string>
+    <string name="donate_card">Give once by card</string>
+
+    <!--  -->
+    <string name="donate_body">Gearslip is free, with no ads and no tracking. If it gets you on the road, your support keeps it going.</string>
+
+    <!-- Wireless -->
+    <string name="wireless_needs_permission">Gearslip needs Bluetooth and nearby Wi-Fi access for this.</string>
+    <string name="wireless_enable_permission">Enable Nearby devices permission</string>
+    <string name="wireless_connect">Connect wirelessly</string>
+    <string name="wireless_which_car">Which car?</string>
+    <string name="wireless_none_paired">Your phone isn\'t paired with anything yet. Pair it with the car first.</string>
+    <string name="wireless_not_listed">Car not listed? Pair it with your phone first.</string>
+    <string name="bluetooth_settings">Bluetooth settings</string>
+
+    <!-- Voice models -->
+    <string name="voice_live_title">Voice: live words</string>
+    <string name="voice_final_title">Voice: final words</string>
+    <string name="voice_none">None</string>
+    <string name="voice_none_sub">Keep the live words. Fastest, least accurate</string>
+
+    <!--  -->
+    <string name="voice_live_body">The voice assistant turns speech into text on this phone, and nothing you say leaves it. It needs two models, about 270 MB together, downloaded once. This one writes your words as you speak.</string>
+    <string name="voice_final_body">When you stop talking, this model reads the whole phrase again. It catches names and places the live model misses.</string>
+    <string name="voice_model_size">%1$s · %2$d MB</string>
+    <string name="voice_downloaded">Downloaded. %1$s</string>
+    <string name="voice_downloading">Downloading, %1$d%%</string>
+
+    <!-- Home -->
+    <string name="home_help">Help</string>
+    <string name="home_preview">Preview</string>
+    <string name="home_logs">Logs</string>
+    <string name="home_disconnect">Disconnect</string>
+    <string name="home_bt_title">Bluetooth isn\'t connected</string>
+
+    <!--  -->
+    <string name="home_debug_build">%1$s · debug build</string>
+    <string name="home_bt_body">Music plays over Bluetooth, but your phone isn\'t connected to the car. Connect it here or from the car\'s Bluetooth menu.</string>
+    <string name="home_voice_downloading">Downloading voice, %1$d%%</string>
+
+    <!-- Car audio dialogs -->
+    <string name="audio_bt_title">Play car audio over Bluetooth?</string>
+    <string name="audio_never_ask">Never ask, using a computer</string>
+    <string name="audio_use_bt">Use Bluetooth</string>
+    <string name="audio_keep_asking">Keep asking</string>
+    <string name="audio_mic_title">Car audio needs the microphone permission</string>
+    <string name="audio_open_settings">Open app settings</string>
+
+    <!--  -->
+    <string name="audio_bt_body">Android treats the music Gearslip sends to the car like sharing your screen, so it asks every drive, over a cable or wireless. Over Bluetooth it never asks. You can change this later in Settings.</string>
+    <string name="audio_keep_usb">Or keep the sound going through Gearslip and stop the question for good: plug the phone into a computer with USB debugging on, and run this once.</string>
+    <string name="audio_mic_body">Android lets an app send other apps\' sound to the car only if it has the microphone permission. It\'s turned off for Gearslip, so music plays on the phone. Turn it on under Permissions, then Microphone.</string>
+
+    <!-- Phone keyboard -->
+    <string name="typing_close">Close the car keyboard</string>
+    <string name="typing_label">Type for the car screen</string>
+    <string name="typing_search">Search on the car screen</string>
+
+    <!-- Copyable command -->
+    <string name="command_tap_copy">Tap to copy</string>
+
+    <!--  -->
+    <string name="command_copied">Command copied</string>
+
+    <!--  -->
+    <string name="whats_new_this_version">%1$s (this version)</string>
+
+    <!-- Car settings screen -->
+    <string name="carset_theme">Theme</string>
+    <string name="carset_imperial">Imperial (mi, ft, °F)</string>
+    <string name="carset_metric">Metric (km, m, °C)</string>
+    <string name="carset_screen_size">Screen size (next connection)</string>
+    <string name="carset_fit">Fit to the screen</string>
+    <string name="off">Off</string>
+    <string name="on">On</string>
+    <string name="carset_lyrics_from">Lyrics from</string>
+    <string name="carset_more_sources">More sources</string>
+    <string name="carset_hide">Hide</string>
+    <string name="carset_show">Show</string>
+    <string name="carset_phone">Phone</string>
+    <string name="carset_vehicle">Vehicle</string>
+    <string name="carset_video">Video</string>
+    <string name="carset_version">Version</string>
+    <string name="carset_build">Build</string>
+    <string name="carset_whats_new_after">What\'s new after updates</string>
+    <string name="carset_whats_new_after_sub">Show the list of changes once, the first time the car connects after an update.</string>
+    <string name="carset_web_default">DuckDuckGo (default) - tap to set a different page</string>
+    <string name="carset_web_note">Shown by the Browser app on the launcher. Applies on the next connection.</string>
+    <string name="carset_screen_fit">Screen fit</string>
+    <string name="carset_top">Top</string>
+    <string name="carset_bottom">Bottom</string>
+    <string name="carset_save_vehicle">Save for this vehicle</string>
+    <string name="carset_no_profile">No vehicle profile matched</string>
+
+    <!--  -->
+    <string name="carset_audio_note">Through Gearslip sends the phone\'s sound over the car connection, cable or wireless. Android asks to share your screen each drive, and a few apps block it. Bluetooth plays as the phone normally would, and Android never asks.</string>
+    <string name="carset_directions_note">Gearslip reads each turn aloud through the car\'s speakers, and the music dips while it speaks. Turn it off if your map app\'s own voice already plays in the car.</string>
+    <string name="carset_phone_speech_note">Listens through the phone\'s own speech service instead of Gearslip\'s. On most phones that\'s Google\'s, which may send your voice to Google. GrapheneOS has none, so Gearslip keeps using its own.</string>
+    <string name="carset_vehicle_data_note">Adds a Vehicle data tile: a live, raw dump of the head unit\'s sensor channel. Field labels (speed, RPM, fuel...) are carried over from other reverse-engineering projects and unverified against this car - treat them as a guess, not a fact, until you\'ve watched one change for yourself.</string>
+    <string name="carset_adaptive_note">Lowers the picture\'s quality when the car, or its Wi-Fi, can\'t keep up, and raises it again once it can. Takes effect on the next connection.</string>
+    <string name="carset_usable_height">Usable height %1$dpx of 480</string>
+    <string name="carset_saved_to">Saved to %1$s</string>
+    <string name="carset_save_failed">Could not save</string>
+    <string name="carset_px">%1$dpx</string>
+
+    <!-- Car media app -->
+    <string name="media_open_on_phone">Open on phone</string>
+    <string name="media_now_playing">Now playing</string>
+    <string name="media_up_next">Up next</string>
+    <string name="media_browse">Browse</string>
+    <string name="media_search_hint">Type a song, artist, album, or playlist.</string>
+    <string name="media_looking_lyrics">Looking for lyrics…</string>
+    <string name="media_nothing_playing">Nothing playing</string>
+    <string name="media_press_play">Press play to pick up where you left off, or find something in Browse.</string>
+
+    <!--  -->
+    <string name="media_keeps_library">%1$s keeps its library to itself.</string>
+    <string name="media_needs_access">Gearslip can still control it once it has Notification access on the phone. Allow it under Settings &gt; Notifications &gt; Notification access.</string>
+    <string name="media_not_running">%1$s isn\'t running.</string>
+    <string name="media_not_running_body">%1$s plays through Gearslip\'s own player, but only while it\'s open on the phone. Open it once and it keeps playing here in the car.</string>
+    <string name="media_open_app">Open %1$s</string>
+    <string name="media_refused">%1$s would not let Gearslip browse it.</string>
+    <string name="media_refused_body">Some media apps only accept Google\'s own host. Start it playing on the phone and Gearslip takes over its controls.</string>
+    <string name="media_connecting">Connecting to %1$s…</string>
+    <string name="media_search">Search %1$s</string>
+    <string name="media_search_no_list">%1$s can\'t list results. Press search, and %1$s picks what to play.</string>
+    <string name="media_search_unsupported">%1$s can\'t search from the car.</string>
+    <string name="media_searching">Searching %1$s…</string>
+    <string name="media_search_nothing">%1$s found nothing for \"%2$s\".</string>
+    <string name="media_search_ignored">%1$s didn\'t play anything for \"%2$s\".</string>
+    <string name="media_searching_for">Searching %1$s for \"%2$s\"…</string>
+    <string name="media_nothing_playing_dot">Nothing playing.</string>
+    <string name="media_no_lyrics">No lyrics found for this track.</string>
+
+    <!-- Car media browsing -->
+    <string name="media_up">Up</string>
+    <string name="media_loading">Loading…</string>
+    <string name="media_browse_start">Start music in the app on your phone. Play, pause, skip and seek work from here.</string>
+    <string name="media_load_failed">Could not load this list.</string>
+    <string name="media_nothing_here">Nothing here.</string>
+    <string name="media_nothing_queued">Nothing queued.</string>
+    <string name="media_play">Play</string>
+
+    <!--  -->
+    <string name="media_queue_empty_idle">Nothing playing - not every app tells Gearslip what comes next.</string>
+    <string name="media_queue_empty_playing">Only what\'s already playing - not every app tells Gearslip what comes next.</string>
+
+    <!-- Player controls -->
+    <string name="player_previous">Previous</string>
+    <string name="player_next">Next</string>
+    <string name="player_repeat">Repeat</string>
+
+    <!--  -->
+    <string name="player_pause">Pause</string>
+    <string name="player_unlike">Unlike</string>
+    <string name="player_like">Like</string>
+    <string name="player_shuffle_off">Shuffle off</string>
+    <string name="player_shuffle_on">Shuffle on</string>
+
+    <!-- Car home -->
+    <string name="home_choose_app">Choose another app</string>
+    <string name="home_no_maps">No mapping apps found.</string>
+    <string name="home_no_maps_body">Install a navigation app that supports Android Auto and it will start here on its own.</string>
+    <string name="home_map_stopped">Map stopped</string>
+    <string name="home_map_stopped_body">It stays closed until you open it again.</string>
+    <string name="home_reopen_map">Reopen the map</string>
+    <string name="home_car_apps">Car apps</string>
+    <string name="home_back_nav">Back to the nav bar</string>
+    <string name="home_show_player">Show the player</string>
+    <string name="home_hide_lyrics">Hide lyrics</string>
+
+    <!--  -->
+    <string name="home_starting">Starting %1$s…</string>
+    <string name="home_starting_map">Starting the map…</string>
+    <string name="home_failed">%1$s would not start.</string>
+    <string name="home_failed_map">The map app would not start.</string>
+
+    <!-- Breadcrumbs -->
+    <string name="crumb_home">Home</string>
+    <string name="crumb_media">Media</string>
+    <string name="crumb_apps">Apps</string>
+    <string name="crumb_dashboard">Dashboard</string>
+    <string name="crumb_weather">Weather</string>
+    <string name="crumb_reply">Reply</string>
+
+    <!-- Built-in apps -->
+    <string name="app_browser">Browser</string>
+    <string name="app_screen_sharing">Screen sharing</string>
+    <string name="app_exit">Exit</string>
+    <string name="navapps_unpin">Unpin from nav bar</string>
+    <string name="navapps_full">Nav bar is full (%1$d pinned)</string>
+    <string name="navapps_pin">Pin to nav bar</string>
+    <string name="navapps_close">Close app</string>
+    <string name="navapps_move_left">Move left</string>
+    <string name="navapps_move_right">Move right</string>
+    <string name="navapps_reset">Reset app order</string>
+
+    <!-- Message popup -->
+    <string name="msg_dismiss">Dismiss</string>
+    <string name="msg_read">Read</string>
+    <string name="msg_stop">Stop</string>
+    <string name="msg_no">No</string>
+    <string name="msg_send_now">Send now</string>
+    <string name="msg_type">Type</string>
+
+    <!--  -->
+    <plurals name="msg_burst">
+        <item quantity="one">%1$s · %2$d new</item>
+        <item quantity="other">%1$s · %2$d new</item>
+    </plurals>
+    <string name="msg_reply_to">Reply to %1$s</string>
+    <string name="msg_listening">Listening</string>
+    <string name="msg_sending_to">Sending to %1$s</string>
+    <string name="msg_sent_to">Sent to %1$s</string>
+    <string name="msg_reply_failed">Couldn\'t reply</string>
+
+    <!-- Bluetooth pairing -->
+    <string name="bt_pair_unfinished">Pairing didn\'t finish. Pair from the car\'s Bluetooth menu instead.</string>
+    <string name="bt_pair_not_started">Pairing didn\'t start. Pair from the car\'s Bluetooth menu instead.</string>
+    <string name="bt_paired">Paired. Calls now play through the car.</string>
+
+    <!-- Car overlays -->
+    <string name="overlay_dont_show">Don\'t show again</string>
+    <string name="overlay_ok">OK</string>
+    <string name="overlay_location_off">Location is off</string>
+    <string name="overlay_pair_title">Pair with this car?</string>
+    <string name="overlay_pair">Pair</string>
+    <string name="overlay_confirm_title">Confirm on your phone</string>
+    <string name="overlay_confirm_body">Check the code on your phone and tap Pair. The car may ask too.</string>
+
+    <!--  -->
+    <string name="overlay_bt_body">Music plays over Bluetooth, but your phone isn\'t connected to the car. Connect it from the car\'s Bluetooth menu or your phone\'s.</string>
+    <string name="overlay_location_body">Map apps can\'t show where you are or give directions. Turn on location in your phone\'s quick settings when you\'re parked.</string>
+    <string name="overlay_pair_body_music">Calls and music play through the car\'s speakers once your phone and the car are paired. Your phone then asks you to confirm a code.</string>
+    <string name="overlay_pair_body">Calls play through the car\'s speakers once your phone and the car are paired. Your phone then asks you to confirm a code.</string>
+
+    <!-- Weather -->
+    <string name="weather_waiting_fix">Waiting for a location fix.</string>
+    <string name="weather_allow_location">Allow location for Gearslip on the phone to see the weather.</string>
+    <string name="weather_unreachable">Could not reach the weather service.</string>
+    <string name="weather_clear">Clear</string>
+    <string name="weather_mostly_clear">Mostly clear</string>
+    <string name="weather_partly_cloudy">Partly cloudy</string>
+    <string name="weather_overcast">Overcast</string>
+    <string name="weather_fog">Fog</string>
+    <string name="weather_drizzle">Drizzle</string>
+    <string name="weather_rain">Rain</string>
+    <string name="weather_snow">Snow</string>
+    <string name="weather_rain_showers">Rain showers</string>
+    <string name="weather_snow_showers">Snow showers</string>
+    <string name="weather_thunderstorm">Thunderstorm</string>
+
+    <!-- Weather screen -->
+    <string name="weather_getting">Getting the weather…</string>
+    <string name="weather_next_hours">Next hours</string>
+    <string name="weather_this_week">This week</string>
+    <string name="weather_today">Today</string>
+    <string name="weather_credit">Weather data by Open-Meteo.com (CC BY 4.0)</string>
+
+    <!--  -->
+    <string name="weather_feels_like">Feels like %1$s</string>
+    <string name="weather_humidity">Humidity %1$d%%</string>
+    <string name="weather_wind">Wind %1$s</string>
+
+    <!-- Dashboard -->
+    <string name="dash_today">Today</string>
+    <string name="dash_getting_weather">Getting weather…</string>
+    <string name="dash_coming_up">Coming up</string>
+    <string name="dash_loading_calendar">Loading calendar…</string>
+    <string name="dash_nothing_week">Nothing in the next week.</string>
+
+    <!--  -->
+    <string name="dash_all_day">All day</string>
+
+    <!-- Phone dialer -->
+    <string name="dialer_contacts">Contacts</string>
+    <string name="dialer_keypad">Keypad</string>
+    <string name="dialer_ask">Ask on the phone</string>
+    <string name="dialer_enter_number">Enter a number</string>
+    <string name="dialer_call">Call</string>
+    <string name="dialer_no_contacts">No contacts with a phone number found.</string>
+    <string name="dialer_search">Search contacts</string>
+
+    <!--  -->
+    <string name="dialer_needs_permission">Gearslip needs the Phone and Contacts permissions to dial from here. Allow them on the phone when you\'re parked.</string>
+    <string name="dialer_no_match">No contacts match \"%1$s\".</string>
+    <string name="dialer_call_who">Call %1$s?</string>
+
+    <!-- Car screen -->
+    <string name="carui_exit_fullscreen">Exit full screen</string>
+    <string name="carui_drive_safely">Drive safely</string>
+    <string name="carui_understand">I understand</string>
+
+    <!--  -->
+    <string name="carui_unofficial">Gearslip is unofficial software: it is not made or reviewed by any carmaker, and it can fail without warning.</string>
+    <string name="carui_never_interact">Never interact with this screen while driving. Set the route or the song before you go, then keep your attention on the road.</string>
+    <string name="carui_this_app">This app</string>
+    <string name="carui_app_unsupported">%1$s doesn\'t work with Gearslip yet.</string>
+    <string name="carui_app_unsupported_body">It didn\'t start. Some apps only run on Google\'s Android Auto.</string>
+
+    <!-- Nav bar -->
+    <string name="navbar_on_call">On a call</string>
+    <string name="navbar_end_call">End call</string>
+
+    <!--  -->
+    <string name="navbar_unmute">Unmute</string>
+    <string name="navbar_mute">Mute</string>
+    <string name="navbar_close_panel">Close the side panel</string>
+    <string name="navbar_dock_player">Move the player beside the map</string>
+
+    <!-- Browser -->
+    <string name="web_search">Search or type an address</string>
+    <string name="web_forward">Forward</string>
+    <string name="web_reload">Reload</string>
+    <string name="web_start_page">Start page</string>
+    <string name="web_fullscreen">Full screen</string>
+
+    <!-- Notifications -->
+    <string name="notif_title">Notifications</string>
+    <string name="notif_clear_all">Clear all</string>
+    <string name="notif_empty">Nothing yet. New notifications from the phone will show up here.</string>
+    <string name="notif_off">Notifications are off. Allow Gearslip under Settings &gt; Notifications &gt; Notification access on the phone.</string>
+    <string name="notif_replied">Replied</string>
+
+    <!-- Messages -->
+    <string name="msg_mark_read">Mark read</string>
+
+    <!--  -->
+    <string name="msg_messages">Messages</string>
+    <string name="msg_none_recent">No recent messages. New %1$s messages appear here as they arrive on the phone.</string>
+    <plurals name="msg_earlier">
+        <item quantity="one">%1$d earlier</item>
+        <item quantity="other">%1$d earlier</item>
+    </plurals>
+    <string name="msg_hide_quick">Hide quick replies</string>
+    <string name="msg_quick">Quick reply</string>
+    <string name="msg_you">You: </string>
+    <string name="msg_sender">%1$s: </string>
+
+    <!-- Car app navigation -->
+    <string name="nav_finding_route">Finding a route…</string>
+    <string name="nav_then">Then</string>
+    <string name="nav_stop">Stop navigating</string>
+    <string name="nav_finding_routes">Finding routes…</string>
+
+    <!--  -->
+    <string name="nav_lane_recommended">Recommended lane</string>
+    <string name="nav_lane">Lane</string>
+    <string name="nav_arrive">Arrive %1$s</string>
+
+    <!-- Car app screens -->
+    <string name="template_nothing_playing">Nothing playing yet.</string>
+
+    <!--  -->
+    <string name="template_search">Search</string>
+
+    <!-- Car app screens, more -->
+    <string name="template_start">Start</string>
+
+    <!-- Calls -->
+    <string name="call_incoming">Incoming call</string>
+    <string name="call_decline">Decline</string>
+    <string name="call_answer">Answer</string>
+    <string name="call_ringing">Already ringing out loud - answer here, or let it ring.</string>
+
+    <!-- Screen sharing -->
+    <string name="phoneapps_touch_off">Touch is off. Enable Gearslip under Settings &gt; Accessibility on the phone.</string>
+
+    <!-- What's new in the car -->
+    <string name="whatsnew_show_after">Show after updates</string>
+    <string name="whatsnew_got_it">Got it</string>
+
+    <!--  -->
+    <string name="whatsnew_title">What\'s new in %1$s</string>
+
+    <!-- Car keyboard -->
+    <string name="keyboard_space">space</string>
+    <string name="keyboard_hide">Hide keyboard</string>
+    <string name="keyboard_submit">Submit</string>
+
+    <!-- Launcher -->
+    <string name="launcher_broken">Doesn\'t work with Gearslip</string>
+
+    <!-- Car app stage -->
+    <string name="stage_car_app">Car app</string>
+    <string name="stage_close">Close %1$s</string>
+    <string name="stage_close_app">Close the app</string>
+
+    <!-- Spoken directions -->
+    <string name="dir_slight_left">Turn slightly left</string>
+    <string name="dir_slight_left_onto">Turn slightly left onto %1$s</string>
+    <string name="dir_slight_right">Turn slightly right</string>
+    <string name="dir_slight_right_onto">Turn slightly right onto %1$s</string>
+    <string name="dir_left">Turn left</string>
+    <string name="dir_left_onto">Turn left onto %1$s</string>
+    <string name="dir_right">Turn right</string>
+    <string name="dir_right_onto">Turn right onto %1$s</string>
+    <string name="dir_sharp_left">Turn sharply left</string>
+    <string name="dir_sharp_left_onto">Turn sharply left onto %1$s</string>
+    <string name="dir_sharp_right">Turn sharply right</string>
+    <string name="dir_sharp_right_onto">Turn sharply right onto %1$s</string>
+    <string name="dir_u_turn">Make a U-turn</string>
+    <string name="dir_keep_left">Keep left</string>
+    <string name="dir_keep_left_toward">Keep left toward %1$s</string>
+    <string name="dir_keep_right">Keep right</string>
+    <string name="dir_keep_right_toward">Keep right toward %1$s</string>
+    <string name="dir_fork_left">Keep left at the fork</string>
+    <string name="dir_fork_left_toward">Keep left at the fork toward %1$s</string>
+    <string name="dir_fork_right">Keep right at the fork</string>
+    <string name="dir_fork_right_toward">Keep right at the fork toward %1$s</string>
+    <string name="dir_ramp_left">Take the ramp on the left</string>
+    <string name="dir_ramp_left_onto">Take the ramp on the left onto %1$s</string>
+    <string name="dir_ramp_right">Take the ramp on the right</string>
+    <string name="dir_ramp_right_onto">Take the ramp on the right onto %1$s</string>
+    <string name="dir_exit_left">Take the exit on the left</string>
+    <string name="dir_exit_left_toward">Take the exit on the left toward %1$s</string>
+    <string name="dir_exit_right">Take the exit on the right</string>
+    <string name="dir_exit_right_toward">Take the exit on the right toward %1$s</string>
+    <string name="dir_merge_left">Merge left</string>
+    <string name="dir_merge_left_onto">Merge left onto %1$s</string>
+    <string name="dir_merge_right">Merge right</string>
+    <string name="dir_merge_right_onto">Merge right onto %1$s</string>
+    <string name="dir_merge">Merge</string>
+    <string name="dir_merge_onto">Merge onto %1$s</string>
+    <string name="dir_roundabout_through">Go through the roundabout</string>
+    <string name="dir_roundabout_through_onto">Go through the roundabout onto %1$s</string>
+    <string name="dir_roundabout_enter">Enter the roundabout</string>
+    <string name="dir_roundabout_exit">Exit the roundabout</string>
+    <string name="dir_roundabout_exit_onto">Exit the roundabout onto %1$s</string>
+    <string name="dir_straight">Continue straight</string>
+    <string name="dir_straight_onto">Continue straight onto %1$s</string>
+    <string name="dir_continue">Continue</string>
+    <string name="dir_continue_onto">Continue onto %1$s</string>
+    <string name="dir_ferry">Take the ferry</string>
+    <string name="dir_train">Take the train</string>
+    <string name="dir_destination">Your destination is ahead</string>
+    <string name="dir_destination_left">Your destination is on the left</string>
+    <string name="dir_destination_right">Your destination is on the right</string>
+    <string name="dir_roundabout_take">At the roundabout, take the %1$s exit</string>
+    <string name="dir_roundabout_take_onto">At the roundabout, take the %1$s exit onto %2$s</string>
+    <string name="dir_ordinal_1">first</string>
+    <string name="dir_ordinal_2">second</string>
+    <string name="dir_ordinal_3">third</string>
+    <string name="dir_ordinal_4">fourth</string>
+    <string name="dir_ordinal_5">fifth</string>
+    <string name="dir_ordinal_6">sixth</string>
+    <string name="dir_ordinal_7">seventh</string>
+    <string name="dir_ordinal_8">eighth</string>
+    <string name="dir_in_distance">In %1$s, %2$s</string>
+    <plurals name="dir_km">
+        <item quantity="one">%1$s kilometer</item>
+        <item quantity="other">%1$s kilometers</item>
+    </plurals>
+    <string name="dir_km_decimal">%1$s kilometers</string>
+    <string name="dir_quarter_mile">a quarter mile</string>
+    <string name="dir_half_mile">half a mile</string>
+    <string name="dir_three_quarter_mile">three quarters of a mile</string>
+    <plurals name="dir_miles">
+        <item quantity="one">%1$s mile</item>
+        <item quantity="other">%1$s miles</item>
+    </plurals>
+    <string name="dir_miles_decimal">%1$s miles</string>
+    <plurals name="dir_feet">
+        <item quantity="one">%1$s foot</item>
+        <item quantity="other">%1$s feet</item>
+    </plurals>
+    <plurals name="dir_yards">
+        <item quantity="one">%1$s yard</item>
+        <item quantity="other">%1$s yards</item>
+    </plurals>
+    <plurals name="dir_meters">
+        <item quantity="one">%1$d meter</item>
+        <item quantity="other">%1$d meters</item>
+    </plurals>
+
+    <!--  -->
+    <string name="certsetup_installed_hint">If your car won\'t connect, it may reject this certificate. Import your own in Settings, under Certificate.</string>
+
+    <!--  -->
+    <string name="cert_downloaded_footer">Car won\'t connect? Some cars from around 2020 on reject the aasdk certificate, so import your own instead. Changes take effect on the next connection.</string>
+
+    <!-- Cluster screen -->
+    <string name="car_cluster_video">Turn card on the cluster screen</string>
+    <string name="car_cluster_video_note">For a car with a second screen in the instrument cluster: Gearslip shows the next turn there. Applies on the next connection.</string>
+
+    <!-- Connection status on Home -->
+    <string name="status_idle">Not connected</string>
+    <string name="status_idle_detail">Plug into the car\'s USB port, or connect wirelessly. Gearslip opens by itself when the car answers.</string>
+    <string name="status_connecting">Connecting</string>
+    <string name="status_projecting">Projecting</string>
+    <string name="status_projecting_detail">Streaming to the head unit.</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_disconnected_detail">The head unit is no longer connected.</string>
+    <string name="places_title">Saved places</string>
+    <string name="places_sub">Say “navigate home” in any map app</string>
+    <string name="places_intro">Say “navigate home”, “take me to work” or “navigate to” a name of your own, and Gearslip sends that address to your map app.</string>
+    <string name="places_home">Home</string>
+    <string name="places_work">Work</string>
+    <string name="places_other">Place %1$d</string>
+    <string name="places_name">Name</string>
+    <string name="places_address">Address</string>
+    <string name="places_here">Use where I am</string>
+    <string name="places_finding">Finding you…</string>
+    <string name="places_not_found">Gearslip couldn’t find where you are. Check that location is on.</string>
+    <string name="places_clear">Clear</string>
 </resources>

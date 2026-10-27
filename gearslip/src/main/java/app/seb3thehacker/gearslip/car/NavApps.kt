@@ -1,5 +1,8 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,25 +68,31 @@ private val CarGlyph: ImageVector = ImageVector.Builder("Car", 24.dp, 24.dp, 24f
  */
 internal class BuiltInApp(
     val id: String,
+    /** English, for matching what a driver says; [labelRes] is what the screen shows. */
     val label: String,
+    @param:StringRes val labelRes: Int,
     val glyph: ImageVector,
     val screen: CarScreen?,
     val open: (CarNavigator) -> Unit,
 )
 
 internal object BuiltInApps {
-    val Web = BuiltInApp("web", "Browser", Icons.Filled.Search, CarScreen.App("web")) { it.open("web") }
-    val ScreenSharing = BuiltInApp("phone", "Screen sharing", Icons.Filled.Share, CarScreen.App("phone")) { it.open("phone") }
-    val Phone = BuiltInApp("dialer", "Phone", Icons.Filled.Call, CarScreen.App("dialer")) { it.open("dialer") }
-    val VehicleData = BuiltInApp("vehicle", "Vehicle data", Icons.Filled.Info, CarScreen.VehicleData) { it.vehicleData() }
-    val Settings = BuiltInApp("settings", "Settings", Icons.Filled.Settings, CarScreen.Settings) { it.settings() }
+    val Web = BuiltInApp("web", "Browser", R.string.app_browser, Icons.Filled.Search, CarScreen.App("web")) { it.open("web") }
+    val ScreenSharing = BuiltInApp("phone", "Screen sharing", R.string.app_screen_sharing, Icons.Filled.Share, CarScreen.App("phone")) { it.open("phone") }
+    val Phone = BuiltInApp("dialer", "Phone", R.string.carset_phone, Icons.Filled.Call, CarScreen.App("dialer")) { it.open("dialer") }
+    val VehicleData = BuiltInApp("vehicle", "Vehicle data", R.string.car_vehicle_data, Icons.Filled.Info, CarScreen.VehicleData) { it.vehicleData() }
+    val Settings = BuiltInApp("settings", "Settings", R.string.settings_title, Icons.Filled.Settings, CarScreen.Settings) { it.settings() }
 
     /** Hands the screen back to the car's own interface, like Android Auto's Exit. */
-    val Exit = BuiltInApp("exit", "Exit", CarGlyph, screen = null) { CarFocus.exitToCar() }
+    val Exit = BuiltInApp("exit", "Exit", R.string.app_exit, CarGlyph, screen = null) { CarFocus.exitToCar() }
 
     val all = listOf(Web, ScreenSharing, Phone, VehicleData, Settings, Exit)
     val entries: List<Entry> = all.map { Entry(it.label, icon = null, builtIn = it) }
 }
+
+/** The name a driver sees: translated for Gearslip's own apps, the app's own name otherwise. */
+@Composable
+internal fun Entry.shownLabel(): String = builtIn?.let { stringResource(it.labelRes) } ?: label
 
 /** Vehicle data is experimental: raw, unverified sensor labels (see [CarSensors]). */
 @Composable
@@ -215,7 +224,7 @@ internal fun AppMenu(navigator: CarNavigator, running: Map<String, RunningSlot>)
                     entry.icon?.let { Image(it, null, Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))) }
                     entry.builtIn?.let { Icon(it.glyph, null, Modifier.size(36.dp)) }
                     Text(
-                        entry.label,
+                        entry.shownLabel(),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 14.dp),
@@ -232,9 +241,9 @@ internal fun AppMenu(navigator: CarNavigator, running: Map<String, RunningSlot>)
                 ) {
                     Text(
                         when {
-                            isPinned -> "Unpin from nav bar"
-                            barFull -> "Nav bar is full (${CarSettings.MAX_PINNED} pinned)"
-                            else -> "Pin to nav bar"
+                            isPinned -> stringResource(R.string.navapps_unpin)
+                            barFull -> stringResource(R.string.navapps_full, CarSettings.MAX_PINNED)
+                            else -> stringResource(R.string.navapps_pin)
                         },
                         style = MaterialTheme.typography.titleMedium,
                     )
@@ -248,13 +257,13 @@ internal fun AppMenu(navigator: CarNavigator, running: Map<String, RunningSlot>)
                         },
                         tone = GsTone.Danger,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                    ) { Text("Close app", style = MaterialTheme.typography.titleMedium) }
+                    ) { Text(stringResource(R.string.navapps_close), style = MaterialTheme.typography.titleMedium) }
                 }
                 GsButton(
                     onClick = navigator::dismissAppMenu,
                     tone = GsTone.Neutral,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                ) { Text("Cancel", style = MaterialTheme.typography.titleMedium) }
+                ) { Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium) }
             }
         }
     }
@@ -281,19 +290,19 @@ private fun MoveButtons(id: String) {
             tone = GsTone.Tonal,
             enabled = index > 0,
             modifier = Modifier.weight(1f).height(56.dp),
-        ) { Text("Move left", style = MaterialTheme.typography.titleMedium) }
+        ) { Text(stringResource(R.string.navapps_move_left), style = MaterialTheme.typography.titleMedium) }
         GsButton(
             onClick = { move(1) },
             tone = GsTone.Tonal,
             enabled = index < order.lastIndex,
             modifier = Modifier.weight(1f).height(56.dp),
-        ) { Text("Move right", style = MaterialTheme.typography.titleMedium) }
+        ) { Text(stringResource(R.string.navapps_move_right), style = MaterialTheme.typography.titleMedium) }
     }
     if (custom.isNotEmpty()) {
         GsButton(
             onClick = { CarSettings.setAppOrder(emptyList()) },
             tone = GsTone.Neutral,
             modifier = Modifier.fillMaxWidth().height(56.dp),
-        ) { Text("Reset app order", style = MaterialTheme.typography.titleMedium) }
+        ) { Text(stringResource(R.string.navapps_reset), style = MaterialTheme.typography.titleMedium) }
     }
 }

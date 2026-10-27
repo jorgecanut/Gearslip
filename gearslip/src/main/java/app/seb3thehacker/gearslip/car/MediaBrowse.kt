@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.seb3thehacker.gearslip.car.theme.*
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import android.provider.Settings
 import android.content.Intent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -83,30 +86,134 @@ internal fun BrowsePanel(browse: app.seb3thehacker.gearslip.media.BrowseState, m
         // row could say that the app's name in the top-left corner hasn't already - showing it
         // again here (as "Browse", or as the app's own name) was just the same label twice.
         if (media.canGoUp || browse.trail.isNotEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (media.canGoUp) {
-                    GsIconButton(Icons.Filled.ArrowBack, "Up", media::up)
+                    GsIconButton(Icons.Filled.ArrowBack, stringResource(R.string.media_up), media::up, size = 44.dp, shape = CircleShape)
+                    Spacer(Modifier.width(14.dp))
                 }
                 browse.trail.lastOrNull()?.let {
                     Text(
                         it,
-                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
         }
         when {
-            browse.loading -> Notice("Loading…", null)
+            browse.loading -> Notice(stringResource(R.string.media_loading), null)
             browse.unavailable -> Notice(
-                "$appLabel keeps its library to itself.",
-                "Start music in the app on your phone. Play, pause, skip and seek work from here.",
+                stringResource(R.string.media_keeps_library, appLabel),
+                stringResource(R.string.media_browse_start),
             )
-            browse.failed -> Notice("Could not load this list.", null)
-            browse.entries.isEmpty() -> Notice("Nothing here.", null)
-            else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(browse.entries, key = { it.id }) { entry -> EntryRow(entry, media) }
+            browse.failed -> Notice(stringResource(R.string.media_load_failed), null)
+            browse.entries.isEmpty() -> Notice(stringResource(R.string.media_nothing_here), null)
+            else -> BrowseList(browse.entries, media)
+        }
+    }
+}
+
+/**
+ * A list laid out the way the app asked: under its section headings, covers where it asked for a
+ * grid and rows everywhere else. A grid section among others is a shelf that scrolls sideways; a
+ * list that is one grid and nothing else wraps into rows of covers instead.
+ */
+@Composable
+private fun BrowseList(entries: List<MediaEntry>, media: CarMedia) {
+    val sections = remember(entries) { browseSections(entries) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val onlyGrid = sections.size == 1 && sections[0].grid && sections[0].heading == null
+        val columns = ((maxWidth + SHELF_GAP) / (SHELF_COVER + SHELF_GAP)).toInt().coerceAtLeast(2)
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            sections.forEachIndexed { i, section ->
+                val heading = section.heading
+                if (heading != null && sections.getOrNull(i - 1)?.heading != heading) {
+                    item(key = "heading $i") {
+                        Text(
+                            heading,
+                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = if (i == 0) 0.dp else 8.dp),
+                        )
+                    }
+                }
+                when {
+                    !section.grid -> items(section.entries, key = { it.id }) { entry -> EntryRow(entry, media) }
+                    onlyGrid -> items(section.entries.chunked(columns)) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(SHELF_GAP)) {
+                            row.forEach { CoverTile(it, media, Modifier.weight(1f)) }
+                            repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                    else -> item(key = "shelf $i") {
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(SHELF_GAP)) {
+                            items(section.entries, key = { it.id }) { CoverTile(it, media, Modifier.width(SHELF_COVER)) }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+private val SHELF_COVER = 132.dp
+private val SHELF_GAP = 14.dp
+
+/** A run of entries under one heading that are all covers or all rows. */
+private class BrowseSection(val heading: String?, val grid: Boolean, val entries: List<MediaEntry>)
+
+private fun browseSections(entries: List<MediaEntry>): List<BrowseSection> {
+    val out = mutableListOf<BrowseSection>()
+    var run = mutableListOf<MediaEntry>()
+    for (entry in entries) {
+        val last = run.lastOrNull()
+        if (last != null && (last.group != entry.group || last.grid != entry.grid)) {
+            out += BrowseSection(last.group, last.grid, run)
+            run = mutableListOf()
+        }
+        run += entry
+    }
+    run.lastOrNull()?.let { out += BrowseSection(it.group, it.grid, run) }
+    return out
+}
+
+/** One entry as a cover with its name under it: what the app's grids are made of. */
+@Composable
+private fun CoverTile(entry: MediaEntry, media: CarMedia, modifier: Modifier) {
+    val context = LocalContext.current
+    val icon by produceState(entry.iconBitmap, entry.iconUri) {
+        value = entry.iconBitmap ?: MediaArt.load(context, entry.iconUri)
+    }
+    val shape = RoundedCornerShape(16.dp)
+    Column(modifier.clip(shape).clickable { media.select(entry) }) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .gsPanelShadow(shape)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                ?: Icon(
+                    if (entry.browsable) MediaIcons.Folder else MediaIcons.MusicNote, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxSize(0.35f),
+                )
+        }
+        Text(
+            entry.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp, start = 2.dp),
+        )
+        if (entry.subtitle.isNotEmpty()) {
+            Text(
+                entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
+            )
         }
     }
 }
@@ -127,12 +234,15 @@ internal fun QueuePanel(queue: List<QueueTrack>, now: NowPlaying, media: CarMedi
     Column(modifier) {
         if (upNext.isEmpty()) {
             Notice(
-                "Nothing queued.",
-                "${if (now.title.isEmpty()) "Nothing playing" else "Only what's already playing"} - " +
-                    "not every app tells Gearslip what comes next.",
+                stringResource(R.string.media_nothing_queued),
+                stringResource(if (now.title.isEmpty()) R.string.media_queue_empty_idle else R.string.media_queue_empty_playing),
             )
         } else {
-            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(upNext, key = { it.queueId }) { track -> QueueRow(track, media) }
             }
         }
@@ -148,18 +258,18 @@ private fun QueueRow(track: QueueTrack, media: CarMedia) {
     Surface(
         onClick = { media.playQueueItem(track) },
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             RowArt(icon, MediaIcons.MusicNote)
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(track.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                Text(track.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (track.subtitle.isNotEmpty()) {
-                    Text(track.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(track.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Icon(Icons.Filled.PlayArrow, "Play", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.PlayArrow, stringResource(R.string.media_play), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -173,19 +283,19 @@ internal fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = 
     Surface(
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             RowArt(icon, if (entry.browsable) MediaIcons.Folder else MediaIcons.MusicNote)
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(entry.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                Text(entry.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (entry.subtitle.isNotEmpty()) {
-                    Text(entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(entry.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (entry.browsable && entry.playable) {
-                GsIconButton(Icons.Filled.PlayArrow, "Play", { media.playAll(entry) })
+                GsIconButton(Icons.Filled.PlayArrow, stringResource(R.string.media_play), { media.playAll(entry) })
             }
             if (entry.browsable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
         }
@@ -196,7 +306,7 @@ internal fun EntryRow(entry: MediaEntry, media: CarMedia, onClick: () -> Unit = 
 @Composable
 private fun RowArt(icon: android.graphics.Bitmap?, fallback: ImageVector) {
     Box(
-        Modifier.size(62.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) Image(icon.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -217,8 +327,14 @@ internal object MediaIcons {
     val Shuffle = icon("Shuffle", "M10.59,9.17L5.41,4 4,5.41l5.17,5.17 1.42,-1.41zM14.5,4l2.04,2.04L4,18.59 5.41,20 17.96,7.46 20,9.5L20,4h-5.5zM14.83,13.41l-1.41,1.41 3.13,3.13L14.5,20L20,20v-5.5l-2.04,2.04 -3.13,-3.13z")
     val Repeat = icon("Repeat", "M7,7h10v3l4,-4 -4,-4v3L5,5v6h2L7,7zM17,17L7,17v-3l-4,4 4,4v-3h12v-6h-2v4z")
     val RepeatOne = icon("RepeatOne", "M7,7h10v3l4,-4 -4,-4v3L5,5v6h2L7,7zM17,17L7,17v-3l-4,4 4,4v-3h12v-6h-2v4zM13,15L13,9h-1l-2,1v1h1.5v4L13,15z")
-    /** A screen with a filled right-hand panel: "put the player beside the map". */
-    val DockRight = icon("DockRight", "M2,4h20v16H2zM4,6h10v12H4z", PathFillType.EvenOdd)
+    /**
+     * A screen split into the map and a side panel: outlined while the panel is closed ("put the
+     * player beside the map"), filled in while it's open ("close it"), on the side it opens on.
+     */
+    val DockRight = icon("DockRight", "M2,4h20v16H2zM4,6h10v12H4zM16,6h4v12h-4z", PathFillType.EvenOdd)
+    val DockRightOpen = icon("DockRightOpen", "M2,4h20v16H2zM4,6h10v12H4z", PathFillType.EvenOdd)
+    val DockLeft = icon("DockLeft", "M2,4h20v16H2zM4,6h4v12H4zM10,6h10v12H10z", PathFillType.EvenOdd)
+    val DockLeftOpen = icon("DockLeftOpen", "M2,4h20v16H2zM10,6h10v12H10z", PathFillType.EvenOdd)
     val Fullscreen = icon("Fullscreen", "M7,14L5,14v5h5v-2L7,17v-3zM5,10h2L7,7h3L10,5L5,5v5zM17,17h-3v2h5v-5h-2v3zM14,5v2h3v3h2L19,5h-5z")
     val FullscreenExit = icon("FullscreenExit", "M5,16h3v3h2v-5L5,14v2zM8,8L5,8v2h5L10,5L8,5v3zM14,19h2v-3h3v-2h-5v5zM16,8L16,5h-2v5h5L19,8h-3z")
 

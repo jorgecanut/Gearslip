@@ -227,6 +227,7 @@ class CarAppConnection(private val context: Context) {
 
     private fun disconnect(keepLocation: Boolean) {
         main.removeCallbacks(handshakeTimeout)
+        hardware.stop()
         clearToasts()
         lent?.let { sendSurfaceDestroyed(it) }
         lent = null
@@ -623,6 +624,7 @@ class CarAppConnection(private val context: Context) {
     fun reportAreas(visible: Rect, stable: Rect) {
         areas = visible to stable
         val callback = surfaceCallback ?: return
+        GearslipLog.i("host: areas for $appPackage: visible=${visible.toShortString()} stable=${stable.toShortString()}")
         runCatching { callback.onStableAreaChanged(stable, noop("onStableAreaChanged")) }
         runCatching { callback.onVisibleAreaChanged(visible, noop("onVisibleAreaChanged")) }
     }
@@ -708,38 +710,25 @@ class CarAppConnection(private val context: Context) {
     }
 
     /**
-     * Answers car-hardware questions with "this car doesn't have that".
+     * Answers car-hardware questions from what the car itself sends: see [CarHardwareFeed].
      *
-     * A phone knows nothing about a car's sensors, so every answer here is "unsupported" - but
-     * it has to be an actual answer. Returning no binder for this service at all is what made
-     * Organic Maps crash in onAppStart: its CarSensorsManager assumes a host that offers the
-     * service, and the library's own "unsupported" path only runs once a reply arrives.
-     *
-     * The reply's Bundleable is ignored by the library whenever isSupported is false, but the
-     * IBinder must be a real IOnDoneCallback - the app dispatches the reply through it.
+     * Every question has to get an actual answer, even "unsupported". Returning no binder for
+     * this service at all is what made Organic Maps crash in onAppStart: its CarSensorsManager
+     * assumes a host that offers the service, and the library's own "unsupported" path only runs
+     * once a reply arrives. The reply's IBinder must be a real IOnDoneCallback: the app
+     * dispatches the reply through it.
      */
+    private val hardware = CarHardwareFeed { name -> noop(name).asBinder() }
+
     private val hardwareHost = object : ICarHardwareHost.Stub() {
         override fun getInterfaceVersion(): Int = ICarHardwareHost.VERSION
-        override fun getCarHardwareResult(
-            type: Int,
-            params: Bundleable?,
-            result: ICarHardwareResult?,
-        ) = unsupported(type, result)
+        override fun getCarHardwareResult(type: Int, params: Bundleable?, result: ICarHardwareResult?) =
+            hardware.get(type, result)
 
-        override fun subscribeCarHardwareResult(
-            type: Int,
-            params: Bundleable?,
-            result: ICarHardwareResult?,
-        ) = unsupported(type, result)
+        override fun subscribeCarHardwareResult(type: Int, params: Bundleable?, result: ICarHardwareResult?) =
+            hardware.subscribe(type, result)
 
-        override fun unsubscribeCarHardwareResult(type: Int, params: Bundleable?) = Unit
-
-        private fun unsupported(type: Int, result: ICarHardwareResult?) {
-            val target = result ?: return
-            runCatching {
-                target.onCarHardwareResult(type, false, null, noop("carHardwareResult").asBinder())
-            }.onFailure { GearslipLog.w("host: could not answer hardware result $type") }
-        }
+        override fun unsubscribeCarHardwareResult(type: Int, params: Bundleable?) = hardware.unsubscribe(type)
     }
 
     /**

@@ -1,5 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
+import androidx.compose.ui.res.stringResource
+import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -76,7 +78,7 @@ fun CarWhatsNew() {
         ) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    "What's new in ${release.versionName}",
+                    stringResource(R.string.whatsnew_title, release.versionName),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -99,12 +101,12 @@ fun CarWhatsNew() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     GsSwitch(afterUpdates, CarSettings::setWhatsNewAfterUpdates)
                     Text(
-                        "Show after updates",
+                        stringResource(R.string.whatsnew_show_after),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f),
                     )
                     GsButton(onClick = close, modifier = Modifier.height(56.dp)) {
-                        Text("Got it", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.whatsnew_got_it), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }

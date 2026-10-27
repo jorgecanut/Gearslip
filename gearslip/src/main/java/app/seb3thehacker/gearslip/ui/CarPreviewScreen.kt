@@ -71,6 +71,14 @@ fun CarPreviewScreen(onBack: () -> Unit) {
 
     val projector = remember { ScreenProjector(context) }
 
+    // The preview is something to watch, like a map on a dash mount, so the phone stays awake on
+    // it. Only here: the flag goes with this screen, and every other screen sleeps as usual.
+    val view = androidx.compose.ui.platform.LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
+
     DisposableEffect(width, height, density) {
         CarEnvironment.start(context)
         // No surface yet: the SurfaceView below hands its own over once it exists, and the
