@@ -320,6 +320,8 @@ class GearslipActivity : ComponentActivity(), Projection {
     }
 
     private fun handleIntent(intent: Intent?) {
+        // Debug builds only: opens the audio choice for a look, without turning down a real prompt.
+        if (BuildConfig.DEBUG && intent?.getBooleanExtra("show_audio_choice", false) == true) offerBluetooth.value = true
         if (intent?.action == app.seb3thehacker.gearslip.wireless.WirelessAuto.ACTION_CAR_NEARBY) {
             connectToNearbyCar(intent.getStringExtra(app.seb3thehacker.gearslip.wireless.WirelessAuto.EXTRA_ADDRESS))
             return

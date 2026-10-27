@@ -4,6 +4,13 @@ import androidx.compose.ui.res.stringResource
 import app.seb3thehacker.gearslip.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,23 +35,28 @@ fun AudioChoiceDialog(onUseBluetooth: () -> Unit, onKeepAsking: () -> Unit) {
         onDismissRequest = onKeepAsking,
         title = { Text(stringResource(R.string.audio_bt_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    stringResource(R.string.audio_bt_body),
-                )
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.audio_bt_body))
                 if (showCommand) {
                     Text(
                         stringResource(R.string.audio_keep_usb),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     CopyableCommand("adb shell appops set ${BuildConfig.APPLICATION_ID} PROJECT_MEDIA allow")
-                } else {
-                    TextButton(onClick = { showCommand = true }) { Text(stringResource(R.string.audio_never_ask)) }
+                }
+                // Stacked full width: three labels this long never fit the dialog's one button row.
+                Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onUseBluetooth, Modifier.fillMaxWidth()) { Text(stringResource(R.string.audio_use_bt)) }
+                    OutlinedButton(onClick = onKeepAsking, Modifier.fillMaxWidth()) { Text(stringResource(R.string.audio_keep_asking)) }
+                    if (!showCommand) {
+                        TextButton(onClick = { showCommand = true }, Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.audio_never_ask))
+                        }
+                    }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onUseBluetooth) { Text(stringResource(R.string.audio_use_bt)) } },
-        dismissButton = { TextButton(onClick = onKeepAsking) { Text(stringResource(R.string.audio_keep_asking)) } },
+        confirmButton = {},
     )
 }
 
